@@ -7,6 +7,7 @@ use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\VentaController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LoginController;
 
 
 // Redirección raíz
@@ -59,3 +60,18 @@ Route::get('/clientes/{id}/historial', [VentaController::class, 'historialClient
 
 Route::get('/clientes/buscar-dni/{dni}', [ClienteController::class, 'buscarDni'])->name('clientes.buscarDni');
 
+// Página inicial -> login
+Route::get('/', function () {
+    return redirect()->route('login.form');
+});
+
+// Registro
+Route::get('/register', [UsuarioController::class, 'create'])->name('register');
+Route::post('/register', [UsuarioController::class, 'store'])->name('register.store');
+
+// Login
+Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login.form');
+Route::post('/login', [LoginController::class, 'login'])->name('login');
+
+// Logout
+Route::post('/logout', [LoginController::class, 'logout'])->name('logout');

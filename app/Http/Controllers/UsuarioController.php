@@ -2,64 +2,42 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Usuario;
 use Illuminate\Http\Request;
+use App\Models\Usuario;
+use Illuminate\Support\Facades\Hash;
 
 class UsuarioController extends Controller
 {
     /**
-     * Display a listing of the resource.
-     */
-    public function index()
-    {
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
+     * Mostrar formulario de registro
      */
     public function create()
     {
-        //
+        return view('auth.register');
     }
 
     /**
-     * Store a newly created resource in storage.
+     * Guardar un nuevo usuario
      */
     public function store(Request $request)
     {
-        //
-    }
+        // Validar datos
+        $request->validate([
+            'nombre' => 'required|string|max:255',
+            'correo' => 'required|email|unique:usuarios,correo',
+            'contraseña' => 'required|string|min:6',
+            'rol' => 'required|in:admin,usuario',
+        ]);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(Usuario $usuario)
-    {
-        //
-    }
+        // Crear usuario
+        Usuario::create([
+            'nombre' => $request->nombre,
+            'correo' => $request->correo,
+            'contraseña' => Hash::make($request->contraseña), // 🔐 Encripta la contraseña
+            'rol' => $request->rol,
+        ]);
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(Usuario $usuario)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Usuario $usuario)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(Usuario $usuario)
-    {
-        //
+        // Redirigir al login
+        return redirect()->route('login')->with('success', 'Usuario registrado correctamente. Ahora inicia sesión.');
     }
 }
