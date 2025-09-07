@@ -75,3 +75,9 @@ Route::post('/login', [LoginController::class, 'login'])->name('login');
 
 // Logout
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+
+//Ruta para buscar clientes
+
+// web.php
+Route::get('/clientes/search', [ClienteController::class, 'search']);
+

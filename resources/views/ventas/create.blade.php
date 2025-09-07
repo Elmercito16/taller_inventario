@@ -19,18 +19,20 @@
         <form action="{{ route('ventas.store') }}" method="POST" id="ventaForm">
             @csrf
 
-            {{-- Cliente (opcional) --}}
+            {{-- Cliente con buscador --}}
             <div class="mb-4">
-                <label for="cliente_id" class="block text-sm font-medium text-gray-700 mb-2">Cliente (opcional)</label>
-                <select name="cliente_id" id="cliente_id" class="w-full border rounded px-3 py-2">
-                    <option value="">-- Sin cliente --</option>
-                    @foreach($clientes as $cliente)
-                        <option value="{{ $cliente->id }}">{{ $cliente->nombre }} — {{ $cliente->dni }}</option>
-                    @endforeach
-                </select>
+                <label for="cliente_input" class="block text-sm font-medium text-gray-700 mb-2">Cliente (opcional)</label>
+                <div class="relative">
+                    <input id="cliente_input" type="text" placeholder="Escribe nombre o DNI..."
+                           class="w-full border rounded pl-3 pr-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                           autocomplete="off">
+                    <ul id="clientesList"
+                        class="absolute z-50 mt-1 w-full bg-white border rounded shadow max-h-60 overflow-auto hidden"></ul>
+                </div>
+                <input type="hidden" name="cliente_id" id="cliente_id">
             </div>
 
-            {{-- BUSCADOR --}}
+            {{-- Buscador de repuestos --}}
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Buscar repuesto</label>
                 <div class="relative">
@@ -100,18 +102,25 @@
             'stock' => (int) ($r->cantidad ?? 0),
         ];
     })->values()->toArray();
+
+    $clientes_js = $clientes->map(function($c){
+        return [
+            'id' => $c->id,
+            'nombre' => $c->nombre,
+            'dni' => $c->dni
+        ];
+    })->values()->toArray();
 @endphp
 
 <script>
+    // --- REPUESTOS ---
     const repuestos = @json($repuestos_js);
-
     const searchInput = document.getElementById('searchInput');
     const resultsList = document.getElementById('resultsList');
     const ventaItems = document.getElementById('ventaItems');
     const totalInput = document.getElementById('totalInput');
     const ventaTotal = document.getElementById('ventaTotal');
     const submitBtn = document.getElementById('submitBtn');
-
     let items = [];
 
     function escapeHtml(text) {
@@ -124,10 +133,7 @@
     function showResults(query) {
         resultsList.innerHTML = '';
         const q = query.trim().toLowerCase();
-        if (!q) {
-            resultsList.classList.add('hidden');
-            return;
-        }
+        if (!q) { resultsList.classList.add('hidden'); return; }
 
         const matches = repuestos.filter(r =>
             (r.nombre && r.nombre.toLowerCase().includes(q)) ||
@@ -157,20 +163,8 @@
     }
 
     function addItem(r) {
-        // evitar duplicados
-        if (items.find(i => i.id === r.id)) {
-            alert('Ya añadiste este repuesto.');
-            return;
-        }
-
-        const item = {
-            id: r.id,
-            nombre: r.nombre,
-            precio: r.precio_unitario,
-            stock: r.stock,
-            cantidad: 1
-        };
-        items.push(item);
+        if (items.find(i => i.id === r.id)) { alert('Ya añadiste este repuesto.'); return; }
+        items.push({ id: r.id, nombre: r.nombre, precio: r.precio_unitario, stock: r.stock, cantidad: 1 });
         renderItems();
         resultsList.classList.add('hidden');
         searchInput.value = '';
@@ -181,7 +175,7 @@
         if (!item) return;
         if (nuevaCantidad < 1) nuevaCantidad = 1;
         if (nuevaCantidad > item.stock) nuevaCantidad = item.stock;
-        item.cantidad = nuevaCantidad;
+        item.cantidad = parseInt(nuevaCantidad);
         renderItems();
     }
 
@@ -213,30 +207,61 @@
                         class="text-red-600 hover:underline">Eliminar</button>
                 </td>
             `;
-
-            // inputs ocultos
-            const hiddenInputs = `
+            tr.innerHTML += `
                 <input type="hidden" name="repuestos[${item.id}][id]" value="${item.id}">
                 <input type="hidden" name="repuestos[${item.id}][cantidad]" value="${item.cantidad}">
                 <input type="hidden" name="repuestos[${item.id}][precio]" value="${item.precio}">
             `;
-            tr.innerHTML += hiddenInputs;
-
             ventaItems.appendChild(tr);
         });
 
         ventaTotal.textContent = `S/ ${total.toFixed(2)}`;
         totalInput.value = total.toFixed(2);
-
         submitBtn.disabled = items.length === 0;
     }
 
     searchInput.addEventListener('input', (e) => showResults(e.target.value));
+    document.addEventListener('click', (e) => { if (!resultsList.contains(e.target) && e.target !== searchInput) resultsList.classList.add('hidden'); });
 
-    document.addEventListener('click', (e) => {
-        if (!resultsList.contains(e.target) && e.target !== searchInput) {
-            resultsList.classList.add('hidden');
+    // --- CLIENTES ---
+    const clientes = @json($clientes_js);
+    const clienteInput = document.getElementById('cliente_input');
+    const clientesList = document.getElementById('clientesList');
+    const clienteIdInput = document.getElementById('cliente_id');
+
+    function showClientesResults(query) {
+        clientesList.innerHTML = '';
+        const q = query.trim().toLowerCase();
+        if (!q) { clientesList.classList.add('hidden'); return; }
+
+        const matches = clientes.filter(c =>
+            (c.nombre && c.nombre.toLowerCase().includes(q)) ||
+            (c.dni && c.dni.toLowerCase().includes(q))
+        ).slice(0, 12);
+
+        if (matches.length === 0) {
+            clientesList.innerHTML = '<li class="px-4 py-3 text-sm text-gray-500">No se encontraron clientes</li>';
+            clientesList.classList.remove('hidden');
+            return;
         }
-    });
+
+        for (const c of matches) {
+            const li = document.createElement('li');
+            li.className = 'px-4 py-3 cursor-pointer hover:bg-gray-100 flex justify-between items-center';
+            li.innerHTML = `<div>${c.nombre} — ${c.dni}</div>`;
+            li.addEventListener('click', () => selectCliente(c));
+            clientesList.appendChild(li);
+        }
+        clientesList.classList.remove('hidden');
+    }
+
+    function selectCliente(c) {
+        clienteInput.value = `${c.nombre} — ${c.dni}`;
+        clienteIdInput.value = c.id;
+        clientesList.classList.add('hidden');
+    }
+
+    clienteInput.addEventListener('input', (e) => showClientesResults(e.target.value));
+    document.addEventListener('click', (e) => { if (!clientesList.contains(e.target) && e.target !== clienteInput) clientesList.classList.add('hidden'); });
 </script>
 @endsection

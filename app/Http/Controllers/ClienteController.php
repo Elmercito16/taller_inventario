@@ -9,17 +9,20 @@ use Illuminate\Http\Request;
 
 class ClienteController extends Controller
 {
+    // Listado de clientes
     public function index()
     {
         $clientes = Cliente::all();
         return view('clientes.index', compact('clientes'));
     }
 
+    // Formulario para crear cliente
     public function create()
     {
         return view('clientes.create');
     }
 
+    // Guardar cliente
     public function store(Request $request)
     {
         $request->validate([
@@ -35,11 +38,13 @@ class ClienteController extends Controller
         return redirect()->route('clientes.index')->with('success', 'Cliente creado correctamente.');
     }
 
+    // Formulario para editar cliente
     public function edit(Cliente $cliente)
     {
         return view('clientes.edit', compact('cliente'));
     }
 
+    // Actualizar cliente
     public function update(Request $request, Cliente $cliente)
     {
         $request->validate([
@@ -55,12 +60,14 @@ class ClienteController extends Controller
         return redirect()->route('clientes.index')->with('success', 'Cliente actualizado correctamente.');
     }
 
+    // Eliminar cliente
     public function destroy(Cliente $cliente)
     {
         $cliente->delete();
         return redirect()->route('clientes.index')->with('success', 'Cliente eliminado correctamente.');
     }
 
+    // Historial de ventas de un cliente
     public function historialCliente($id)
     {
         $cliente = Cliente::findOrFail($id);
