@@ -8,6 +8,7 @@ use App\Models\Repuesto;
 use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class VentaController extends Controller
 {
@@ -127,22 +128,62 @@ class VentaController extends Controller
         return view('ventas.show', compact('venta'));
     }
 
+    // 👉 Método para filtrar el historial de ventas de un cliente por fecha
+    public function historialCliente(Request $request, $id)
+    {
+        $cliente = Cliente::findOrFail($id);
 
-    public function historialCliente($id)
-{
-    $cliente = Cliente::findOrFail($id);
+        $ventas = Venta::with('detalles.repuesto')->where('cliente_id', $id);
 
-    // Trae todas las ventas de este cliente con sus detalles y repuestos
-    $ventas = Venta::with('detalles.repuesto')
-                    ->where('cliente_id', $id)
-                    ->get();
+        // Filtrar por fecha según el valor del filtro
+        if ($request->has('filter') && $request->filter != 'all') {
+            $filter = $request->filter;
 
-    return view('ventas.historial', compact('cliente', 'ventas'));
-}
+            switch ($filter) {
+                case 'today':
+                    $ventas->whereDate('fecha', Carbon::today());
+                    break;
+                case 'yesterday':
+                    $ventas->whereDate('fecha', Carbon::yesterday());
+                    break;
+                case 'last_7_days':
+                    $ventas->whereBetween('fecha', [Carbon::now()->subDays(7), Carbon::now()]);
+                    break;
+                case 'last_30_days':
+                    $ventas->whereBetween('fecha', [Carbon::now()->subDays(30), Carbon::now()]);
+                    break;
+                case 'this_week':
+                    $ventas->whereBetween('fecha', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]);
+                    break;
+                case 'last_week':
+                    $ventas->whereBetween('fecha', [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]);
+                    break;
+                case 'this_month':
+                    $ventas->whereMonth('fecha', Carbon::now()->month);
+                    break;
+                case 'last_month':
+                    $ventas->whereMonth('fecha', Carbon::now()->subMonth()->month);
+                    break;
+                case 'this_year':
+                    $ventas->whereYear('fecha', Carbon::now()->year);
+                    break;
+                case 'last_year':
+                    $ventas->whereYear('fecha', Carbon::now()->subYear()->year);
+                    break;
+                case 'custom':
+                    // Filtro personalizado por fechas
+                    $startDate = $request->start_date;
+                    $endDate = $request->end_date;
+                    if ($startDate && $endDate) {
+                        $ventas->whereBetween('fecha', [$startDate, $endDate]);
+                    }
+                    break;
+            }
+        }
 
+        // Obtener las ventas filtradas
+        $ventas = $ventas->get();
 
-
-
-
-
+        return view('ventas.historial', compact('cliente', 'ventas'));
+    }
 }

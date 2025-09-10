@@ -19,7 +19,7 @@
             </div>
             <div>
                 <label class="block text-gray-600 font-medium mb-2">Email</label>
-                <input type="email" name="email" value="{{ $proveedor->email }}" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <input type="email" name="contacto" value="{{ $proveedor->contacto }}" class="w-full border border-gray-300 p-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-400">
             </div>
             <div class="md:col-span-2">
                 <label class="block text-gray-600 font-medium mb-2">Dirección</label>
@@ -33,4 +33,18 @@
         </div>
     </form>
 </div>
+
+{{-- SweetAlert2 --}}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    @if(session('success'))
+        Swal.fire({
+            icon: 'success',
+            title: '¡Éxito!',
+            text: "{{ session('success') }}",
+            confirmButtonColor: '#3085d6',
+            confirmButtonText: 'Aceptar'
+        });
+    @endif
+</script>
 @endsection

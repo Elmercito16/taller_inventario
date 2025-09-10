@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LoginController;
 
 
+
 // Redirección raíz
 Route::get('/', function() {
     return redirect()->route('repuestos.index');
@@ -81,3 +82,11 @@ Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 // web.php
 Route::get('/clientes/search', [ClienteController::class, 'search']);
 
+//rutas proveedores
+Route::resource('proveedores', ProveedorController::class);
+Route::resource('proveedores', ProveedorController::class)->parameters([
+    'proveedores' => 'proveedor'
+]);
+Route::resource('proveedores', ProveedorController::class);
+// Rutas de ventas
+Route::get('ventas/{id}/historial', [VentaController::class, 'historialCliente'])->name('ventas.historial');

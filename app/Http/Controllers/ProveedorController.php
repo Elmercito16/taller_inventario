@@ -9,10 +9,8 @@ class ProveedorController extends Controller
 {
     public function index()
     {
-        // Trae todos los proveedores
+        // Traer todos los proveedores
         $proveedores = Proveedor::all();
-
-        // Retorna la vista con los datos
         return view('proveedores.index', compact('proveedores'));
     }
 
@@ -23,24 +21,52 @@ class ProveedorController extends Controller
 
     public function store(Request $request)
     {
-        Proveedor::create($request->all());
-        return redirect()->route('proveedores.index')->with('success', 'Proveedor agregado correctamente');
+        // Validar los datos antes de guardar
+        $validated = $request->validate([
+            'nombre'    => 'required|string|max:255',
+            'contacto'  => 'nullable|string|max:255',
+            'telefono'  => 'nullable|string|max:20',
+            'direccion' => 'nullable|string|max:255',
+        ]);
+
+        // Guardar proveedor
+        Proveedor::create($validated);
+
+        // Redirigir con mensaje de éxito
+        return redirect()->route('proveedores.index')
+            ->with('success', 'Proveedor creado correctamente ✅');
     }
 
-    public function edit(Proveedor $proveedor)
+    public function edit($id)
     {
+        $proveedor = Proveedor::findOrFail($id);
         return view('proveedores.edit', compact('proveedor'));
     }
 
-    public function update(Request $request, Proveedor $proveedor)
+    public function update(Request $request, $id)
     {
-        $proveedor->update($request->all());
-        return redirect()->route('proveedores.index')->with('success', 'Proveedor actualizado correctamente');
+        $validated = $request->validate([
+            'nombre'    => 'required|string|max:255',
+            'contacto'  => 'nullable|string|max:255',
+            'telefono'  => 'nullable|string|max:20',
+            'direccion' => 'nullable|string|max:255',
+        ]);
+
+        $proveedor = Proveedor::findOrFail($id);
+        $proveedor->update($validated);
+
+        // Redirigir con mensaje de éxito
+        return redirect()->route('proveedores.index')
+            ->with('success', 'Proveedor actualizado correctamente ✏️');
     }
 
-    public function destroy(Proveedor $proveedor)
+    public function destroy($id)
     {
+        $proveedor = Proveedor::findOrFail($id);
         $proveedor->delete();
-        return redirect()->route('proveedores.index')->with('success', 'Proveedor eliminado correctamente');
+
+        // Redirigir con mensaje de éxito
+        return redirect()->route('proveedores.index')
+            ->with('success', 'Proveedor eliminado correctamente 🗑️');
     }
 }
