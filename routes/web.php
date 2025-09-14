@@ -100,3 +100,7 @@ Route::get('/repuestos/search', [RepuestoController::class, 'search'])->name('re
 Route::get('/repuestos/search', [App\Http\Controllers\RepuestoController::class, 'search'])->name('repuestos.search');
 
 Route::get('ventas/{id}/detalles', [VentaController::class, 'detalles']);
+
+
+// routes/web.php
+Route::get('/healthz', fn () => response()->json(['ok' => true]));
