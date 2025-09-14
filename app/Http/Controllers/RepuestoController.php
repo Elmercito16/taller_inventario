@@ -11,11 +11,25 @@ use Illuminate\Support\Facades\Storage;
 class RepuestoController extends Controller
 {
     /**
-     * Mostrar el listado de repuestos
+     * Mostrar el listado de repuestos con buscador y paginación
      */
-    public function index()
+    public function index(Request $request)
     {
-        $repuestos = Repuesto::with(['proveedor', 'categoria'])->orderBy('id', 'desc')->get();
+        $query = Repuesto::with(['proveedor', 'categoria'])
+            ->orderBy('id', 'desc');
+
+        // ✅ Si hay búsqueda, mostramos solo los que coincidan
+        if ($request->filled('q')) {
+            $search = $request->q;
+
+            $repuestos = $query->where('nombre', 'like', "%{$search}%")
+                               ->orWhere('marca', 'like', "%{$search}%")
+                               ->get(); // 🔍 sin paginación en búsqueda
+        } else {
+            // ✅ Si no hay búsqueda, paginamos
+            $repuestos = $query->paginate(12);
+        }
+
         return view('repuestos.index', compact('repuestos'));
     }
 
@@ -128,15 +142,6 @@ class RepuestoController extends Controller
 
         return redirect()->route('repuestos.index')
             ->with('success', '🗑️ Repuesto eliminado correctamente.');
-    }
-
-    /**
-     * Mostrar formulario para agregar cantidad (ya no se usará, ahora es SweetAlert)
-     */
-    public function cantidad($id)
-    {
-        $repuesto = Repuesto::findOrFail($id);
-        return view('repuestos.cantidad', compact('repuesto'));
     }
 
     /**

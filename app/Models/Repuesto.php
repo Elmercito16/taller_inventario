@@ -47,4 +47,11 @@ class Repuesto extends Model
     {
         return $this->belongsTo(Proveedor::class, 'proveedor_id');
     }
+
+
+
+
+
+ 
+
 }

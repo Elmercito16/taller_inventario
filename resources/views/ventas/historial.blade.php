@@ -4,12 +4,13 @@
 <div class="max-w-7xl mx-auto px-6 py-8">
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl sm:text-3xl font-bold text-gray-800">
-            🧾 Historial de compras de <span class="text-blue-600">{{ $cliente->nombre }}</span>
+             Historial de compras de <span class="text-blue-600">{{ $cliente->nombre }}</span>
         </h1>
         <button id="openModal" 
             class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
             <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 13v5a1 1 0 01-1.447.894l-4-2A1 1 0 019 16v-3L3.293 6.707A1 1 0 013 6V4z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L15 13v5a1 1 0 01-1.447.894l-4-2A1 1 0 019 16v-3L3.293 6.707A1 1 0 013 6V4z"/>
             </svg>
             Filtrar compras
         </button>
@@ -42,13 +43,18 @@
                 <div class="flex justify-between items-center cursor-pointer"
                      onclick="toggleAccordion('venta-{{ $venta->id }}')">
                     <h2 class="text-lg sm:text-xl font-semibold text-gray-800">Compra #{{ $venta->id }}</h2>
-                    <svg id="arrow-icon-{{ $venta->id }}" class="w-5 h-5 transform rotate-0 transition-transform duration-300" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    <svg id="arrow-icon-{{ $venta->id }}" 
+                         class="w-5 h-5 transform rotate-0 transition-transform duration-300" 
+                         xmlns="http://www.w3.org/2000/svg" fill="none" 
+                         viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" 
+                              stroke-width="2" d="M19 9l-7 7-7-7"/>
                     </svg>
                 </div>
 
                 <!-- Detalles de la venta -->
-                <div id="venta-{{ $venta->id }}" class="opacity-0 max-h-0 overflow-hidden transform transition-all duration-500 ease-in-out">
+                <div id="venta-{{ $venta->id }}" 
+                     class="opacity-0 max-h-0 overflow-hidden transform transition-all duration-500 ease-in-out">
                     <div class="mt-4 text-sm sm:text-base">
                         <p><strong>Fecha:</strong> {{ \Carbon\Carbon::parse($venta->fecha)->format('d/m/Y H:i') }}</p>
                         <p><strong>Total:</strong> S/ {{ number_format($venta->total, 2) }}</p>
@@ -72,13 +78,15 @@
     </div>
 </div>
 
-{{-- Modal con animación centrado --}}
-<div id="filterModal" class="fixed inset-0 hidden z-50 flex items-center justify-center bg-gray-600 bg-opacity-50 transition-opacity duration-300">
-    <div id="modalContent" class="bg-white rounded-lg p-6 w-full sm:w-96 max-h-[80vh] overflow-y-auto shadow-lg transform scale-95 opacity-0 transition-all duration-300">
-        <h2 class="text-xl font-bold text-gray-800 mb-4 text-center">🔎 Selecciona un filtro</h2>
+{{-- Modal con animación y responsive --}}
+<div id="filterModal" 
+     class="fixed inset-0 hidden z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity duration-300 px-4">
+    <div id="modalContent" 
+         class="bg-white rounded-xl p-6 w-full max-w-md max-h-[85vh] overflow-y-auto shadow-2xl transform scale-95 opacity-0 transition-all duration-300">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 text-center border-b pb-2">🔎 Selecciona un filtro</h2>
         
         <form method="GET" action="{{ route('ventas.historial', $cliente->id) }}" class="space-y-4">
-            <div class="space-y-2">
+            <div class="space-y-3">
                 @php
                     $filtros = [
                         'today' => 'Hoy',
@@ -96,24 +104,28 @@
                 @endphp
 
                 @foreach ($filtros as $value => $label)
-                    <label class="flex items-center gap-2 cursor-pointer">
+                    <label class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 cursor-pointer">
                         <input type="radio" name="filter" value="{{ $value }}" class="text-blue-600 focus:ring-blue-500">
-                        <span class="text-gray-700">{{ $label }}</span>
+                        <span class="text-gray-700 font-medium">{{ $label }}</span>
                     </label>
                 @endforeach
             </div>
 
             {{-- Fechas personalizadas --}}
-            <div id="custom-date-filters" class="flex gap-2 mt-3 hidden">
-                <input type="date" name="start_date" class="px-3 py-2 w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-200">
-                <input type="date" name="end_date" class="px-3 py-2 w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-200">
+            <div id="custom-date-filters" class="flex flex-col sm:flex-row gap-2 mt-3 hidden">
+                <input type="date" name="start_date" 
+                       class="px-3 py-2 w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-200">
+                <input type="date" name="end_date" 
+                       class="px-3 py-2 w-full rounded-lg border-gray-300 shadow-sm focus:ring-2 focus:ring-blue-200">
             </div>
 
             <div class="flex justify-between gap-4 mt-6">
-                <button id="closeModal" type="button" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 w-1/2">
+                <button id="closeModal" type="button" 
+                        class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 w-1/2">
                     Cerrar
                 </button>
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 w-1/2">
+                <button type="submit" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 w-1/2">
                     Aplicar
                 </button>
             </div>

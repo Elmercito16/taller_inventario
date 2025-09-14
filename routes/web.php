@@ -11,6 +11,7 @@ use App\Http\Controllers\LoginController;
 
 
 
+
 // Redirección raíz
 Route::get('/', function() {
     return redirect()->route('repuestos.index');
@@ -90,3 +91,10 @@ Route::resource('proveedores', ProveedorController::class)->parameters([
 Route::resource('proveedores', ProveedorController::class);
 // Rutas de ventas
 Route::get('ventas/{id}/historial', [VentaController::class, 'historialCliente'])->name('ventas.historial');
+
+//Ruta para busqueda
+Route::get('/repuestos/search', [App\Http\Controllers\RepuestoController::class, 'search'])
+    ->name('repuestos.search');
+Route::get('/repuestos/search', [RepuestoController::class, 'search'])->name('repuestos.search');
+
+Route::get('/repuestos/search', [App\Http\Controllers\RepuestoController::class, 'search'])->name('repuestos.search');
