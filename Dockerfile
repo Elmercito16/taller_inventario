@@ -1,44 +1,51 @@
 # PHP + Apache
 FROM php:8.2-apache
 
-# 1) Dependencias y extensiones necesarias (PostgreSQL para Supabase)
+# ---- Paquetes del sistema necesarios ----
 RUN apt-get update && apt-get install -y \
-    libpq-dev git unzip zip \
- && docker-php-ext-install pdo pdo_pgsql
+    git curl unzip zip \
+    libpq-dev \
+    libzip-dev \
+    libicu-dev \
+    libonig-dev \
+    libpng-dev libjpeg-dev libfreetype6-dev \
+ && docker-php-ext-configure gd --with-freetype --with-jpeg \
+ && docker-php-ext-install -j$(nproc) \
+    pdo pdo_pgsql bcmath intl zip gd
 
-# 2) Habilitar mod_rewrite para Laravel
+# Habilitar mod_rewrite para Laravel
 RUN a2enmod rewrite
 
-# 3) DocumentRoot a /public
+# DocumentRoot -> public/
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf \
  && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 
-# 4) ----> Render: el contenedor DEBE escuchar en 10000
+# Render escucha en 10000
 ENV PORT=10000
-# Cambiar Apache para que escuche en el puerto 10000
 RUN sed -ri -e 's!Listen 80!Listen ${PORT}!g' /etc/apache2/ports.conf \
  && sed -ri -e 's!<VirtualHost \*:80>!<VirtualHost \*:${PORT}>!g' /etc/apache2/sites-available/000-default.conf
 
-# 5) Copiar código
+# Copiar código
 WORKDIR /var/www/html
 COPY . .
 
-# 6) Composer
+# Composer (permitir root y sin límite de memoria)
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_MEMORY_LIMIT=-1
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-RUN composer install --no-dev --optimize-autoloader
 
-# 7) Permisos (evita fallos de cache/logs)
+# Instalar dependencias PHP
+RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+
+# Permisos para logs/cache
 RUN chown -R www-data:www-data storage bootstrap/cache \
  && chmod -R 775 storage bootstrap/cache
 
-# 8) Cachear (si falla que no rompa el build en frío)
+# Cachear (que no rompa si faltan envs en build)
 RUN php artisan config:cache || true \
  && php artisan route:cache || true \
  && php artisan view:cache  || true
 
-# 9) Exponer (opcional, Render se basa en el puerto real)
 EXPOSE 10000
-
-# 10) Arranque de Apache
 CMD ["apache2-foreground"]
