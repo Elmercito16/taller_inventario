@@ -42,3 +42,6 @@ EXPOSE 10000
 
 # 10) Arranque de Apache
 CMD ["apache2-foreground"]
+
+
+# hla que tal como estas
