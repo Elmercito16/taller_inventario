@@ -12,72 +12,88 @@
         </a>
     </div>
 
-    <!-- Tabla -->
-    <div class="overflow-x-auto bg-white shadow-lg rounded-2xl">
-        <table class="min-w-full text-sm text-gray-700">
-            <thead class="bg-gradient-to-r from-blue-500 to-indigo-600 text-white uppercase text-xs tracking-wider">
-                <tr>
-                    <th class="px-6 py-3 text-left">#</th>
-                    <th class="px-6 py-3 text-left">Cliente</th>
-                    <th class="px-6 py-3 text-left">Fecha</th>
-                    <th class="px-6 py-3 text-left">Total</th>
-                    <th class="px-6 py-3 text-left">Estado</th>
-                    <th class="px-6 py-3 text-center">Acciones</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200">
-                @forelse ($ventas as $venta)
-                    <tr class="hover:bg-gray-50 transition">
-                        <td class="px-6 py-4 font-semibold text-gray-800">{{ $venta->id }}</td>
-                        <td class="px-6 py-4">{{ $venta->cliente->nombre ?? 'Sin Cliente' }}</td>
-                        <td class="px-6 py-4">{{ \Carbon\Carbon::parse($venta->fecha)->format('d/m/Y') }}</td>
-                        <td class="px-6 py-4 font-semibold text-green-600">S/ {{ number_format($venta->total, 2) }}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-3 py-1 text-xs font-bold rounded-full 
-                                {{ $venta->estado == 'pagado' ? 'bg-green-100 text-green-700' : ($venta->estado == 'pendiente' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700') }}">
-                                {{ ucfirst($venta->estado) }}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 flex justify-center gap-3">
-                            <!-- Botón Ver -->
-                            <a href="{{ route('ventas.show', $venta) }}" 
-                               class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg text-xs shadow">
-                               🔍 Ver
-                            </a>
-
-                            <!-- Botón Eliminar -->
-                            <form action="{{ route('ventas.destroy', $venta) }}" method="POST" onsubmit="return confirm('¿Eliminar esta venta?');">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" 
-                                    class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-xs shadow">
-                                    🗑 Eliminar
-                                </button>
-                            </form>
-
-                            <!-- Botón Anular (solo si no está anulada) -->
-                            @if ($venta->estado !== 'anulado')
-                                <form action="{{ route('ventas.anular', $venta->id) }}" method="POST" onsubmit="return confirm('¿Seguro que deseas anular esta venta?')">
-                                    @csrf
-                                    <button type="submit" 
-                                        class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-xs shadow">
-                                        ❌ Anular
-                                    </button>
-                                </form>
-                            @else
-                                <span class="px-3 py-1 bg-gray-400 text-white rounded-lg text-xs">Anulado</span>
-                            @endif
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="6" class="text-center py-6 text-gray-500">
-                            🚫 No hay ventas registradas aún.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
+    <!-- Ventas -->
+    <div class="space-y-6">
+        @foreach ($ventas as $venta)
+            <div class="bg-white shadow-lg rounded-lg p-6">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg sm:text-xl font-semibold text-gray-800">
+                        <!-- Fecha, Cliente y Total -->
+                        <span class="block sm:inline">{{ \Carbon\Carbon::parse($venta->fecha)->format('d/m/Y H:i') }}</span> — 
+                        <span class="text-blue-600">{{ $venta->cliente->nombre ?? 'Sin cliente' }}</span> — 
+                        <span class="font-semibold text-green-600">S/ {{ number_format($venta->total, 2) }}</span>
+                    </h2>
+                    <button onclick="openModal({{ $venta->id }})"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-4 py-2 rounded-lg shadow-md transition text-xs">
+                        Ver más detalle
+                    </button>
+                </div>
+            </div>
+        @endforeach
     </div>
 </div>
+
+<!-- Modal de Detalle de Venta -->
+<div id="detailModal" class="fixed inset-0 hidden z-50 flex items-center justify-center bg-black bg-opacity-50 transition-opacity duration-300 px-4">
+    <div id="modalContent" class="bg-white rounded-xl p-6 w-full max-w-md max-h-[85vh] overflow-y-auto shadow-2xl transform scale-95 opacity-0 transition-all duration-300">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 text-center border-b pb-2">Detalle de la Venta</h2>
+        <div id="modalVentaDetails" class="text-sm text-gray-700">
+            <!-- Los detalles de la venta se cargarán aquí -->
+        </div>
+        <div class="flex justify-end mt-4">
+            <button id="closeModal" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 w-1/3">
+                Cerrar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Modal de detalles de la venta
+    function openModal(ventaId) {
+        const modal = document.getElementById("detailModal");
+        const modalContent = document.getElementById("modalContent");
+        const modalVentaDetails = document.getElementById("modalVentaDetails");
+
+        // Obtener la venta usando AJAX (opcional, pero más eficiente)
+        fetch(`/ventas/${ventaId}/detalles`)
+            .then(response => response.json())
+            .then(data => {
+                // Llenar el modal con los detalles de la venta
+                modalVentaDetails.innerHTML = `
+                    <p><strong>Fecha:</strong> ${data.fecha}</p>
+                    <p><strong>Total:</strong> S/ ${data.total}</p>
+                    <p><strong>Estado:</strong> ${data.estado}</p>
+                    <p><strong>Cliente:</strong> ${data.cliente.nombre}</p>
+
+                    <h3 class="font-semibold mt-4">Productos Vendidos:</h3>
+                    <ul>
+                        ${data.detalles.map(detalle => `
+                            <li class="flex justify-between">
+                                <span>${detalle.repuesto.nombre}</span>
+                                <span>S/ ${detalle.subtotal}</span>
+                            </li>
+                        `).join('')}
+                    </ul>
+                `;
+            });
+
+        // Mostrar el modal
+        modal.classList.remove("hidden");
+        setTimeout(() => {
+            modalContent.classList.remove("scale-95", "opacity-0");
+            modalContent.classList.add("scale-100", "opacity-100");
+        }, 10);
+    }
+
+    // Cerrar el modal
+    document.getElementById("closeModal").addEventListener("click", () => {
+        const modal = document.getElementById("detailModal");
+        const modalContent = document.getElementById("modalContent");
+
+        modalContent.classList.remove("scale-100", "opacity-100");
+        modalContent.classList.add("scale-95", "opacity-0");
+        setTimeout(() => modal.classList.add("hidden"), 300);
+    });
+</script>
 @endsection

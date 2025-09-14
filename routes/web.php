@@ -98,3 +98,5 @@ Route::get('/repuestos/search', [App\Http\Controllers\RepuestoController::class,
 Route::get('/repuestos/search', [RepuestoController::class, 'search'])->name('repuestos.search');
 
 Route::get('/repuestos/search', [App\Http\Controllers\RepuestoController::class, 'search'])->name('repuestos.search');
+
+Route::get('ventas/{id}/detalles', [VentaController::class, 'detalles']);

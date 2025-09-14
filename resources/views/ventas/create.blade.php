@@ -50,21 +50,23 @@
                 </div>
             </div>
 
-            {{-- Lista de repuestos añadidos --}}
+            {{-- Lista de repuestos añadidos (con estilo de tarjetas) --}}
             <div class="mb-4">
                 <h2 class="text-lg font-semibold mb-2">Repuestos en la venta</h2>
-                <table class="w-full border text-sm">
-                    <thead class="bg-gray-100">
-                        <tr>
-                            <th class="px-3 py-2 border">Repuesto</th>
-                            <th class="px-3 py-2 border">Precio</th>
-                            <th class="px-3 py-2 border">Cantidad</th>
-                            <th class="px-3 py-2 border">Subtotal</th>
-                            <th class="px-3 py-2 border">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody id="ventaItems"></tbody>
-                </table>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border text-sm">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-3 py-2 border">Repuesto</th>
+                                <th class="px-3 py-2 border">Precio</th>
+                                <th class="px-3 py-2 border">Cantidad</th>
+                                <th class="px-3 py-2 border">Subtotal</th>
+                                <th class="px-3 py-2 border">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ventaItems"></tbody>
+                    </table>
+                </div>
             </div>
 
             {{-- Total --}}

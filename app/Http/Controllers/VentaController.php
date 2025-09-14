@@ -185,5 +185,31 @@ class VentaController extends Controller
         $ventas = $ventas->get();
 
         return view('ventas.historial', compact('cliente', 'ventas'));
-    }
+    } 
+    public function detalles($id)
+{
+    $venta = Venta::with(['cliente', 'detalles.repuesto'])->findOrFail($id);
+
+    return response()->json([
+        'fecha' => \Carbon\Carbon::parse($venta->fecha)->format('d/m/Y H:i'),
+        'total' => $venta->total,
+        'estado' => ucfirst($venta->estado),
+        'cliente' => $venta->cliente,
+        'detalles' => $venta->detalles
+    ]);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
