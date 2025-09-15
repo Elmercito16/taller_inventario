@@ -104,3 +104,7 @@ Route::get('ventas/{id}/detalles', [VentaController::class, 'detalles']);
 
 // routes/web.php
 Route::get('/healthz', fn () => response()->json(['ok' => true]));
+
+Route::get('/debug-log', function () {
+    return nl2br(file_get_contents(storage_path('logs/laravel.log')));
+});
