@@ -15,7 +15,7 @@ RUN set -eux; \
   ; \
   rm -rf /var/lib/apt/lists/*
 
-# 2) Extensiones PHP
+# 2) Extensiones PHP necesarias
 RUN set -eux; \
   docker-php-ext-configure gd --with-freetype --with-jpeg; \
   docker-php-ext-install -j"$(nproc)" mbstring intl zip exif bcmath pdo_pgsql pgsql gd
@@ -25,36 +25,36 @@ RUN a2enmod rewrite
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN set -eux; \
   sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf; \
-  sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
+  sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf; \
+  echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-# 4) Configuración de puerto dinámico (Render lo inyecta con $PORT)
-RUN set -eux; \
-  sed -ri -e 's!Listen 80!Listen ${PORT}!g' /etc/apache2/ports.conf; \
-  sed -ri -e 's!<VirtualHost \*:80>!<VirtualHost \*:${PORT}>!g' /etc/apache2/sites-available/000-default.conf
-
-# 5) Copiar el código de la app
+# 4) Copiar el código de la app
 WORKDIR /var/www/html
 COPY . .
 
-# 6) Instalar Composer
+# 5) Instalar Composer
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_MEMORY_LIMIT=-1
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# 7) Instalar dependencias PHP
+# 6) Instalar dependencias PHP
 RUN set -eux; composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
 
-# 8) Permisos y caches de Laravel
+# 7) Permisos y caches de Laravel
 RUN set -eux; \
   chown -R www-data:www-data storage bootstrap/cache; \
   chmod -R 775 storage bootstrap/cache; \
   php artisan config:clear || true; \
   php artisan cache:clear || true; \
   php artisan route:clear || true; \
-  php artisan view:clear || true
+  php artisan view:clear  || true; \
+  php artisan config:cache || true; \
+  php artisan route:cache  || true; \
+  php artisan view:cache   || true
 
-# Exponer puerto (Render usa $PORT, no un valor fijo)
-EXPOSE 8080
+# 8) Render inyecta el puerto en $PORT
+EXPOSE 10000
 CMD sed -i "s/Listen 80/Listen ${PORT}/" /etc/apache2/ports.conf && apache2-foreground
+
 # Evitar warning de ServerName
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
