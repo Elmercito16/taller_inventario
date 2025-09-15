@@ -56,3 +56,5 @@ RUN set -eux; \
 # Exponer puerto (Render usa $PORT, no un valor fijo)
 EXPOSE 8080
 CMD sed -i "s/Listen 80/Listen ${PORT}/" /etc/apache2/ports.conf && apache2-foreground
+# Evitar warning de ServerName
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
