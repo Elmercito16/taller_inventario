@@ -54,9 +54,6 @@ RUN sed -ri -e 's!Listen 80!Listen ${PORT}!g' /etc/apache2/ports.conf \
 WORKDIR /var/www/html
 COPY . .
 
-# Copiar archivo .env específico para producción
-COPY .env.production .env
-
 # ==============================
 # 6) Instalar Composer
 # ==============================
