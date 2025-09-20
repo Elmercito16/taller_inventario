@@ -87,14 +87,12 @@ RUN chown -R www-data:www-data storage bootstrap/cache \
 RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
  && mkdir -p bootstrap/cache
 
-# Limpiar caches (NO cachear en build)
-RUN php artisan config:clear || true \
- && php artisan cache:clear || true \
- && php artisan route:clear || true \
- && php artisan view:clear || true
-
-# Generar APP_KEY si no existe
-RUN php artisan key:generate --force || true
+# IMPORTANTE: NO ejecutar comandos artisan que requieren BD durante build
+# Solo limpiar archivos de cache, NO acceder a base de datos
+RUN rm -rf bootstrap/cache/*.php \
+ && rm -rf storage/framework/cache/* \
+ && rm -rf storage/framework/sessions/* \
+ && rm -rf storage/framework/views/*
 
 # ==============================
 # 10) Evitar warning de ServerName

@@ -23,29 +23,44 @@ mkdir -p /var/www/html/storage/framework/sessions
 mkdir -p /var/www/html/storage/framework/views
 mkdir -p /var/www/html/bootstrap/cache
 
+# IMPORTANTE: Verificar configuración antes de ejecutar comandos
+echo "=== VERIFICANDO CONFIGURACIÓN ==="
+echo "APP_ENV: $APP_ENV"
+echo "DB_CONNECTION: $DB_CONNECTION"
+echo "CACHE_DRIVER: $CACHE_DRIVER"
+
+# Generar APP_KEY si no existe (ahora que tenemos variables de entorno)
+php artisan key:generate --force || echo "Error generando key"
+
+# LIMPIAR todos los caches ANTES de verificar BD
+echo "=== LIMPIANDO CACHES ==="
+rm -rf /var/www/html/bootstrap/cache/*.php
+rm -rf /var/www/html/storage/framework/cache/*
+rm -rf /var/www/html/storage/framework/sessions/*
+rm -rf /var/www/html/storage/framework/views/*
+
+php artisan config:clear || echo "Error limpiando config"
+php artisan cache:clear || echo "Error limpiando cache"
+php artisan route:clear || echo "Error limpiando rutas"
+php artisan view:clear || echo "Error limpiando views"
+
 # Verificar conexión a base de datos
 echo "=== VERIFICANDO CONEXIÓN A BD ==="
-php artisan tinker --execute="DB::connection()->getPdo(); echo 'BD conectada correctamente';" || echo "Error de conexión a BD"
+php artisan tinker --execute="
+try { 
+    DB::connection()->getPdo(); 
+    echo 'BD conectada correctamente' . PHP_EOL; 
+} catch(Exception \$e) { 
+    echo 'Error BD: ' . \$e->getMessage() . PHP_EOL; 
+}" || echo "Error al verificar BD"
 
 # Ejecutar migraciones
 echo "=== EJECUTANDO MIGRACIONES ==="
 php artisan migrate --force || echo "Error en migraciones (continuando...)"
 
-# Limpiar y cachear configuraciones
-echo "=== LIMPIANDO CACHES ==="
-php artisan config:clear
-php artisan cache:clear
-php artisan route:clear
-php artisan view:clear
-
+# CACHEAR configuraciones solo DESPUÉS de verificar que todo funciona
 echo "=== CACHEANDO CONFIGURACIONES ==="
 php artisan config:cache || echo "Error en config:cache"
-php artisan route:cache || echo "Error en route:cache"
-php artisan view:cache || echo "Error en view:cache"
-
-# Verificar que Laravel puede escribir logs
-echo "=== VERIFICANDO LOGS ==="
-php artisan tinker --execute="Log::info('Test log desde container');" || echo "Error al escribir logs"
 
 echo "=== INICIANDO APACHE ==="
 # Iniciar Apache
