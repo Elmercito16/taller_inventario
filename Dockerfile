@@ -67,12 +67,27 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
 
 # ==============================
-# 8) Permisos y configuración Laravel
+# 8) Configuración PHP
+# ==============================
+RUN echo "memory_limit = 256M" > /usr/local/etc/php/conf.d/custom.ini \
+ && echo "upload_max_filesize = 20M" >> /usr/local/etc/php/conf.d/custom.ini \
+ && echo "post_max_size = 20M" >> /usr/local/etc/php/conf.d/custom.ini \
+ && echo "max_execution_time = 120" >> /usr/local/etc/php/conf.d/custom.ini \
+ && echo "log_errors = On" >> /usr/local/etc/php/conf.d/custom.ini \
+ && echo "display_errors = On" >> /usr/local/etc/php/conf.d/custom.ini \
+ && echo "error_reporting = E_ALL" >> /usr/local/etc/php/conf.d/custom.ini
+
+# ==============================
+# 9) Permisos y configuración Laravel
 # ==============================
 RUN chown -R www-data:www-data storage bootstrap/cache \
  && chmod -R 775 storage bootstrap/cache
 
-# Limpiar caches
+# Crear directorios necesarios
+RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
+ && mkdir -p bootstrap/cache
+
+# Limpiar caches (NO cachear en build)
 RUN php artisan config:clear || true \
  && php artisan cache:clear || true \
  && php artisan route:clear || true \
@@ -81,21 +96,13 @@ RUN php artisan config:clear || true \
 # Generar APP_KEY si no existe
 RUN php artisan key:generate --force || true
 
-# Ejecutar migraciones (IMPORTANTE)
-RUN php artisan migrate --force || true
-
-# Cachear configuraciones para producción
-RUN php artisan config:cache || true \
- && php artisan route:cache || true \
- && php artisan view:cache || true
-
 # ==============================
-# 9) Evitar warning de ServerName
+# 10) Evitar warning de ServerName
 # ==============================
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 # ==============================
-# 10) Script de inicio
+# 11) Script de inicio
 # ==============================
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
