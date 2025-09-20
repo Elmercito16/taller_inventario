@@ -67,22 +67,37 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
 
 # ==============================
-# 8) Permisos y caches
+# 8) Permisos y configuración Laravel
 # ==============================
 RUN chown -R www-data:www-data storage bootstrap/cache \
- && chmod -R 775 storage bootstrap/cache \
- && php artisan config:clear || true \
+ && chmod -R 775 storage bootstrap/cache
+
+# Limpiar caches
+RUN php artisan config:clear || true \
  && php artisan cache:clear || true \
  && php artisan route:clear || true \
  && php artisan view:clear || true
 
-# ==============================
-# 9) Exponer puerto
-# ==============================
-EXPOSE 8080
-CMD sed -i "s/Listen 80/Listen ${PORT}/" /etc/apache2/ports.conf && apache2-foreground
+# Generar APP_KEY si no existe
+RUN php artisan key:generate --force || true
+
+# Ejecutar migraciones (IMPORTANTE)
+RUN php artisan migrate --force || true
+
+# Cachear configuraciones para producción
+RUN php artisan config:cache || true \
+ && php artisan route:cache || true \
+ && php artisan view:cache || true
 
 # ==============================
-# 10) Evitar warning de ServerName
+# 9) Evitar warning de ServerName
 # ==============================
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+
+# ==============================
+# 10) Script de inicio
+# ==============================
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
+CMD ["/start.sh"]
