@@ -25,24 +25,22 @@ mkdir -p /var/www/html/bootstrap/cache
 
 # IMPORTANTE: Verificar configuración antes de ejecutar comandos
 echo "=== VERIFICANDO CONFIGURACIÓN ==="
-echo "APP_ENV: $APP_ENV"
-echo "DB_CONNECTION: $DB_CONNECTION"
-echo "CACHE_DRIVER: $CACHE_DRIVER"
+echo "APP_ENV: $(php artisan tinker --execute='echo config("app.env");')"
+echo "DB_CONNECTION: $(php artisan tinker --execute='echo config("database.default");')"
+echo "CACHE_DRIVER: $(php artisan tinker --execute='echo config("cache.default");')"
 
 # Generar APP_KEY si no existe (ahora que tenemos variables de entorno)
 php artisan key:generate --force || echo "Error generando key"
 
 # LIMPIAR todos los caches ANTES de verificar BD
-echo "=== LIMPIANDO CACHES ==="
+echo "=== LIMPIANDO CACHES (SIN BASE DE DATOS) ==="
 rm -rf /var/www/html/bootstrap/cache/*.php
 rm -rf /var/www/html/storage/framework/cache/*
 rm -rf /var/www/html/storage/framework/sessions/*
 rm -rf /var/www/html/storage/framework/views/*
 
-php artisan config:clear || echo "Error limpiando config"
-php artisan cache:clear || echo "Error limpiando cache"
-php artisan route:clear || echo "Error limpiando rutas"
-php artisan view:clear || echo "Error limpiando views"
+# NO ejecutar comandos que usen BD para limpiar cache
+echo "Archivos de cache eliminados manualmente"
 
 # Verificar conexión a base de datos
 echo "=== VERIFICANDO CONEXIÓN A BD ==="
