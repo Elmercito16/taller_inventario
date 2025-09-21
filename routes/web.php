@@ -125,3 +125,7 @@ Route::get('ventas/{id}/detalles', [VentaController::class, 'detalles']);
 Route::get('/dashboard', function() {
     return redirect()->route('repuestos.index');
 })->name('dashboard');
+
+
+Route::get('/categorias/export', [CategoriaController::class, 'export'])->name('categorias.export');
+
