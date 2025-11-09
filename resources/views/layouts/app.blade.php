@@ -6,23 +6,17 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
-    <!-- Título dinámico y SEO -->
     <title>@yield('title', 'Dashboard') - {{ config('app.name', 'Taller Inventario') }}</title>
     <meta name="description" content="@yield('description', 'Sistema de gestión de inventario y ventas para talleres')">
     
-    <!-- Preload crítico -->
     <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     
-    <!-- Fonts optimizadas -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS con configuración personalizada -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
@@ -68,10 +62,12 @@
             }
         }
     </script>
-    
-    <!-- Styles adicionales -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <style>
-        /* Loading skeleton */
+        /* ... (tu CSS personalizado de scrollbar, gradient, etc. va aquí) ... */
         .skeleton {
             background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
             background-size: 200% 100%;
@@ -83,38 +79,19 @@
             100% { background-position: -200% 0; }
         }
         
-        /* Scrollbar personalizada */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 3px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
-        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
 
-        /* Focus visible mejorado */
-        .focus-visible:focus-visible {
-            outline: 2px solid #218786;
-            outline-offset: 2px;
-        }
+        .focus-visible:focus-visible { outline: 2px solid #218786; outline-offset: 2px; }
         
-        /* Gradient personalizado */
-        .bg-gradient-teal {
-            background: linear-gradient(135deg, #218786 0%, #1d7874 100%);
-        }
+        .bg-gradient-teal { background: linear-gradient(135deg, #218786 0%, #1d7874 100%); }
     </style>
     
     @stack('styles')
 </head>
 <body class="bg-gray-50 font-sans antialiased">
-    <!-- Loading screen -->
     <div id="loading-screen" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
         <div class="text-center">
             <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
@@ -126,15 +103,14 @@
         sidebarOpen: false, 
         currentTime: new Date().toLocaleString('es-PE'),
         user: {
-            name: '{{ auth()->user()->nombre ?? 'Usuario' }}',
-            role: '{{ auth()->user()->rol ?? 'usuario' }}',
-            avatar: '{{ auth()->user()->avatar ?? asset('default-avatar.png') }}'
+            name: '{{ session('nombre', 'Usuario') }}',
+            role: '{{ session('rol', 'usuario') }}',
+            avatar: '{{ session('avatar', asset('default-avatar.png')) }}'
         }
-    }" 
-    x-init="setInterval(() => currentTime = new Date().toLocaleString('es-PE'), 1000)"
-    class="flex h-screen bg-gray-50">
+     }" 
+     x-init="setInterval(() => currentTime = new Date().toLocaleString('es-PE'), 1000)"
+     class="flex h-screen bg-gray-50">
 
-        <!-- Overlay para móviles -->
         <div x-show="sidebarOpen" 
              @click="sidebarOpen = false"
              x-transition:enter="transition-opacity ease-linear duration-200"
@@ -146,12 +122,10 @@
              class="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden">
         </div>
 
-        <!-- Sidebar mejorado -->
         <aside 
             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
             class="fixed z-30 inset-y-0 left-0 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col border-r border-gray-200"
         >
-            <!-- Header del sidebar -->
             <div class="p-6 bg-gradient-teal text-white">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center space-x-3">
@@ -173,7 +147,6 @@
                 </div>
             </div>
 
-            <!-- Información del usuario -->
             <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
@@ -187,10 +160,8 @@
                 </div>
             </div>
 
-            <!-- Navegación -->
             <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto custom-scrollbar">
-                <!-- Dashboard -->
-                <a href="{{ route('dashboard') ?? '#' }}" 
+                <a href="{{ route('dashboard') }}" 
                    class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-primary-50 hover:text-primary-700 {{ request()->routeIs('dashboard') ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-500' : 'text-gray-700 hover:text-primary-700' }}">
                     <svg class="mr-3 h-5 w-5 transition-colors group-hover:text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
@@ -199,7 +170,6 @@
                     Dashboard
                 </a>
 
-                <!-- Productos -->
                 <div x-data="{ open: {{ request()->routeIs('repuestos.*', 'categorias.*') ? 'true' : 'false' }} }">
                     <button @click="open = !open" 
                             class="group w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-all duration-200 focus-visible">
@@ -228,11 +198,10 @@
                     </div>
                 </div>
 
-                <!-- Otros enlaces -->
                 @foreach([
                     ['route' => 'compras.*', 'href' => '#', 'label' => 'Compras', 'icon' => 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'],
                     ['route' => 'ventas.*', 'href' => route('ventas.index'), 'label' => 'Ventas', 'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
-                    ['route' => 'clientes.*', 'href' => route('clientes.index'), 'label' => 'Clientes', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z'],
+                    ['route' => 'clientes.*', 'href' => route('clientes.index'), 'label' => 'Clientes', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.50 11-5 0 2.5 2.5 0 015 0z'],
                     ['route' => 'proveedores.*', 'href' => route('proveedores.index'), 'label' => 'Proveedores', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'],
                     ['route' => 'caja.*', 'href' => '#', 'label' => 'Caja', 'icon' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
                     ['route' => 'gastos.*', 'href' => '#', 'label' => 'Gastos', 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1']
@@ -247,7 +216,6 @@
                 @endforeach
             </nav>
 
-            <!-- Footer del sidebar -->
             <div class="p-4 border-t border-gray-200">
                 <div class="text-xs text-gray-500 mb-3" x-text="currentTime"></div>
                 <form method="POST" action="{{ route('logout') }}" class="w-full">
@@ -263,12 +231,9 @@
             </div>
         </aside>
 
-        <!-- Contenido principal -->
         <div class="flex-1 flex flex-col min-w-0">
-            <!-- Header principal -->
             <header class="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-10">
                 <div class="flex items-center justify-between px-4 py-3 lg:px-6">
-                    <!-- Botón menú móvil y breadcrumbs -->
                     <div class="flex items-center space-x-4">
                         <button @click="sidebarOpen = !sidebarOpen" 
                                 class="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors focus-visible">
@@ -277,7 +242,6 @@
                             </svg>
                         </button>
                         
-                        <!-- Breadcrumbs -->
                         <nav class="hidden md:flex items-center space-x-2 text-sm">
                             @hasSection('breadcrumbs')
                                 @yield('breadcrumbs')
@@ -287,23 +251,19 @@
                         </nav>
                     </div>
 
-                    <!-- Título de página -->
                     <div class="flex-1 text-center lg:text-left">
                         <h1 class="text-xl font-semibold text-gray-900 lg:hidden">
                             @yield('page-title', 'Dashboard')
                         </h1>
                     </div>
 
-                    <!-- Acciones del header -->
                     <div class="flex items-center space-x-3">
-                        <!-- Notificaciones -->
                         <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-3.5-3.5a50.002 50.002 0 00-7 0L6 17h9zM13 8V6a3 3 0 00-6 0v2m6 0a3 3 0 013 3v3.5M7 8a3 3 0 00-3 3v3.5"/>
                             </svg>
                         </button>
                         
-                        <!-- Configuración -->
                         <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
@@ -314,10 +274,8 @@
                 </div>
             </header>
 
-            <!-- Contenido de la página -->
             <main class="flex-1 p-4 lg:p-6 overflow-y-auto custom-scrollbar bg-gray-50">
                 <div class="max-w-7xl mx-auto">
-                    <!-- Título de página para desktop -->
                     <div class="hidden lg:block mb-6">
                         <h1 class="text-2xl font-bold text-gray-900">@yield('page-title', 'Dashboard')</h1>
                         @hasSection('page-description')
@@ -331,16 +289,11 @@
         </div>
     </div>
 
-    <!-- Scripts críticos al final -->
     <script>
-        // Hide loading screen
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(() => {
-                document.getElementById('loading-screen').style.display = 'none';
-            }, 500);
-        });
+        window.onload = function() {
+            document.getElementById('loading-screen').style.display = 'none';
+        };
 
-        // Service Worker para cache
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
                 navigator.serviceWorker.register('/sw.js')
@@ -354,66 +307,63 @@
         }
     </script>
 
-    <!-- SweetAlert2 cargado de forma diferida -->
     <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
-    <!-- SweetAlert2 Flash Messages mejorado -->
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Esperar a que SweetAlert2 esté disponible
-            const checkSwal = () => {
-                if (typeof Swal !== 'undefined') {
-                    @if(session('success'))
-                        Swal.fire({
-                            icon: 'success',
-                            title: '¡Éxito!',
-                            text: '{{ session('success') }}',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 4000,
-                            timerProgressBar: true,
-                            background: '#f0fdfa',
-                            color: '#134e4a'
-                        });
-                    @endif
+    document.addEventListener('DOMContentLoaded', () => {
+        // Esperar a que SweetAlert2 esté disponible
+        const checkSwal = () => {
+            if (typeof Swal !== 'undefined') {
+                @if(session('success'))
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Éxito!',
+                        text: '{{ session('success') }}',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 4000,
+                        timerProgressBar: true,
+                        background: '#f0fdfa',
+                        color: '#134e4a'
+                    });
+                @endif
 
-                    @if(session('error'))
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: '{{ session('error') }}',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 5000,
-                            timerProgressBar: true,
-                            background: '#fef2f2',
-                            color: '#7f1d1d'
-                        });
-                    @endif
+                @if(session('error'))
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: '{{ session('error') }}',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 5000,
+                        timerProgressBar: true,
+                        background: '#fef2f2',
+                        color: '#7f1d1d'
+                    });
+                @endif
 
-                    @if(session('warning'))
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Atención',
-                            text: '{{ session('warning') }}',
-                            toast: true,
-                            position: 'top-end',
-                            showConfirmButton: false,
-                            timer: 4500,
-                            timerProgressBar: true,
-                            background: '#fffbeb',
-                            color: '#78350f'
-                        });
-                    @endif
-                } else {
-                    setTimeout(checkSwal, 100);
-                }
-            };
-            checkSwal();
-        });
+                @if(session('warning'))
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Atención',
+                        text: '{{ session('warning') }}',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 4500,
+                        timerProgressBar: true,
+                        background: '#fffbeb',
+                        color: '#78350f'
+                    });
+                @endif
+            } else {
+                setTimeout(checkSwal, 100);
+            }
+        };
+        checkSwal();
+    });
     </script>
 
     @stack('scripts')

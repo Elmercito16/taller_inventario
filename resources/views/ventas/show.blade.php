@@ -6,7 +6,7 @@
 
 @section('breadcrumbs')
 <nav class="flex items-center space-x-2 text-sm text-gray-500">
-    <a href="{{ route('dashboard') }}" class="hover:text-[#218786] transition-colors flex items-center">
+    <a href="{{ route('dashboard') }}" class="hover:text-primary-600 transition-colors flex items-center">
         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
         </svg>
@@ -15,7 +15,7 @@
     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
     </svg>
-    <a href="{{ route('ventas.index') }}" class="hover:text-[#218786] transition-colors">Ventas</a>
+    <a href="{{ route('ventas.index') }}" class="hover:text-primary-600 transition-colors">Ventas</a>
     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
     </svg>
@@ -53,13 +53,13 @@
 @endpush
 
 @section('content')
-<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+{{-- ✅ CORRECCIÓN 1: Añadido un ID único al contenedor --}}
+<div class="space-y-6" id="show-venta-content">
     
-    <!-- Header Principal -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div class="flex items-center">
-                <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3" style="background: linear-gradient(135deg, #218786 0%, #1d7874 100%);">
+                <div class="w-10 h-10 rounded-lg flex items-center justify-center mr-3 bg-gradient-to-r from-primary-500 to-primary-600">
                     <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                     </svg>
@@ -74,7 +74,7 @@
                 </div>
             </div>
             <a href="{{ route('ventas.index') }}" 
-               class="flex items-center px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+               class="flex items-center px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors w-full sm:w-auto justify-center">
                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                 </svg>
@@ -83,9 +83,7 @@
         </div>
     </div>
 
-    <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Total de Venta -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover-lift">
             <div class="flex items-center justify-between">
                 <div>
@@ -101,7 +99,6 @@
             </div>
         </div>
         
-        <!-- Productos -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover-lift">
             <div class="flex items-center justify-between">
                 <div>
@@ -117,23 +114,21 @@
             </div>
         </div>
         
-        <!-- Cantidad Total -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover-lift">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-600 mb-1">Cantidad Total</p>
-                    <p class="text-2xl font-bold" style="color: #218786;">{{ $venta->detalles->sum('cantidad') }}</p>
+                    <p class="text-2xl font-bold text-primary-600">{{ $venta->detalles->sum('cantidad') }}</p>
                     <p class="text-xs text-gray-500 mt-1">Artículos vendidos</p>
                 </div>
-                <div class="w-10 h-10 rounded-lg flex items-center justify-center" style="background-color: rgba(33, 135, 134, 0.1);">
-                    <svg class="w-5 h-5" style="color: #218786;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-10 h-10 rounded-lg bg-primary-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
                     </svg>
                 </div>
             </div>
         </div>
         
-        <!-- Estado -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover-lift">
             <div class="flex items-center justify-between">
                 <div>
@@ -158,10 +153,8 @@
         </div>
     </div>
 
-    <!-- Grid de Información -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Información del Cliente -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <div class="flex items-center mb-4">
                 <div class="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center mr-3">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -200,8 +193,7 @@
             </div>
         </div>
 
-        <!-- Información de la Venta -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
             <div class="flex items-center mb-4">
                 <div class="w-10 h-10 rounded-lg bg-green-100 flex items-center justify-center mr-3">
                     <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,8 +239,7 @@
         </div>
     </div>
 
-    <!-- Tabla de Productos -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
         <div class="flex items-center justify-between mb-6">
             <div class="flex items-center">
                 <div class="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center mr-3">
@@ -267,10 +258,10 @@
             <table class="min-w-full">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Producto</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Cantidad</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Precio Unit.</th>
-                        <th class="px-6 py-3 text-left text-xs font-semibold text-gray-900 uppercase tracking-wider">Subtotal</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Producto</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Cantidad</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Precio Unit.</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Subtotal</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-200">
@@ -278,8 +269,8 @@
                         <tr class="hover:bg-gray-50 transition-colors duration-200">
                             <td class="px-6 py-4">
                                 <div class="flex items-center">
-                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3" style="background-color: rgba(33, 135, 134, 0.1);">
-                                        <svg class="w-4 h-4" style="color: #218786;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <div class="w-8 h-8 rounded-lg flex items-center justify-center mr-3 bg-primary-100">
+                                        <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                                         </svg>
                                     </div>
@@ -315,17 +306,15 @@
         </div>
     </div>
 
-    <!-- Acciones -->
-    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 sm:p-6">
         <div class="flex flex-col sm:flex-row gap-4 justify-between items-center">
             <div>
                 <h3 class="text-lg font-semibold text-gray-900">Acciones Disponibles</h3>
                 <p class="text-sm text-gray-600">Opciones para esta venta</p>
             </div>
             
-            <div class="flex flex-col sm:flex-row gap-3">
-                <button class="flex items-center px-4 py-2 text-white font-medium rounded-lg transition-all duration-200" 
-                        style="background: linear-gradient(135deg, #218786 0%, #1d7874 100%);">
+            <div class="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+                <button class="flex items-center justify-center px-4 py-2 text-white font-medium rounded-lg transition-all duration-200 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H9.5a2 2 0 01-2-2V5a2 2 0 012-2H17"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 17h.01M7 13h.01M7 9h.01"/>
@@ -333,7 +322,7 @@
                     Imprimir Factura
                 </button>
                 
-                <button class="flex items-center px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
+                <button class="flex items-center justify-center px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                     </svg>
@@ -347,10 +336,10 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Agregar animaciones escalonadas a las cards
-    const cards = document.querySelectorAll('.bg-white');
+    // ✅ CORRECCIÓN 2: El selector ahora busca solo dentro de "#show-venta-content"
+    const cards = document.querySelectorAll('#show-venta-content .bg-white');
     cards.forEach((card, index) => {
-        card.style.animationDelay = `${index * 0.1}s`;
+        card.style.animationDelay = `${index * 0.05}s`;
         card.classList.add('section-card');
     });
 });

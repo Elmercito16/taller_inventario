@@ -201,15 +201,4 @@ class VentaController extends Controller
 
 
 
-
-
-
-
-
-
-
-
-
-
-
 }
