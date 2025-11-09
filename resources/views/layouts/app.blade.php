@@ -26,8 +26,8 @@
                     },
                     colors: {
                         primary: {
-                            50: '#f0fdfa',
-                            100: '#ccfbf1',
+                            50: '#1b8c72ff',
+                            100: '#0b8a6fff',
                             200: '#99f6e4',
                             300: '#5eead4',
                             400: '#2dd4bf',

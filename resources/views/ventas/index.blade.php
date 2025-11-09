@@ -149,21 +149,23 @@
 
             <!-- Acciones -->
             <div class="flex flex-col sm:flex-row gap-3">
-                <a href="{{ route('ventas.create') }}" 
-                   class="inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-medium rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all duration-200 shadow-sm hover:shadow-md">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                    Nueva Venta
-                </a>
-                
-                <button onclick="generarReporte()" class="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Generar Reporte
-                </button>
-            </div>
+    <a href="{{ route('ventas.create') }}" 
+       class="inline-flex items-center justify-center px-4 py-2.5 bg-[#1b8c72ff] text-white font-medium rounded-lg hover:bg-[#15785f] transition-all duration-200 shadow-sm hover:shadow-md">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+        Nueva Venta
+    </a>
+    
+    <button onclick="generarReporte()" 
+            class="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-[#1b8c72ff] text-[#1b8c72ff] font-medium rounded-lg hover:bg-[#1b8c72ff] hover:text-white transition-colors duration-200 shadow-sm hover:shadow-md">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Generar Reporte
+    </button>
+</div>
+
         </div>
     </div>
 

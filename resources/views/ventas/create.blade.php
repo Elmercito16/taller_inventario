@@ -6,11 +6,14 @@
 
 @section('breadcrumbs')
 <nav class="flex items-center space-x-2 text-sm text-gray-500">
-    <a href="{{ route('dashboard') }}" class="hover:text-primary-600 transition-colors">Dashboard</a>
+    <a href="{{ route('dashboard') }}" class="hover:text-[#218786] transition-colors flex items-center">
+        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/></svg>
+        Dashboard
+    </a>
     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
     </svg>
-    <a href="{{ route('ventas.index') }}" class="hover:text-primary-600 transition-colors">Ventas</a>
+    <a href="{{ route('ventas.index') }}" class="hover:text-[#218786] transition-colors">Ventas</a>
     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
     </svg>
@@ -20,7 +23,6 @@
 
 @push('styles')
 <style>
-    /* Animaciones personalizadas */
     .section-card {
         animation: slideUp 0.5s ease-out;
         animation-fill-mode: both;
@@ -33,32 +35,20 @@
     .section-card:nth-child(4) { animation-delay: 0.4s; }
     
     @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
     }
     
-    /* Efectos de búsqueda */
     .search-results {
         background: linear-gradient(to bottom, #ffffff, #f9fafb);
         border: 1px solid #e5e7eb;
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        z-index: 100 !important; /* CRÍTICO: z-index alto */
     }
     
     .search-item:hover {
         background: linear-gradient(90deg, #f0fdfa 0%, #ecfdf5 100%);
         transform: translateX(4px);
-    }
-    
-    /* Tabla responsive mejorada */
-    .venta-table {
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-        border: 1px solid #e2e8f0;
     }
     
     .venta-item {
@@ -70,23 +60,21 @@
         transform: scale(1.01);
     }
     
-    /* Efectos de total */
     .total-section {
         background: linear-gradient(135deg, #218786 0%, #1d7874 100%);
         color: white;
         box-shadow: 0 10px 15px -3px rgba(33, 135, 134, 0.2);
     }
     
-    /* Loading states */
-    .loading-skeleton {
-        background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-        background-size: 200% 100%;
-        animation: loading 1.5s infinite;
+    input:focus {
+        border-color: #218786;
+        ring-color: #218786;
     }
     
-    @keyframes loading {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
+    /* Fix para z-index */
+    .z-dropdown {
+        position: relative;
+        z-index: 50;
     }
 </style>
 @endpush
@@ -113,10 +101,10 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-sm font-medium text-gray-600">Productos en Venta</p>
-                    <p class="text-2xl font-bold text-primary-600" x-text="items.length"></p>
+                    <p class="text-2xl font-bold text-[#218786]" x-text="items.length"></p>
                 </div>
-                <div class="p-3 bg-primary-100 rounded-full">
-                    <svg class="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-3 bg-[#e6f7f6] rounded-full">
+                    <svg class="w-5 h-5 text-[#218786]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0L5.4 5M7 13h10M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z"/>
                     </svg>
                 </div>
@@ -141,8 +129,8 @@
     <form action="{{ route('ventas.store') }}" method="POST" @submit.prevent="submitVenta" class="space-y-6">
         @csrf
         
-        <!-- Sección Cliente -->
-        <div class="section-card bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <!-- Sección Cliente - CON Z-INDEX ALTO -->
+        <div class="section-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 z-dropdown">
             <div class="flex items-center mb-6">
                 <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
                     <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,15 +154,16 @@
                        @focus="showClientesList = true"
                        type="text" 
                        placeholder="Buscar por nombre o DNI del cliente..."
-                       class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200"
+                       class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-colors duration-200"
                        autocomplete="off">
                 
-                <!-- Lista de resultados clientes -->
+                <!-- Lista de resultados clientes - Z-INDEX 100 -->
                 <div x-show="showClientesList && clienteResults.length > 0" 
                      x-transition:enter="transition ease-out duration-200"
                      x-transition:enter-start="opacity-0 -translate-y-2"
                      x-transition:enter-end="opacity-100 translate-y-0"
-                     class="absolute z-50 mt-2 w-full search-results rounded-lg shadow-lg max-h-60 overflow-auto">
+                     x-cloak
+                     class="absolute z-[100] mt-2 w-full search-results rounded-lg shadow-lg max-h-60 overflow-auto">
                     <template x-for="cliente in clienteResults" :key="cliente.id">
                         <div @click="selectCliente(cliente)" 
                              class="search-item px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 transition-all duration-200">
@@ -199,6 +188,7 @@
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0 scale-95"
                  x-transition:enter-end="opacity-100 scale-100"
+                 x-cloak
                  class="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
@@ -222,8 +212,8 @@
             </div>
         </div>
 
-        <!-- Sección Búsqueda de Productos -->
-        <div class="section-card bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <!-- Sección Búsqueda de Productos - CON Z-INDEX MEDIO -->
+        <div class="section-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 z-dropdown">
             <div class="flex items-center mb-6">
                 <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
                     <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -247,15 +237,16 @@
                        @focus="showRepuestosList = true"
                        type="text" 
                        placeholder="Buscar por nombre, código o categoría..."
-                       class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200"
+                       class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-colors duration-200"
                        autocomplete="off">
                 
-                <!-- Lista de resultados repuestos -->
+                <!-- Lista de resultados repuestos - Z-INDEX 90 -->
                 <div x-show="showRepuestosList && repuestoResults.length > 0" 
                      x-transition:enter="transition ease-out duration-200"
                      x-transition:enter-start="opacity-0 -translate-y-2"
                      x-transition:enter-end="opacity-100 translate-y-0"
-                     class="absolute z-50 mt-2 w-full search-results rounded-lg shadow-lg max-h-60 overflow-auto">
+                     x-cloak
+                     class="absolute z-[90] mt-2 w-full search-results rounded-lg shadow-lg max-h-60 overflow-auto">
                     <template x-for="repuesto in repuestoResults" :key="repuesto.id">
                         <div @click="addRepuesto(repuesto)" 
                              class="search-item px-4 py-3 cursor-pointer border-b border-gray-100 last:border-b-0 transition-all duration-200">
@@ -278,7 +269,8 @@
                 
                 <!-- Estado sin resultados -->
                 <div x-show="showRepuestosList && repuestoResults.length === 0 && repuestoSearch.length > 0" 
-                     class="absolute z-50 mt-2 w-full bg-white rounded-lg shadow-lg p-4 text-center text-gray-500">
+                     x-cloak
+                     class="absolute z-[90] mt-2 w-full bg-white rounded-lg shadow-lg p-4 text-center text-gray-500">
                     <svg class="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 12h6m-6-4h6m2 5.291A7.962 7.962 0 0112 15c-2.34 0-4.467-.881-6.077-2.33"/>
                     </svg>
@@ -287,8 +279,8 @@
             </div>
         </div>
 
-        <!-- Sección Carrito de Compras -->
-        <div class="section-card bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <!-- Sección Carrito de Compras - Z-INDEX BAJO -->
+        <div class="section-card bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden relative z-10">
             <div class="p-6 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center">
@@ -302,7 +294,7 @@
                             <p class="text-sm text-gray-600">Revisa y ajusta las cantidades</p>
                         </div>
                     </div>
-                    <button x-show="items.length > 0" @click="clearCarrito" type="button"
+                    <button x-show="items.length > 0" @click="clearCarrito" type="button" x-cloak
                             class="text-red-600 hover:text-red-800 text-sm font-medium transition-colors">
                         Limpiar todo
                     </button>
@@ -310,7 +302,7 @@
             </div>
 
             <!-- Tabla de productos -->
-            <div x-show="items.length > 0" class="overflow-x-auto">
+            <div x-show="items.length > 0" x-cloak class="overflow-x-auto">
                 <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                         <tr>
@@ -327,8 +319,8 @@
                             <tr class="venta-item hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 whitespace-nowrap">
                                     <div class="flex items-center">
-                                        <div class="w-8 h-8 bg-primary-100 rounded-lg flex items-center justify-center mr-3">
-                                            <svg class="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <div class="w-8 h-8 bg-[#e6f7f6] rounded-lg flex items-center justify-center mr-3">
+                                            <svg class="w-4 h-4 text-[#218786]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
                                             </svg>
                                         </div>
@@ -355,7 +347,7 @@
                                                @change="updateCantidad(item.id, $event.target.value)"
                                                :max="item.stock"
                                                min="1"
-                                               class="w-16 text-center border border-gray-300 rounded-lg py-1 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                               class="w-16 text-center border border-gray-300 rounded-lg py-1 focus:ring-2 focus:ring-[#218786] focus:border-[#218786]">
                                         <button @click="updateCantidad(item.id, item.cantidad + 1)" type="button"
                                                 :disabled="item.cantidad >= item.stock"
                                                 class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
@@ -393,7 +385,7 @@
             </div>
 
             <!-- Estado vacío -->
-            <div x-show="items.length === 0" class="p-12 text-center">
+            <div x-show="items.length === 0" x-cloak class="p-12 text-center">
                 <div class="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                     <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0L5.4 5M7 13h10M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z"/>
@@ -427,12 +419,12 @@
                         <label class="relative">
                             <input type="radio" name="metodo_pago" value="efectivo" x-model="metodoPago" class="sr-only">
                             <div class="flex items-center p-4 border rounded-lg cursor-pointer transition-all duration-200"
-                                 :class="metodoPago === 'efectivo' ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-gray-400'">
-                                <svg class="w-6 h-6 mr-3" :class="metodoPago === 'efectivo' ? 'text-primary-600' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 :class="metodoPago === 'efectivo' ? 'border-[#218786] bg-[#e6f7f6]' : 'border-gray-300 hover:border-gray-400'">
+                                <svg class="w-6 h-6 mr-3" :class="metodoPago === 'efectivo' ? 'text-[#218786]' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
                                 </svg>
                                 <div>
-                                    <p class="font-medium" :class="metodoPago === 'efectivo' ? 'text-primary-900' : 'text-gray-900'">Efectivo</p>
+                                    <p class="font-medium" :class="metodoPago === 'efectivo' ? 'text-[#218786]' : 'text-gray-900'">Efectivo</p>
                                     <p class="text-sm text-gray-500">Pago en efectivo</p>
                                 </div>
                             </div>
@@ -441,12 +433,12 @@
                         <label class="relative">
                             <input type="radio" name="metodo_pago" value="tarjeta" x-model="metodoPago" class="sr-only">
                             <div class="flex items-center p-4 border rounded-lg cursor-pointer transition-all duration-200"
-                                 :class="metodoPago === 'tarjeta' ? 'border-primary-500 bg-primary-50' : 'border-gray-300 hover:border-gray-400'">
-                                <svg class="w-6 h-6 mr-3" :class="metodoPago === 'tarjeta' ? 'text-primary-600' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 :class="metodoPago === 'tarjeta' ? 'border-[#218786] bg-[#e6f7f6]' : 'border-gray-300 hover:border-gray-400'">
+                                <svg class="w-6 h-6 mr-3" :class="metodoPago === 'tarjeta' ? 'text-[#218786]' : 'text-gray-400'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
                                 </svg>
                                 <div>
-                                    <p class="font-medium" :class="metodoPago === 'tarjeta' ? 'text-primary-900' : 'text-gray-900'">Tarjeta</p>
+                                    <p class="font-medium" :class="metodoPago === 'tarjeta' ? 'text-[#218786]' : 'text-gray-900'">Tarjeta</p>
                                     <p class="text-sm text-gray-500">Débito/Crédito</p>
                                 </div>
                             </div>
@@ -457,8 +449,8 @@
                 <!-- Acciones -->
                 <div class="flex flex-col sm:flex-row gap-4">
                     <a href="{{ route('ventas.index') }}" 
-                       class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200 text-center">
-                        <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       class="flex-1 px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200 text-center inline-flex items-center justify-center">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
                         Cancelar
@@ -466,12 +458,12 @@
                     
                     <button type="submit" 
                             :disabled="items.length === 0 || isSubmitting"
-                            :class="items.length === 0 || isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:from-primary-600 hover:to-primary-700'"
-                            class="flex-1 px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center">
+                            :class="items.length === 0 || isSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:shadow-lg'"
+                            class="flex-1 px-6 py-3 bg-gradient-to-r from-[#218786] to-[#1a6d6c] text-white font-medium rounded-lg transition-all duration-200 inline-flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed shadow-md">
                         <svg x-show="!isSubmitting" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                         </svg>
-                        <svg x-show="isSubmitting" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+                        <svg x-show="isSubmitting" x-cloak class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
@@ -509,17 +501,14 @@
 <script>
 function ventaManager() {
     return {
-        // Datos
         repuestos: @json($repuestos_js),
         clientes: @json($clientes_js),
         
-        // Estado
         items: [],
         selectedCliente: { id: '', nombre: '', dni: '' },
         metodoPago: 'efectivo',
         isSubmitting: false,
         
-        // Búsquedas
         clienteSearch: '',
         repuestoSearch: '',
         clienteResults: [],
@@ -527,7 +516,6 @@ function ventaManager() {
         showClientesList: false,
         showRepuestosList: false,
         
-        // Computed
         get total() {
             return this.items.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         },
@@ -540,7 +528,6 @@ function ventaManager() {
             return this.repuestos.filter(r => r.stock > 0).length;
         },
         
-        // Métodos para clientes
         searchClientes() {
             if (!this.clienteSearch.trim()) {
                 this.clienteResults = [];
@@ -570,7 +557,6 @@ function ventaManager() {
             this.clienteResults = [];
         },
         
-        // Métodos para repuestos
         searchRepuestos() {
             if (!this.repuestoSearch.trim()) {
                 this.repuestoResults = [];
@@ -589,20 +575,17 @@ function ventaManager() {
         },
         
         addRepuesto(repuesto) {
-            // Verificar si ya existe
             const existingItem = this.items.find(item => item.id === repuesto.id);
             if (existingItem) {
                 this.showNotification('Este producto ya está en la venta', 'warning');
                 return;
             }
             
-            // Verificar stock
             if (repuesto.stock <= 0) {
                 this.showNotification('Este producto no tiene stock disponible', 'error');
                 return;
             }
             
-            // Agregar al carrito
             this.items.push({
                 id: repuesto.id,
                 nombre: repuesto.nombre,
@@ -612,7 +595,6 @@ function ventaManager() {
                 cantidad: 1
             });
             
-            // Limpiar búsqueda
             this.repuestoSearch = '';
             this.repuestoResults = [];
             this.showRepuestosList = false;
@@ -653,7 +635,8 @@ function ventaManager() {
                 confirmButtonText: 'Sí, limpiar',
                 cancelButtonText: 'Cancelar',
                 confirmButtonColor: '#ef4444',
-                cancelButtonColor: '#6b7280'
+                cancelButtonColor: '#6b7280',
+                reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
                     this.items = [];
@@ -662,14 +645,12 @@ function ventaManager() {
             });
         },
         
-        // Envío del formulario
         async submitVenta(event) {
             if (this.items.length === 0) {
                 this.showNotification('Agrega al menos un producto a la venta', 'error');
                 return;
             }
             
-            // Mostrar confirmación
             const result = await Swal.fire({
                 title: '¿Confirmar venta?',
                 html: this.getVentaResumen(),
@@ -679,18 +660,13 @@ function ventaManager() {
                 cancelButtonText: 'Revisar',
                 confirmButtonColor: '#218786',
                 cancelButtonColor: '#6b7280',
-                customClass: {
-                    popup: 'rounded-xl',
-                    confirmButton: 'rounded-lg px-6 py-2.5',
-                    cancelButton: 'rounded-lg px-6 py-2.5'
-                }
+                reverseButtons: true
             });
             
             if (!result.isConfirmed) return;
             
             this.isSubmitting = true;
             
-            // Mostrar loading
             Swal.fire({
                 title: 'Procesando venta...',
                 html: 'Por favor espera mientras registramos la transacción',
@@ -700,7 +676,6 @@ function ventaManager() {
                 }
             });
             
-            // Enviar formulario
             event.target.submit();
         },
         
@@ -720,7 +695,6 @@ function ventaManager() {
             `;
         },
         
-        // Utilidades
         showNotification(message, type = 'info') {
             const config = {
                 toast: true,
@@ -756,9 +730,7 @@ function ventaManager() {
             Swal.fire(config);
         },
         
-        // Inicialización
         init() {
-            // Cerrar listas al hacer clic fuera
             document.addEventListener('click', (e) => {
                 if (!this.$el.contains(e.target)) {
                     this.showClientesList = false;
@@ -766,35 +738,29 @@ function ventaManager() {
                 }
             });
             
-            // Atajos de teclado
             document.addEventListener('keydown', (e) => {
-                // Escape para cerrar listas
                 if (e.key === 'Escape') {
                     this.showClientesList = false;
                     this.showRepuestosList = false;
                 }
                 
-                // Ctrl + Enter para enviar formulario
                 if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && this.items.length > 0) {
                     e.preventDefault();
-                    this.$refs.form.dispatchEvent(new Event('submit', { cancelable: true }));
+                    this.$el.querySelector('form').dispatchEvent(new Event('submit', { cancelable: true }));
                 }
             });
         }
     }
 }
 
-// Funciones de utilidad adicionales
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-focus en el campo de búsqueda de repuestos
     setTimeout(() => {
         const repuestoInput = document.querySelector('input[x-model="repuestoSearch"]');
         if (repuestoInput) repuestoInput.focus();
     }, 500);
     
-    // Interceptar refresh si hay productos en el carrito
     window.addEventListener('beforeunload', function(e) {
-        const ventaData = Alpine.getScope(document.querySelector('[x-data]'));
+        const ventaData = Alpine.$data(document.querySelector('[x-data]'));
         if (ventaData && ventaData.items.length > 0) {
             e.preventDefault();
             e.returnValue = '';
