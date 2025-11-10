@@ -129,3 +129,31 @@ Route::get('/dashboard', function() {
 
 Route::get('/categorias/export', [CategoriaController::class, 'export'])->name('categorias.export');
 
+
+
+//Ruta para boletas
+
+
+
+// routes/web.php
+
+
+// Rutas para Ventas
+Route::prefix('ventas')->name('ventas.')->group(function () {
+    
+    // CRUD básico
+    Route::get('/', [VentaController::class, 'index'])->name('index');
+    Route::get('/create', [VentaController::class, 'create'])->name('create');
+    Route::post('/', [VentaController::class, 'store'])->name('store');
+    
+    // Boleta y Ticket PDF
+    Route::get('/{id}/boleta', [VentaController::class, 'generarBoleta'])->name('boleta');
+    Route::get('/{id}/ticket', [VentaController::class, 'generarTicket'])->name('ticket');
+    
+    // Detalles JSON para modal
+    Route::get('/{id}/detalles', [VentaController::class, 'detalles'])->name('detalles');
+    
+    // Cambiar estado
+    Route::patch('/{id}/estado', [VentaController::class, 'cambiarEstado'])->name('cambiar-estado');
+    
+});

@@ -9,6 +9,7 @@ use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf; // 👈 AGREGAR ESTE IMPORT
 
 class VentaController extends Controller
 {
@@ -186,19 +187,116 @@ class VentaController extends Controller
 
         return view('ventas.historial', compact('cliente', 'ventas'));
     } 
+    
     public function detalles($id)
-{
-    $venta = Venta::with(['cliente', 'detalles.repuesto'])->findOrFail($id);
+    {
+        $venta = Venta::with(['cliente', 'detalles.repuesto'])->findOrFail($id);
 
-    return response()->json([
-        'fecha' => \Carbon\Carbon::parse($venta->fecha)->format('d/m/Y H:i'),
-        'total' => $venta->total,
-        'estado' => ucfirst($venta->estado),
-        'cliente' => $venta->cliente,
-        'detalles' => $venta->detalles
-    ]);
-}
+        return response()->json([
+            'id' => $venta->id,
+            'fecha' => \Carbon\Carbon::parse($venta->fecha)->format('d/m/Y H:i'),
+            'total' => number_format($venta->total, 2),
+            'estado' => ucfirst($venta->estado),
+            'cliente' => [
+                'nombre' => $venta->cliente->nombre ?? 'Cliente General',
+                'dni' => $venta->cliente->dni ?? 'No especificado',
+                'telefono' => $venta->cliente->telefono ?? 'No especificado',
+            ],
+            'detalles' => $venta->detalles->map(function($detalle) {
+                return [
+                    'repuesto' => [
+                        'nombre' => $detalle->repuesto->nombre,
+                        'codigo' => $detalle->repuesto->codigo ?? 'N/A',
+                    ],
+                    'cantidad' => $detalle->cantidad,
+                    'precio_unitario' => number_format($detalle->precio_unitario, 2),
+                    'subtotal' => number_format($detalle->subtotal, 2),
+                ];
+            })
+        ]);
+    }
 
+    /**
+     * Cambiar estado de la venta
+     */
+    public function cambiarEstado(Request $request, $id)
+    {
+        try {
+            $request->validate([
+                'estado' => 'required|in:pendiente,pagado,anulado'
+            ]);
+            
+            $venta = Venta::findOrFail($id);
+            
+            // Si se anula, restaurar stock
+            if ($request->estado === 'anulado' && $venta->estado !== 'anulado') {
+                foreach ($venta->detalles as $detalle) {
+                    $repuesto = $detalle->repuesto;
+                    $repuesto->cantidad += $detalle->cantidad;
+                    $repuesto->save();
+                }
+            }
+            
+            $venta->estado = $request->estado;
+            $venta->save();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Estado actualizado correctamente'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 
-
+    /**
+     * Generar boleta térmica en PDF
+     */
+    public function generarBoleta($id)
+    {
+        try {
+            // Cargar la venta con sus relaciones
+            $venta = Venta::with(['cliente', 'detalles.repuesto'])
+                ->findOrFail($id);
+            
+            // Configurar PDF para impresora térmica (80mm)
+            $pdf = Pdf::loadView('ventas.boleta', [
+                'venta' => $venta,
+            ]);
+            
+            // Configuración del papel (80mm de ancho, altura automática)
+            $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait'); // 80mm x 297mm en puntos
+            
+            // Nombre del archivo
+            $filename = 'Boleta_' . str_pad($venta->id, 8, '0', STR_PAD_LEFT) . '.pdf';
+            
+            // Retornar PDF para mostrar en navegador
+            return $pdf->stream($filename);
+            
+        } catch (\Exception $e) {
+            return redirect()->route('ventas.index')
+                ->with('error', 'Error al generar la boleta: ' . $e->getMessage());
+        }
+    }
+    
+    /**
+     * Generar ticket simplificado (aún más compacto)
+     */
+    public function generarTicket($id)
+    {
+        try {
+            $venta = Venta::with(['cliente', 'detalles.repuesto'])
+                ->findOrFail($id);
+            
+            // Vista simple para tickets
+            return view('ventas.ticket', compact('venta'));
+            
+        } catch (\Exception $e) {
+            return redirect()->route('ventas.index')
+                ->with('error', 'Error al generar el ticket: ' . $e->getMessage());
+        }
+    }
 }
