@@ -1,8 +1,6 @@
 @extends('layouts.app')
 
 @section('title', 'Editar Cliente')
-@section('page-title', 'Editar Cliente')
-@section('page-description', 'Actualiza la información del cliente seleccionado')
 
 @section('breadcrumbs')
 <nav class="flex items-center space-x-2 text-sm text-gray-500">
@@ -303,29 +301,36 @@
                 Los campos marcados con <span class="text-red-500 font-medium">*</span> son obligatorios
             </div>
             
-            <div class="flex items-center space-x-4">
-                <a href="{{ route('clientes.index') }}" 
-                   class="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                    Cancelar
-                </a>
-                
-                <button type="submit" 
-                        :disabled="isSubmitting || !hasChanges"
-                        :class="isSubmitting || !hasChanges ? 'opacity-50 cursor-not-allowed' : 'hover:from-primary-600 hover:to-primary-700'"
-                        class="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center">
-                    <svg x-show="!isSubmitting" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                    </svg>
-                    <svg x-show="isSubmitting" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span x-text="isSubmitting ? 'Actualizando...' : 'Actualizar Cliente'"></span>
-                </button>
-            </div>
+            <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+    <!-- Botón Cancelar -->
+    <a href="{{ route('clientes.index') }}" 
+       class="flex items-center justify-center px-6 py-3 border border-[#1b8c72ff] text-[#1b8c72ff] font-medium rounded-lg bg-white hover:bg-[#1b8c7210] transition-all duration-200 w-full sm:w-auto">
+        <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+        Cancelar
+    </a>
+
+    <!-- Botón Actualizar -->
+    <button type="submit"
+            :disabled="isSubmitting || !hasChanges"
+            :class="isSubmitting || !hasChanges ? 'opacity-50 cursor-not-allowed' : 'hover:from-[#15745f] hover:to-[#0e5c4a]'}"
+            class="flex items-center justify-center px-6 py-3 bg-gradient-to-r from-[#1b8c72ff] to-[#15745fff] text-white font-medium rounded-lg transition-all duration-200 shadow-sm hover:shadow-md w-full sm:w-auto">
+        <!-- Icono check -->
+        <svg x-show="!isSubmitting" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+
+        <!-- Spinner -->
+        <svg x-show="isSubmitting" class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+
+        <span x-text="isSubmitting ? 'Actualizando...' : 'Actualizar Cliente'"></span>
+    </button>
+</div>
+
         </div>
     </form>
 </div>

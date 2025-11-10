@@ -172,22 +172,25 @@
 
             <!-- Acciones -->
             <div class="flex flex-col sm:flex-row gap-3">
-                <a href="{{ route('clientes.create') }}" 
-                   class="inline-flex items-center justify-center px-4 py-2.5 bg-gradient-to-r from-primary-500 to-primary-600 text-white font-medium rounded-lg hover:from-primary-600 hover:to-primary-700 transition-all duration-200 shadow-sm hover:shadow-md">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                    Nuevo Cliente
-                </a>
-                
-                <button onclick="exportarClientes()" 
-                        class="inline-flex items-center justify-center px-4 py-2.5 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors duration-200">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    Exportar
-                </button>
-            </div>
+    <!-- Botón: Nuevo Cliente -->
+    <a href="{{ route('clientes.create') }}" 
+       class="inline-flex items-center justify-center px-4 py-2.5 bg-[#1b8c72ff] text-white font-medium rounded-lg hover:bg-[#15745e] transition-all duration-200 shadow-sm hover:shadow-md">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+        </svg>
+        Nuevo Cliente
+    </a>
+
+    <!-- Botón: Exportar -->
+    <button onclick="exportarClientes()" 
+            class="inline-flex items-center justify-center px-4 py-2.5 bg-[#1b8c72ff] text-white font-medium rounded-lg hover:bg-[#15745e] transition-all duration-200 shadow-sm hover:shadow-md">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+        </svg>
+        Exportar
+    </button>
+</div>
+
         </div>
     </div>
 
@@ -206,9 +209,10 @@
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-4">
                             <!-- Avatar -->
-                            <div class="w-12 h-12 bg-gradient-to-r from-primary-500 to-primary-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                                {{ strtoupper(substr($cliente->nombre, 0, 1)) }}
-                            </div>
+                             <svg class="w-5 h-5 text-[#1b8c72ff] mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                  d="M5.121 17.804A13.937 13.937 0 0112 15c2.486 0 4.797.64 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
                             
                             <!-- Información básica -->
                             <div>
