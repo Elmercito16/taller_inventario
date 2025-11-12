@@ -7,6 +7,7 @@ use App\Models\Repuesto;
 use App\Models\Proveedor;
 use App\Models\Categoria;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB; // Asegúrate de tener esto
 
 class RepuestoController extends Controller
 {
@@ -15,22 +16,48 @@ class RepuestoController extends Controller
      */
     public function index(Request $request)
     {
+        // Esta función ya la habíamos corregido y está bien
+        $categorias = Categoria::orderBy('nombre')->get();
+
         $query = Repuesto::with(['proveedor', 'categoria'])
             ->orderBy('id', 'desc');
 
-        // ✅ Si hay búsqueda, mostramos solo los que coincidan
-        if ($request->filled('q')) {
-            $search = $request->q;
-
-            $repuestos = $query->where('nombre', 'like', "%{$search}%")
-                               ->orWhere('marca', 'like', "%{$search}%")
-                               ->get(); // 🔍 sin paginación en búsqueda
-        } else {
-            // ✅ Si no hay búsqueda, paginamos
-            $repuestos = $query->paginate(12);
+        if ($request->filled('categoria_id')) {
+            $query->where('categoria_id', $request->categoria_id);
         }
 
-        return view('repuestos.index', compact('repuestos'));
+        if ($request->filled('q')) {
+            $search = $request->q;
+            $query->where(function($q) use ($search) {
+                $q->where('nombre', 'like', "%{$search}%")
+                  ->orWhere('marca', 'like', "%{$search}%")
+                  ->orWhere('codigo', 'like', "%{$search}%");
+            });
+        }
+        
+        // Clonamos la consulta ANTES de paginar para obtener los totales
+        $statsQuery = clone $query;
+        $valorTotal = (clone $statsQuery)->sum(DB::raw('cantidad * precio_unitario'));
+        $stockBajoCount = (clone $statsQuery)->whereRaw('cantidad <= minimo_stock')->count();
+        $categoriasCount = (clone $statsQuery)->distinct()->count('categoria_id');
+        $repuestosStockBajo = (clone $statsQuery)
+            ->whereRaw('cantidad <= minimo_stock AND cantidad > 0')
+            ->get();
+        $repuestosAgotados = (clone $statsQuery)
+            ->where('cantidad', '<=', 0)
+            ->get();
+        
+        $repuestos = $query->paginate(12)->appends($request->query());
+
+        return view('repuestos.index', compact(
+            'repuestos', 
+            'categorias',
+            'valorTotal',
+            'stockBajoCount',
+            'categoriasCount',
+            'repuestosStockBajo',
+            'repuestosAgotados'
+        ));
     }
 
     /**
@@ -63,8 +90,12 @@ class RepuestoController extends Controller
             'marca'           => 'required|string|max:255',
             'cantidad'        => 'required|integer|min:0',
             'precio_unitario' => 'required|numeric|min:0',
-            'proveedor_id'    => 'nullable|exists:proveedores,id',
-            'categoria_id'    => 'required|exists:categorias,id',
+            
+            // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
+            // Cambiamos 'proveedores' por 'proveedor' (o el nombre real de tu tabla)
+            'proveedor_id'    => 'nullable|exists:proveedor,id', 
+            
+            'categoria_id'    => 'required|exists:categorias,id', // Asumo que esta sí se llama 'categorias'
             'descripcion'     => 'nullable|string',
             'fecha_ingreso'   => 'nullable|date',
             'codigo'          => 'required|string|unique:repuestos,codigo',
@@ -106,8 +137,12 @@ class RepuestoController extends Controller
             'marca'           => 'required|string|max:255',
             'cantidad'        => 'required|integer|min:0',
             'precio_unitario' => 'required|numeric|min:0',
-            'proveedor_id'    => 'nullable|exists:proveedores,id',
-            'categoria_id'    => 'required|exists:categorias,id',
+            
+            // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
+            // Cambiamos 'proveedores' por 'proveedor' (o el nombre real de tu tabla)
+            'proveedor_id'    => 'nullable|exists:proveedor,id', 
+            
+            'categoria_id'    => 'required|exists:categorias,id', // Asumo que esta sí se llama 'categorias'
             'descripcion'     => 'nullable|string',
             'fecha_ingreso'   => 'nullable|date',
             'minimo_stock'    => 'nullable|integer|min:0',
@@ -132,6 +167,7 @@ class RepuestoController extends Controller
      */
     public function destroy($id)
     {
+// ... (código existente) ...
         $repuesto = Repuesto::findOrFail($id);
 
         if ($repuesto->imagen && Storage::disk('public')->exists($repuesto->imagen)) {
@@ -149,6 +185,7 @@ class RepuestoController extends Controller
      */
     public function updateCantidad(Request $request, $id)
     {
+// ... (código existente) ...
         $request->validate([
             'cantidad' => 'required|integer|min:1',
         ]);

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Proveedor extends Model
 {
-    protected $table = 'proveedors'; // 👈 nombre de la tabla en tu BD
+    protected $table = 'proveedor'; // 👈 nombre de la tabla en tu BD
 
     protected $fillable = [
         'nombre',
@@ -18,4 +18,18 @@ class Proveedor extends Model
 {
     return 'id';
 }
+/**
+     * Define la relación: Un proveedor tiene muchos repuestos
+     */
+    public function repuestos()
+    {
+        return $this->hasMany(Repuesto::class);
+    }
+
+
+
+
+
+
+
 }
