@@ -9,10 +9,15 @@ use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
-use Barryvdh\DomPDF\Facade\Pdf; // 👈 AGREGAR ESTE IMPORT
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Validation\Rule; // 1. ¡IMPORTAR LA CLASE RULE!
 
 class VentaController extends Controller
 {
+    /**
+     * ¡MAGIA! Esta función ya es multi-tenant.
+     * Venta::with() es filtrado automáticamente por el Trait.
+     */
     public function index()
     {
         $ventas = Venta::with('cliente')->latest()->get();
@@ -20,6 +25,10 @@ class VentaController extends Controller
         return view('ventas.index', compact('ventas'));
     }
 
+    /**
+     * ¡MAGIA! Esta función ya es multi-tenant.
+     * Repuesto::...get() y Cliente::all() son filtrados automáticamente.
+     */
     public function create()
     {
         $repuestos = Repuesto::with('categoria')->get() ?? collect([]);
@@ -30,9 +39,46 @@ class VentaController extends Controller
 
     public function store(Request $request)
     {
+        // 2. ¡VALIDACIÓN DE SEGURIDAD MULTI-TENANT AÑADIDA!
+        // Esto se ejecuta ANTES de que comience la transacción.
+        try {
+            $validated = $request->validate([
+                'total' => 'required|numeric|min:0',
+
+                // Valida que el cliente_id exista Y pertenezca a la empresa del usuario
+                'cliente_id' => [
+                    'nullable', // 'nullable' ya que tu código lo permite
+                    Rule::exists('clientes', 'id')->where(function ($query) {
+                        return $query->where('empresa_id', auth()->user()->empresa_id);
+                    })
+                ],
+
+                // Valida que el array de repuestos exista
+                'repuestos' => 'required|array|min:1',
+
+                // Valida CADA item dentro del array de repuestos
+                'repuestos.*.id' => [
+                    'required',
+                    // Valida que el repuesto_id exista Y pertenezca a la empresa del usuario
+                    Rule::exists('repuestos', 'id')->where(function ($query) {
+                        return $query->where('empresa_id', auth()->user()->empresa_id);
+                    })
+                ],
+                'repuestos.*.cantidad' => 'required|integer|min:1',
+                'repuestos.*.precio' => 'required|numeric|min:0',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Si la validación falla, regresa con el error.
+            return redirect()->back()
+                ->withErrors($e->errors())
+                ->withInput();
+        }
+
+        // --- TU LÓGICA DE TRANSACCIÓN (SIN CAMBIOS) ---
         try {
             DB::transaction(function () use ($request) {
                 // Crear la venta
+                // ¡MAGIA! 'Venta::create' añadirá 'empresa_id' automáticamente.
                 $venta = Venta::create([
                     'cliente_id' => $request->cliente_id ?? null,
                     'fecha'      => now(),
@@ -46,6 +92,7 @@ class VentaController extends Controller
                 }
 
                 foreach ($request->repuestos as $rep) {
+                    // Ahora esta línea es segura, porque el ID ya fue validado.
                     $repuesto = Repuesto::findOrFail($rep['id']);
 
                     // Validar stock
@@ -54,6 +101,7 @@ class VentaController extends Controller
                     }
 
                     // Crear detalle de venta
+                    // ¡MAGIA! 'DetalleVenta::create' añadirá 'empresa_id' automáticamente.
                     DetalleVenta::create([
                         'venta_id'        => $venta->id,
                         'repuesto_id'     => $repuesto->id,
@@ -81,10 +129,12 @@ class VentaController extends Controller
         return view('ventas.success');
     }
 
-    // 👉 Endpoint AJAX para buscar repuestos
+    // ¡MAGIA! Esta función ya es multi-tenant.
     public function buscarRepuesto(Request $request)
     {
         $query = $request->input('query');
+        
+        // Repuesto::where() es filtrado automáticamente por 'empresa_id'
         $repuestos = Repuesto::where('nombre', 'like', "%$query%")
             ->orWhereHas('categoria', function($q) use ($query) {
                 $q->where('nombre', 'like', "%$query%");
@@ -95,6 +145,8 @@ class VentaController extends Controller
         return response()->json($repuestos);
     }
 
+    // ¡MAGIA! Esta función ya es multi-tenant.
+    // Venta::...findOrFail() solo encontrará ventas de esta empresa.
     public function anular($id)
     {
         try {
@@ -107,6 +159,7 @@ class VentaController extends Controller
 
                 // Devolver stock de cada repuesto
                 foreach ($venta->detalles as $detalle) {
+                    // $detalle->repuesto está seguro porque la venta fue encontrada
                     $detalle->repuesto->increment('cantidad', $detalle->cantidad);
                 }
 
@@ -122,6 +175,7 @@ class VentaController extends Controller
         }
     }
 
+    // ¡MAGIA! Esta función ya es multi-tenant.
     public function show($id)
     {
         $venta = Venta::with(['cliente', 'detalles.repuesto'])->findOrFail($id);
@@ -129,14 +183,16 @@ class VentaController extends Controller
         return view('ventas.show', compact('venta'));
     }
 
-    // 👉 Método para filtrar el historial de ventas de un cliente por fecha
+    // ¡MAGIA! Esta función ya es multi-tenant.
     public function historialCliente(Request $request, $id)
     {
+        // Cliente::findOrFail() solo encontrará clientes de esta empresa.
         $cliente = Cliente::findOrFail($id);
 
+        // Venta::where() es filtrado automáticamente por 'empresa_id'
         $ventas = Venta::with('detalles.repuesto')->where('cliente_id', $id);
 
-        // Filtrar por fecha según el valor del filtro
+        // ... (El resto de tu lógica de filtros de fecha)
         if ($request->has('filter') && $request->filter != 'all') {
             $filter = $request->filter;
 
@@ -188,6 +244,7 @@ class VentaController extends Controller
         return view('ventas.historial', compact('cliente', 'ventas'));
     } 
     
+    // ¡MAGIA! Esta función ya es multi-tenant.
     public function detalles($id)
     {
         $venta = Venta::with(['cliente', 'detalles.repuesto'])->findOrFail($id);
@@ -218,6 +275,7 @@ class VentaController extends Controller
 
     /**
      * Cambiar estado de la venta
+     * ¡MAGIA! Esta función ya es multi-tenant.
      */
     public function cambiarEstado(Request $request, $id)
     {
@@ -226,12 +284,13 @@ class VentaController extends Controller
                 'estado' => 'required|in:pendiente,pagado,anulado'
             ]);
             
+            // Venta::findOrFail() solo encontrará la venta si pertenece a esta empresa
             $venta = Venta::findOrFail($id);
             
             // Si se anula, restaurar stock
             if ($request->estado === 'anulado' && $venta->estado !== 'anulado') {
                 foreach ($venta->detalles as $detalle) {
-                    $repuesto = $detalle->repuesto;
+                    $repuesto = $detalle->repuesto; // $detalle ya pertenece a la empresa
                     $repuesto->cantidad += $detalle->cantidad;
                     $repuesto->save();
                 }
@@ -254,11 +313,13 @@ class VentaController extends Controller
 
     /**
      * Generar boleta térmica en PDF
+     * ¡MAGIA! Esta función ya es multi-tenant.
      */
     public function generarBoleta($id)
     {
         try {
             // Cargar la venta con sus relaciones
+            // Venta::findOrFail() solo encontrará la venta si pertenece a esta empresa
             $venta = Venta::with(['cliente', 'detalles.repuesto'])
                 ->findOrFail($id);
             
@@ -284,10 +345,12 @@ class VentaController extends Controller
     
     /**
      * Generar ticket simplificado (aún más compacto)
+     * ¡MAGIA! Esta función ya es multi-tenant.
      */
     public function generarTicket($id)
     {
         try {
+            // Venta::findOrFail() solo encontrará la venta si pertenece a esta empresa
             $venta = Venta::with(['cliente', 'detalles.repuesto'])
                 ->findOrFail($id);
             
