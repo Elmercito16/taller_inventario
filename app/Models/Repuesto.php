@@ -4,18 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-//use Spatie\Multitenancy\Models\Concerns\BelongsToTenant; // 1. IMPORTAR
-use Spatie\Multitenancy\Models\Concerns\UsesTenantModel;
-
+use Illuminate\Database\Eloquent\Builder;
+use Spatie\Multitenancy\Models\Tenant;
 
 class Repuesto extends Model
 {
-    use HasFactory, UsesTenantModel; // 2. AÑADIR TRAIT
+    use HasFactory;
 
-    // (No necesitas $table, 'repuestos' es el plural estándar de Laravel)
-
-    // Campos que se pueden asignar masivamente
     protected $fillable = [
+        'empresa_id', // 👈 IMPORTANTE: debe estar aquí
         'codigo',
         'nombre',
         'marca',
@@ -26,14 +23,41 @@ class Repuesto extends Model
         'proveedor_id',
         'categoria_id',
         'fecha_ingreso',
-        'imagen' // nuevo
-        // 'empresa_id' se añadirá automáticamente
+        'imagen',
     ];
 
-    // Valores por defecto
     protected $attributes = [
         'minimo_stock' => 0,
     ];
+
+    /**
+     * Boot del modelo - aplica scope automático
+     */
+    protected static function booted()
+{
+    static::addGlobalScope('tenant', function (Builder $builder) {
+        if ($tenant = Tenant::current()) {
+            $builder->where('empresa_id', $tenant->id);
+        }
+    });
+
+    static::creating(function ($model) {
+        if ($tenant = Tenant::current()) {
+            $model->empresa_id = $tenant->id;
+        }
+
+        // Genera código secuencial si no se proporciona
+        if (empty($model->codigo)) {
+            $lastRepuesto = static::withoutGlobalScope('tenant')
+                ->where('empresa_id', $model->empresa_id)
+                ->orderBy('id', 'desc')
+                ->first();
+            
+            $nextNumber = $lastRepuesto ? (int)substr($lastRepuesto->codigo, 4) + 1 : 1;
+            $model->codigo = 'REP-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        }
+    });
+}
 
     /**
      * Relación: Un repuesto pertenece a UNA empresa (Tenant).
@@ -45,7 +69,6 @@ class Repuesto extends Model
 
     /**
      * Relación con categoría
-     * Un repuesto pertenece a una categoría
      */
     public function categoria()
     {
@@ -54,12 +77,9 @@ class Repuesto extends Model
 
     /**
      * Relación con proveedor
-     * Un repuesto pertenece a un proveedor
      */
     public function proveedor()
     {
-        // Apunta a tu modelo Proveedor (que ya tiene $table = 'proveedor')
         return $this->belongsTo(Proveedor::class, 'proveedor_id');
     }
-
 }

@@ -4,38 +4,41 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\Repuesto; // Importamos el modelo relacionado
-//use Spatie\Multitenancy\Models\Concerns\BelongsToTenant; // 1. IMPORTAR
-use Spatie\Multitenancy\Models\Concerns\UsesTenantModel;
+use Illuminate\Database\Eloquent\Builder;
+use Spatie\Multitenancy\Models\Tenant;
 
 class Categoria extends Model
 {
-    use HasFactory, UsesTenantModel ; // 2. AÑADIR TRAIT
+    use HasFactory;
 
-    // Nombre de la tabla (opcional si sigue convención plural)
-    protected $table = 'categorias';
-
-    // Campos que se pueden asignar masivamente
     protected $fillable = [
+        'empresa_id',
         'nombre',
         'descripcion',
-        // 'empresa_id' se añadirá automáticamente por el paquete
     ];
 
-    /**
-     * Relación: Una categoría pertenece a UNA empresa (Tenant).
-     */
+    protected static function booted()
+    {
+        static::addGlobalScope('tenant', function (Builder $builder) {
+            if ($tenant = Tenant::current()) {
+                $builder->where('empresa_id', $tenant->id);
+            }
+        });
+
+        static::creating(function ($model) {
+            if ($tenant = Tenant::current()) {
+                $model->empresa_id = $tenant->id;
+            }
+        });
+    }
+
     public function empresa()
     {
         return $this->belongsTo(Empresa::class, 'empresa_id');
     }
 
-    /**
-     * Relación con repuestos
-     * Una categoría puede tener muchos repuestos
-     */
     public function repuestos()
     {
-        return $this->hasMany(Repuesto::class, 'categoria_id');
+        return $this->hasMany(Repuesto::class);
     }
 }

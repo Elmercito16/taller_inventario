@@ -2,42 +2,45 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory; // 1. AÑADIR (buena práctica)
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-//use Spatie\Multitenancy\Models\Concerns\BelongsToTenant; // 2. IMPORTAR
-use App\Models\Repuesto; // Importar el modelo usado
-use Spatie\Multitenancy\Models\Concerns\UsesTenantModel;
+use Illuminate\Database\Eloquent\Builder;
+use Spatie\Multitenancy\Models\Tenant;
 
 class Proveedor extends Model
 {
-    use HasFactory, UsesTenantModel; // 3. AÑADIR TRAITS
+    use HasFactory;
 
-    protected $table = 'proveedor'; // 👈 ¡CORRECTO! nombre de la tabla en tu BD
+    protected $table = 'proveedor';
 
     protected $fillable = [
+        'empresa_id',
         'nombre',
-        'contacto', // antes lo llamabas "email"
+        'contacto',
         'telefono',
         'direccion',
-        // 'empresa_id' se añadirá automáticamente
     ];
 
-    /**
-     * Relación: Un proveedor pertenece a UNA empresa (Tenant).
-     */
+    protected static function booted()
+    {
+        static::addGlobalScope('tenant', function (Builder $builder) {
+            if ($tenant = Tenant::current()) {
+                $builder->where('empresa_id', $tenant->id);
+            }
+        });
+
+        static::creating(function ($model) {
+            if ($tenant = Tenant::current()) {
+                $model->empresa_id = $tenant->id;
+            }
+        });
+    }
+
     public function empresa()
     {
         return $this->belongsTo(Empresa::class, 'empresa_id');
     }
 
-    public function getRouteKeyName()
-    {
-        return 'id';
-    }
-
-    /**
-     * Define la relación: Un proveedor tiene muchos repuestos
-     */
     public function repuestos()
     {
         return $this->hasMany(Repuesto::class);

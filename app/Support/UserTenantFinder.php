@@ -2,25 +2,28 @@
 
 namespace App\Support;
 
-use Spatie\Multitenancy\Concerns\FindsTenants;
+use Spatie\Multitenancy\TenantFinder\TenantFinder;
 use Spatie\Multitenancy\Models\Tenant;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
-class UserTenantFinder implements FindsTenants
+class UserTenantFinder extends TenantFinder
 {
-    /**
-     * Encuentra el tenant actual basándose en el usuario autenticado.
-     */
-    public function find(): ?Tenant
+    public function findForRequest(Request $request): ?Tenant
     {
-        // Obtener el usuario autenticado
-        $user = auth()->user();
-
-        // Si no hay usuario, retornar null
-        if (!$user) {
+        // Si el usuario no está autenticado, retorna null
+        if (!Auth::check()) {
             return null;
         }
 
-        // Retornar la empresa del usuario
-        return $user->empresa;
+        $user = Auth::user();
+        
+        // Si el usuario no tiene empresa asignada, retorna null
+        if (!$user || !$user->empresa_id) {
+            return null;
+        }
+
+        // Retorna la empresa (tenant) del usuario
+        return \App\Models\Empresa::find($user->empresa_id);
     }
 }

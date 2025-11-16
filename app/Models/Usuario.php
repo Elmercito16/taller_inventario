@@ -5,11 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Spatie\Multitenancy\Models\Concerns\UsesTenantModel; // 👈 CAMBIADO
+ // 👈 ESTE ES EL CORRECTO
+use Illuminate\Database\Eloquent\Builder; // 👈 ESTE ES EL CORRECTO
 
 class Usuario extends Authenticatable
 {
-    use HasFactory, Notifiable, UsesTenantModel; // 👈 CAMBIADO
+    use HasFactory, Notifiable; // 👈 CAMBIADO
 
     /**
      * El nombre de la tabla en tu base de datos.
@@ -19,6 +20,13 @@ class Usuario extends Authenticatable
     /**
      * Mapear 'correo' a 'email' para el sistema de login de Laravel.
      */
+
+     public function empresa()
+    {
+        return $this->belongsTo(\App\Models\Empresa::class, 'empresa_id');
+    }
+
+
     public function getAuthIdentifierName()
     {
         return 'correo';
@@ -54,21 +62,15 @@ class Usuario extends Authenticatable
     /**
      * Define la relación: un usuario pertenece a UNA empresa.
      */
-    public function empresa()
-    {
-        return $this->belongsTo(Empresa::class, 'empresa_id');
-    }
-    
     /**
-     * MÉTODO REQUERIDO POR SPATIE MULTITENANCY V4
-     * Define qué tenant (empresa) está asociado a este usuario
+     * Método requerido por Spatie Multitenancy v4
      */
+    
     public function getTenant()
     {
         return $this->empresa;
     }
 
-    // --- Mapeadores Opcionales ---
     public function getNameAttribute()
     {
         return $this->nombre;
@@ -78,4 +80,5 @@ class Usuario extends Authenticatable
     {
         return $this->correo;
     }
+    
 }

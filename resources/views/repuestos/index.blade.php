@@ -546,69 +546,70 @@
         </div>
     @endif
 
-    <!-- Alertas de stock bajo -->
-    
-    {{-- ¡CAMBIO! Eliminamos el @php que definía las variables solo para esta página --}}
-    
-    {{-- ¡CAMBIO! Usamos las nuevas variables ($repuestosStockBajo y $repuestosAgotados) del controlador --}}
-    @if($repuestosStockBajo->count() > 0 || $repuestosAgotados->count() > 0)
-        <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-6">
-            <div class="flex items-center mb-4">
-                <svg class="w-6 h-6 text-yellow-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                </svg>
-                {{-- ¡CAMBIO! Quitamos "(en esta página)" del título --}}
-                <h3 class="text-lg font-semibold text-yellow-800">Alertas de Inventario</h3>
-            </div>
-            
-            @if($repuestosAgotados->count() > 0)
-                <div class="mb-4">
-                    <p class="text-red-700 font-medium mb-2">
-                        <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                        </svg>
-                        {{ $repuestosAgotados->count() }} {{ Str::plural('repuesto agotado', $repuestosAgotados->count()) }}:
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                        @foreach($repuestosAgotados->take(5) as $item)
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                {{ $item->nombre }}
-                            </span>
-                        @endforeach
-                        @if($repuestosAgotados->count() > 5)
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                +{{ $repuestosAgotados->count() - 5 }} más
-                            </span>
-                        @endif
-                    </div>
-                </div>
-            @endif
-
-            @if($repuestosStockBajo->count() > 0)
-                <div>
-                    <p class="text-yellow-700 font-medium mb-2">
-                        <svg class="w-4 h-4 inline mr-1" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-                        </svg>
-                        {{ $repuestosStockBajo->count() }} {{ Str::plural('repuesto con stock bajo', $repuestosStockBajo->count()) }}:
-                    </p>
-                    <div class="flex flex-wrap gap-2">
-                        @foreach($repuestosStockBajo->take(5) as $item)
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                                {{ $item->nombre }} ({{ $item->cantidad }})
-                            </span>
-                        @endforeach
-                        @if($repuestosStockBajo->count() > 5)
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                +{{ $repuestosStockBajo->count() - 5 }} más
-                            </span>
-                        @endif
-                    </div>
-                </div>
-            @endif
+  {{-- Alertas de Inventario --}}
+@if($stockBajo->count() > 0 || $agotados->count() > 0)
+    <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-6">
+        <div class="flex items-center mb-4">
+            <svg class="w-6 h-6 text-yellow-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+            </svg>
+            <h3 class="text-lg font-semibold text-yellow-800">Alertas de Inventario</h3>
         </div>
-    @endif
-</div>
+        
+        {{-- Repuestos Agotados --}}
+        @if($agotados->count() > 0)
+            <div class="mb-4">
+                <h4 class="font-semibold text-red-700 mb-2 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    Repuestos Agotados ({{ $agotados->count() }})
+                </h4>
+                <div class="space-y-2">
+                    @foreach($agotados as $repuesto)
+                        <div class="flex justify-between items-center bg-white rounded-lg p-3 shadow-sm border-l-4 border-red-500">
+                            <div>
+                                <span class="font-medium text-gray-800">{{ $repuesto->nombre }}</span>
+                                @if($repuesto->codigo)
+                                    <span class="text-sm text-gray-500 ml-2">({{ $repuesto->codigo }})</span>
+                                @endif
+                            </div>
+                            <span class="text-red-600 font-bold">Stock: 0</span>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        {{-- Repuestos con Stock Bajo --}}
+        @if($stockBajo->count() > 0)
+            <div>
+                <h4 class="font-semibold text-yellow-700 mb-2 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                    </svg>
+                    Stock Bajo ({{ $stockBajo->count() }})
+                </h4>
+                <div class="space-y-2">
+                    @foreach($stockBajo as $repuesto)
+                        <div class="flex justify-between items-center bg-white rounded-lg p-3 shadow-sm border-l-4 border-yellow-500">
+                            <div>
+                                <span class="font-medium text-gray-800">{{ $repuesto->nombre }}</span>
+                                @if($repuesto->codigo)
+                                    <span class="text-sm text-gray-500 ml-2">({{ $repuesto->codigo }})</span>
+                                @endif
+                            </div>
+                            <div class="text-right">
+                                <span class="text-yellow-600 font-bold">Stock: {{ $repuesto->cantidad }}</span>
+                                <span class="text-xs text-gray-500 block">Mínimo: {{ $repuesto->minimo_stock }}</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+    </div>
+@endif
 
 @push('scripts')
 {{-- ... (sin cambios en los scripts) ... --}}

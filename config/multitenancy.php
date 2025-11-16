@@ -1,39 +1,45 @@
 <?php
 
-use App\Multitenancy\UserTenantFinder; // <-- CAMBIO CLAVE
-use Spatie\Multitenancy\Actions\MakeTenantCurrentAction;
-use Spatie\Multitenancy\Actions\ForgetCurrentTenantAction;
-use Spatie\Multitenancy\Actions\MigrateTenantAction;
+use App\Support\UserTenantFinder;
 
 return [
     /*
-     * Este modelo de tenant será usado por el sistema.
+     * El modelo que se usará para el "tenant" (tu cliente).
      */
     'tenant_model' => \App\Models\Empresa::class,
 
     /*
-     * Esta clase será la encargada de determinar el tenant actual.
+     * Esta clase es la que "encuentra" al tenant actual.
      */
-    'tenant_finder' => \App\Support\UserTenantFinder::class,
+    'tenant_finder' => UserTenantFinder::class,
 
     /*
-     * Estos modelos tendrán scope automático por tenant.
-     */
-    'tenant_aware_models' => [
-        \App\Models\Repuesto::class,
-        \App\Models\Venta::class,
-        \App\Models\Cliente::class,
-        \App\Models\Categoria::class,
-        \App\Models\Proveedor::class,
-        \App\Models\DetalleVenta::class,
-    ],
-
-    /*
-     * Acciones a ejecutar cuando se hace el tenant actual.
+     * Tareas que se ejecutarán cuando un tenant se active.
      */
     'switch_tenant_tasks' => [
-        // Puedes agregar tareas personalizadas aquí
+        // Puedes agregar tareas aquí si necesitas
     ],
+
+    /*
+     * Tareas que se ejecutarán cuando un tenant se olvide.
+     */
+    'forget_tenant_tasks' => [
+        // Puedes agregar tareas aquí si necesitas
+    ],
+
+    /*
+     * Modelos que NO deben ser filtrados por tenant (modelos globales).
+     */
+    'landlord_models' => [
+        \Spatie\Multitenancy\Models\Tenant::class,
+        \App\Models\Empresa::class,
+        \App\Models\Usuario::class, // IMPORTANTE
+    ],
+
+    /*
+     * Por defecto, todos los modelos son "específicos del tenant".
+     */
+    'models_are_tenant_specific_by_default' => true,
 
     /*
      * Rutas que no requieren tenant.
