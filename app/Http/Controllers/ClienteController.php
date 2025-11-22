@@ -4,14 +4,16 @@ namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Http;
 use App\Models\Cliente;
-use App\Models\Venta; // ✅ agregado porque lo usas en historialCliente
+use App\Models\Venta; 
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule; // 1. IMPORTAR RULE PARA VALIDACIÓN SEGURA
 
 class ClienteController extends Controller
 {
     // Listado de clientes
     public function index()
     {
+        // El trait BelongsToTenant filtra automáticamente por la empresa actual
         $clientes = Cliente::all();
         return view('clientes.index', compact('clientes'));
     }
@@ -25,15 +27,26 @@ class ClienteController extends Controller
     // Guardar cliente
     public function store(Request $request)
     {
-        $request->validate([
-            'dni' => 'required|string|max:8|unique:clientes,dni',
+        // 2. CAPTURAMOS LOS DATOS VALIDADOS
+        $validated = $request->validate([
+            'dni' => [
+                'required',
+                'string',
+                'max:8',
+                // Validación Multi-Tenant: Único solo para esta empresa
+                Rule::unique('clientes')->where(function ($query) {
+                    return $query->where('empresa_id', auth()->user()->empresa_id);
+                })
+            ],
             'nombre' => 'required|string|max:255',
             'telefono' => 'required|string|max:20',
             'direccion' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
         ]);
 
-        Cliente::create($request->all());
+        // 3. USAMOS LOS DATOS VALIDADOS
+        // (Asegúrate de que 'dni' esté en el $fillable de tu modelo Cliente)
+        Cliente::create($validated);
 
         return redirect()->route('clientes.index')->with('success', 'Cliente creado correctamente.');
     }
@@ -47,15 +60,23 @@ class ClienteController extends Controller
     // Actualizar cliente
     public function update(Request $request, Cliente $cliente)
     {
-        $request->validate([
-            'dni' => 'required|string|max:8|unique:clientes,dni,' . $cliente->id,
+        $validated = $request->validate([
+            'dni' => [
+                'required',
+                'string',
+                'max:8',
+                // Validación Multi-Tenant al actualizar (ignorando el ID actual)
+                Rule::unique('clientes')->where(function ($query) {
+                    return $query->where('empresa_id', auth()->user()->empresa_id);
+                })->ignore($cliente->id)
+            ],
             'nombre' => 'required|string|max:255',
             'telefono' => 'required|string|max:20',
             'direccion' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255',
         ]);
 
-        $cliente->update($request->all());
+        $cliente->update($validated);
 
         return redirect()->route('clientes.index')->with('success', 'Cliente actualizado correctamente.');
     }

@@ -8,6 +8,7 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\VentaController;
 use App\Http\Controllers\LoginController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\DB; // Necesario para la ruta /test
 
 // ==============================
 // RUTAS PÚBLICAS (sin autenticación)
@@ -58,102 +59,90 @@ Route::get('/debug-log', function () {
 // ==============================
 // RUTAS PROTEGIDAS (requieren autenticación)
 // ==============================
+// Todo lo que esté aquí dentro forzará el login y activará el Multi-Tenant
+Route::middleware(['auth'])->group(function () {
 
-// Logout
-Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
+    // Logout
+    Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// ==============================
-// RESOURCES (CRUD)
-// ==============================
+    // ==============================
+    // RESOURCES (CRUD)
+    // ==============================
 
-// Usuarios
-Route::resource('usuarios', UsuarioController::class);
+    // Usuarios
+    Route::resource('usuarios', UsuarioController::class);
 
-// Proveedores
-Route::resource('proveedores', ProveedorController::class)->parameters([
-    'proveedores' => 'proveedor'
-]);
+    // Proveedores
+    Route::resource('proveedores', ProveedorController::class)->parameters([
+        'proveedores' => 'proveedor'
+    ]);
 
-// Categorías
-Route::resource('categorias', CategoriaController::class);
+    // Categorías
+    Route::resource('categorias', CategoriaController::class);
 
-// Clientes
-Route::resource('clientes', ClienteController::class);
+    // Clientes
+    Route::resource('clientes', ClienteController::class);
 
-// Repuestos
-Route::resource('repuestos', RepuestoController::class);
+    // Repuestos
+    Route::resource('repuestos', RepuestoController::class);
 
-// Ventas
-Route::resource('ventas', VentaController::class);
+    // Ventas
+    Route::resource('ventas', VentaController::class);
 
-// ==============================
-// RUTAS PERSONALIZADAS
-// ==============================
+    // ==============================
+    // RUTAS PERSONALIZADAS
+    // ==============================
 
-// Repuestos - Gestión de cantidad
-Route::get('/repuestos/{id}/cantidad', [RepuestoController::class, 'cantidad'])
-    ->name('repuestos.cantidad');
-Route::post('/repuestos/{id}/cantidad', [RepuestoController::class, 'updateCantidad'])
-    ->name('repuestos.updateCantidad');
+    // Repuestos - Gestión de cantidad
+    Route::get('/repuestos/{id}/cantidad', [RepuestoController::class, 'cantidad'])
+        ->name('repuestos.cantidad');
+    Route::post('/repuestos/{id}/cantidad', [RepuestoController::class, 'updateCantidad'])
+        ->name('repuestos.updateCantidad');
 
-// Repuestos - Búsqueda
-Route::get('/repuestos/search', [RepuestoController::class, 'search'])
-    ->name('repuestos.search');
+    // Repuestos - Búsqueda
+    Route::get('/repuestos/search', [RepuestoController::class, 'search'])
+        ->name('repuestos.search');
 
-// Clientes - API RENIEC
-Route::get('/clientes/buscar-dni/{dni}', [ClienteController::class, 'buscarDni'])
-    ->name('clientes.buscarDni');
+    // Clientes - API RENIEC
+    Route::get('/clientes/buscar-dni/{dni}', [ClienteController::class, 'buscarDni'])
+        ->name('clientes.buscarDni');
 
-// Clientes - Búsqueda
-Route::get('/clientes/search', [ClienteController::class, 'search']);
+    // Clientes - Búsqueda
+    Route::get('/clientes/search', [ClienteController::class, 'search']);
 
-// Clientes - Historial
-Route::get('/clientes/{id}/historial', [VentaController::class, 'historialCliente'])
-    ->name('clientes.historial');
+    // Clientes - Historial
+    Route::get('/clientes/{id}/historial', [VentaController::class, 'historialCliente'])
+        ->name('clientes.historial');
 
-// Ventas - Funciones especiales
-Route::get('/ventas/success', [VentaController::class, 'success'])->name('ventas.success');
-Route::post('ventas/{venta}/anular', [VentaController::class, 'anular'])->name('ventas.anular');
-Route::get('ventas/{id}/historial', [VentaController::class, 'historialCliente'])->name('ventas.historial');
-Route::get('ventas/{id}/detalles', [VentaController::class, 'detalles']);
+    // Ventas - Funciones especiales
+    Route::get('/ventas/success', [VentaController::class, 'success'])->name('ventas.success');
+    Route::post('ventas/{venta}/anular', [VentaController::class, 'anular'])->name('ventas.anular');
+    Route::get('ventas/{id}/historial', [VentaController::class, 'historialCliente'])->name('ventas.historial');
+    Route::get('ventas/{id}/detalles', [VentaController::class, 'detalles']);
 
-// ==============================
-// REDIRECCIÓN DESPUÉS DEL LOGIN
-// ==============================
+    // Rutas específicas de ventas con nombres personalizados
+    Route::prefix('ventas')->name('ventas.')->group(function () {
+        // Boleta y Ticket PDF
+        Route::get('/{id}/boleta', [VentaController::class, 'generarBoleta'])->name('boleta');
+        Route::get('/{id}/ticket', [VentaController::class, 'generarTicket'])->name('ticket');
+        
+        // Detalles JSON para modal
+        Route::get('/{id}/detalles', [VentaController::class, 'detalles'])->name('detalles');
+        
+        // Cambiar estado
+        Route::patch('/{id}/estado', [VentaController::class, 'cambiarEstado'])->name('cambiar-estado');
+    });
 
-// Ruta principal del sistema (después de login)
-Route::get('/dashboard', function() {
-    return redirect()->route('repuestos.index');
-})->name('dashboard');
+    // Exportar Categorías
+    Route::get('/categorias/export', [CategoriaController::class, 'export'])->name('categorias.export');
 
+    // ==============================
+    // REDIRECCIÓN DESPUÉS DEL LOGIN
+    // ==============================
 
-Route::get('/categorias/export', [CategoriaController::class, 'export'])->name('categorias.export');
+    // Ruta principal del sistema (después de login)
+    Route::get('/dashboard', function() {
+        return redirect()->route('repuestos.index');
+    })->name('dashboard');
 
-
-
-//Ruta para boletas
-
-
-
-// routes/web.php
-
-
-// Rutas para Ventas
-Route::prefix('ventas')->name('ventas.')->group(function () {
-    
-    // CRUD básico
-    Route::get('/', [VentaController::class, 'index'])->name('index');
-    Route::get('/create', [VentaController::class, 'create'])->name('create');
-    Route::post('/', [VentaController::class, 'store'])->name('store');
-    
-    // Boleta y Ticket PDF
-    Route::get('/{id}/boleta', [VentaController::class, 'generarBoleta'])->name('boleta');
-    Route::get('/{id}/ticket', [VentaController::class, 'generarTicket'])->name('ticket');
-    
-    // Detalles JSON para modal
-    Route::get('/{id}/detalles', [VentaController::class, 'detalles'])->name('detalles');
-    
-    // Cambiar estado
-    Route::patch('/{id}/estado', [VentaController::class, 'cambiarEstado'])->name('cambiar-estado');
-    
-});
+}); // <-- Fin del grupo 'auth'

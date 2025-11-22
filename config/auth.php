@@ -62,7 +62,8 @@ return [
     'providers' => [
         'users' => [
             'driver' => 'eloquent',
-            'model' => env('AUTH_MODEL', App\Models\User::class),
+            // ✅ CORRECCIÓN: Apuntar al modelo 'Usuario'
+            'model' => env('AUTH_MODEL', App\Models\Usuario::class),
         ],
 
         // 'users' => [
