@@ -9,7 +9,7 @@ use App\Http\Controllers\VentaController;
 use App\Http\Controllers\LoginController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB; // Necesario para la ruta /test
-
+use App\Http\Controllers\FinanzasController; //
 // ==============================
 // RUTAS PÚBLICAS (sin autenticación)
 // ==============================
@@ -144,5 +144,11 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard', function() {
         return redirect()->route('repuestos.index');
     })->name('dashboard');
+
+     // ==============================
+    // MÓDULO FINANZAS (NUEVO)
+    // ==============================
+    Route::get('/finanzas', [FinanzasController::class, 'index'])->name('finanzas.index');
+    Route::post('/finanzas/gasto', [FinanzasController::class, 'storeGasto'])->name('finanzas.storeGasto');
 
 }); // <-- Fin del grupo 'auth'
