@@ -265,4 +265,49 @@ class RepuestoController extends Controller
         return redirect()->route('repuestos.index')
             ->with('success', '📦 Cantidad agregada correctamente al inventario.');
     }
+
+
+
+    /**
+     * Guardar repuesto rápido desde Ventas (AJAX)
+     */
+    public function storeQuick(Request $request)
+    {
+        try {
+            $validated = $request->validate([
+                'nombre' => 'required|string|max:255',
+                // Validación de código único por empresa
+                'codigo' => [
+                    'required', 'string', 'max:50',
+                    Rule::unique('repuestos')->where(fn ($q) => $q->where('empresa_id', auth()->user()->empresa_id))
+                ],
+                'precio_unitario' => 'required|numeric|min:0',
+                'cantidad' => 'required|integer|min:0',
+                'categoria_id' => 'required|exists:categorias,id', // Debe seleccionar una categoría existente
+            ]);
+
+            // Crear el repuesto (El modelo se encarga del empresa_id)
+            $repuesto = Repuesto::create($validated);
+            
+            // Cargar la relación para devolver el nombre de la categoría
+            $repuesto->load('categoria');
+
+            return response()->json([
+                'success' => true,
+                'repuesto' => [
+                    'id' => (int) $repuesto->id,
+                    'nombre' => (string) $repuesto->nombre,
+                    'categoria' => $repuesto->categoria ? $repuesto->categoria->nombre : 'Sin Categoría',
+                    'precio_unitario' => (float) $repuesto->precio_unitario,
+                    'stock' => (int) $repuesto->cantidad,
+                ],
+                'message' => 'Producto creado correctamente.'
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json(['success' => false, 'errors' => $e->errors()], 422);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 }

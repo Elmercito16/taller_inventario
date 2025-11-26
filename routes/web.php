@@ -10,6 +10,8 @@ use App\Http\Controllers\LoginController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\DB; // Necesario para la ruta /test
 use App\Http\Controllers\FinanzasController; //
+use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\EmpresaController;
 // ==============================
 // RUTAS PÚBLICAS (sin autenticación)
 // ==============================
@@ -80,9 +82,14 @@ Route::middleware(['auth'])->group(function () {
     // Categorías
     Route::resource('categorias', CategoriaController::class);
 
-    // Clientes
+    // Clientes ------------------------------
     Route::resource('clientes', ClienteController::class);
+ // Búsqueda de clientes (Autocompletado)
+    Route::get('/clientes/search', [ClienteController::class, 'search'])->name('clientes.search');
 
+    // Crear cliente rápido desde Ventas (AJAX)
+    Route::post('/clientes/quick', [ClienteController::class, 'storeQuick'])->name('clientes.storeQuick');
+ //-------------------------------------------------------------------------
     // Repuestos
     Route::resource('repuestos', RepuestoController::class);
 
@@ -102,6 +109,8 @@ Route::middleware(['auth'])->group(function () {
     // Repuestos - Búsqueda
     Route::get('/repuestos/search', [RepuestoController::class, 'search'])
         ->name('repuestos.search');
+
+    Route::post('/repuestos/quick', [RepuestoController::class, 'storeQuick'])->name('repuestos.storeQuick');
 
     // Clientes - API RENIEC
     Route::get('/clientes/buscar-dni/{dni}', [ClienteController::class, 'buscarDni'])
@@ -150,5 +159,21 @@ Route::middleware(['auth'])->group(function () {
     // ==============================
     Route::get('/finanzas', [FinanzasController::class, 'index'])->name('finanzas.index');
     Route::post('/finanzas/gasto', [FinanzasController::class, 'storeGasto'])->name('finanzas.storeGasto');
+
+    //Modulo de Reportes
+    Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
+
+    //Modulo Empresa, cambios app.blade
+    Route::get('/empresa', [EmpresaController::class, 'index'])->name('empresa.index');
+Route::put('/empresa', [EmpresaController::class, 'update'])->name('empresa.update');
+
+
+// --- RUTAS AJAX PARA EL PUNTO DE VENTA ---
+
+    // 1. Buscar clientes (Autocompletado)
+    Route::get('/clientes/search', [ClienteController::class, 'search'])->name('clientes.search');
+
+    // 2. Guardar cliente rápido (Modal)
+    Route::post('/clientes/quick', [ClienteController::class, 'storeQuick'])->name('clientes.storeQuick');
 
 }); // <-- Fin del grupo 'auth'

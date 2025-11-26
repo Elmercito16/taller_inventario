@@ -6,7 +6,7 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
-    <title>@yield('title', 'Dashboard') - {{ config('app.name', 'Taller Inventario') }}</title>
+    <title>@yield('title', 'Dashboard') - {{ config('app.name', 'MultiSoft') }}</title>
     <meta name="description" content="@yield('description', 'Sistema de gestión de inventario y ventas para talleres')">
     
     <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
@@ -37,26 +37,6 @@
                             800: '#165b5c',
                             900: '#134e4a',
                         },
-                    },
-                    animation: {
-                        'slide-in': 'slideIn 0.3s ease-out',
-                        'fade-in': 'fadeIn 0.2s ease-out',
-                        'bounce-subtle': 'bounceSubtle 0.5s ease-out',
-                    },
-                    keyframes: {
-                        slideIn: {
-                            '0%': { transform: 'translateX(-100%)' },
-                            '100%': { transform: 'translateX(0)' },
-                        },
-                        fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' },
-                        },
-                        bounceSubtle: {
-                            '0%, 20%, 50%, 80%, 100%': { transform: 'translateY(0)' },
-                            '40%': { transform: 'translateY(-2px)' },
-                            '60%': { transform: 'translateY(-1px)' },
-                        }
                     }
                 }
             }
@@ -64,29 +44,15 @@
     </script>
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 
     <style>
-        /* ... (tu CSS personalizado de scrollbar, gradient, etc. va aquí) ... */
-        .skeleton {
-            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-            background-size: 200% 100%;
-            animation: loading 1.5s infinite;
-        }
-        
-        @keyframes loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
-        }
-        
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
-
-        .focus-visible:focus-visible { outline: 2px solid #218786; outline-offset: 2px; }
-        
         .bg-gradient-teal { background: linear-gradient(135deg, #218786 0%, #1d7874 100%); }
+        [x-cloak] { display: none !important; }
     </style>
     
     @stack('styles')
@@ -99,18 +65,20 @@
         </div>
     </div>
 
+    <!-- Eliminamos 'showConfigModal' del estado global porque ahora es una página aparte -->
     <div x-data="{ 
         sidebarOpen: false, 
         currentTime: new Date().toLocaleString('es-PE'),
         user: {
-            name: '{{ session('nombre', 'Usuario') }}',
-            role: '{{ session('rol', 'usuario') }}',
-            avatar: '{{ session('avatar', asset('default-avatar.png')) }}'
+            name: '{{ Auth::check() ? Auth::user()->nombre : 'Invitado' }}',
+            role: '{{ Auth::check() ? Auth::user()->rol : 'usuario' }}',
+            initial: '{{ Auth::check() ? substr(Auth::user()->nombre, 0, 1) : 'U' }}'
         }
      }" 
      x-init="setInterval(() => currentTime = new Date().toLocaleString('es-PE'), 1000)"
      class="flex h-screen bg-gray-50">
 
+        <!-- Backdrop Móvil -->
         <div x-show="sidebarOpen" 
              @click="sidebarOpen = false"
              x-transition:enter="transition-opacity ease-linear duration-200"
@@ -122,6 +90,7 @@
              class="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden">
         </div>
 
+        <!-- Sidebar -->
         <aside 
             :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
             class="fixed z-30 inset-y-0 left-0 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 flex flex-col border-r border-gray-200"
@@ -135,7 +104,7 @@
                             </svg>
                         </div>
                         <div>
-                            <h1 class="text-lg font-bold">Taller Pro</h1>
+                            <h1 class="text-lg font-bold">MultiSoft</h1>
                             <p class="text-xs text-teal-100 opacity-90">Inventario</p>
                         </div>
                     </div>
@@ -150,13 +119,13 @@
             <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
                 <div class="flex items-center space-x-3">
                     <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                        <span class="text-primary-700 font-semibold text-sm" x-text="user.name.charAt(0).toUpperCase()"></span>
+                        <span class="text-primary-700 font-semibold text-sm" x-text="user.initial"></span>
                     </div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-medium text-gray-900 truncate" x-text="user.name"></p>
                         <p class="text-xs text-gray-500 capitalize" x-text="user.role"></p>
                     </div>
-                    <div class="w-3 h-3 bg-primary-400 rounded-full ring-2 ring-white"></div>
+                    <div class="w-3 h-3 bg-green-400 rounded-full ring-2 ring-white" title="En línea"></div>
                 </div>
             </div>
 
@@ -172,7 +141,7 @@
 
                 <div x-data="{ open: {{ request()->routeIs('repuestos.*', 'categorias.*') ? 'true' : 'false' }} }">
                     <button @click="open = !open" 
-                            class="group w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-all duration-200 focus-visible">
+                            class="group w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                         <div class="flex items-center">
                             <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
@@ -199,22 +168,14 @@
                 </div>
 
                 @foreach([
-                    ['route' => 'compras.*', 'href' => '#', 'label' => 'Compras', 'icon' => 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z'],
                     ['route' => 'ventas.*', 'href' => route('ventas.index'), 'label' => 'Ventas', 'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
+                    ['route' => 'reportes.*', 'href' => route('reportes.index'), 'label' => 'Reportes', 'icon' => 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
                     ['route' => 'clientes.*', 'href' => route('clientes.index'), 'label' => 'Clientes', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.50 11-5 0 2.5 2.5 0 015 0z'],
                     ['route' => 'proveedores.*', 'href' => route('proveedores.index'), 'label' => 'Proveedores', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'],
-                    ['route' => 'caja.*', 'href' => '#', 'label' => 'Caja', 'icon' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z'],
-                    ['route' => 'gastos.*', 'href' => '#', 'label' => 'Gastos', 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'],
-                    [
-    'route' => 'finanzas.*', 
-    'href' => route('finanzas.index'), 
-    'label' => 'Finanzas', 
-    // Ícono de gráfico/dinero
-    'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1'
-],
+                    ['route' => 'finanzas.*', 'href' => route('finanzas.index'), 'label' => 'Finanzas', 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1']
                 ] as $item)
                     <a href="{{ $item['href'] }}" 
-                       class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-primary-50 hover:text-primary-700 {{ request()->routeIs($item['route']) ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-500' : 'text-gray-700' }}">
+                       class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-primary-50 hover:text-primary-700 {{ request()->routeIs($item['route']) ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-500' : 'text-gray-700 hover:text-primary-700' }}">
                         <svg class="mr-3 h-5 w-5 transition-colors group-hover:text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $item['icon'] }}"/>
                         </svg>
@@ -243,7 +204,7 @@
                 <div class="flex items-center justify-between px-4 py-3 lg:px-6">
                     <div class="flex items-center space-x-4">
                         <button @click="sidebarOpen = !sidebarOpen" 
-                                class="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors focus-visible">
+                                class="lg:hidden p-2 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
                             <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
@@ -265,18 +226,16 @@
                     </div>
 
                     <div class="flex items-center space-x-3">
-                        <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-3.5-3.5a50.002 50.002 0 00-7 0L6 17h9zM13 8V6a3 3 0 00-6 0v2m6 0a3 3 0 013 3v3.5M7 8a3 3 0 00-3 3v3.5"/>
-                            </svg>
-                        </button>
-                        
-                        <button class="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors focus-visible">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                         <!-- BOTÓN DE CONFIGURACIÓN (TUERCA) -->
+                         <!-- Enlace directo a la ruta del nuevo módulo -->
+                         <a href="{{ route('empresa.index') }}" 
+                            class="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500" 
+                            title="Configuración de Empresa">
+                            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                             </svg>
-                        </button>
+                        </a>
                     </div>
                 </div>
             </header>
@@ -314,7 +273,7 @@
         }
     </script>
 
-    <script defer src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {

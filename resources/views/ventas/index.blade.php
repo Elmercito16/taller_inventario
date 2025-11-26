@@ -642,7 +642,7 @@ function imprimirVenta(ventaId) {
         icon: 'info',
         showCancelButton: true,
         confirmButtonText: 'Boleta',
-        cancelButtonText: 'Ticket',
+        
         confirmButtonColor: '#218786',
         cancelButtonColor: '#059669'
     }).then((result) => {
@@ -651,7 +651,6 @@ function imprimirVenta(ventaId) {
             window.open(`/ventas/${ventaId}/boleta`, '_blank');
         } else if (result.dismiss === Swal.DismissReason.cancel) {
             // Generar ticket
-            window.open(`/ventas/${ventaId}/ticket`, '_blank');
         }
     });
 }

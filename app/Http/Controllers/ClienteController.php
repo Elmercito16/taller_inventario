@@ -100,6 +100,27 @@ class ClienteController extends Controller
 
         return view('ventas.historial', compact('cliente', 'ventas'));
     }
+    
+
+
+
+    // AGREGAR ESTE MÉTODO
+    public function search(Request $request)
+    {
+        $term = $request->get('q');
+
+        if (!$term) return response()->json([]);
+
+        // El trait UsesTenantModel filtra automáticamente por la empresa del usuario
+        $clientes = Cliente::where(function($query) use ($term) {
+                $query->where('nombre', 'like', "%{$term}%")
+                      ->orWhere('dni', 'like', "%{$term}%");
+            })
+            ->limit(20) // Limitamos resultados
+            ->get(['id', 'nombre', 'dni', 'direccion']);
+
+        return response()->json($clientes);
+    }
 
     // ✅ Método para buscar DNI con API RENIEC (ejemplo usando apis.net.pe)
     public function buscarDni($dni)
@@ -129,4 +150,46 @@ class ClienteController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+
+    public function storeQuick(Request $request)
+    {
+        try {
+            // Validación manual porque es una petición AJAX
+            $validated = $request->validate([
+                'dni' => [
+                    'required', 'string', 'max:15',
+                    // Validación única por empresa
+                    Rule::unique('clientes')->where(fn ($q) => $q->where('empresa_id', auth()->user()->empresa_id))
+                ],
+                'nombre' => 'required|string|max:255',
+                'direccion' => 'nullable|string|max:255',
+                'telefono' => 'nullable|string|max:20',
+            ]);
+
+            // Crear cliente (UsesTenantModel asigna la empresa)
+            $cliente = Cliente::create($validated);
+
+            return response()->json([
+                'success' => true,
+                'cliente' => $cliente, // Devolvemos el cliente para seleccionarlo automáticamente
+                'message' => 'Cliente registrado correctamente'
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Error de validación (ej. DNI duplicado)
+            return response()->json([
+                'success' => false,
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            // Error general
+            return response()->json([
+                'success' => false,
+                'message' => 'Error del servidor: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+
+    
 }
