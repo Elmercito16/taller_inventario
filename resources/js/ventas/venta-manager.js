@@ -1,219 +1,15 @@
-@extends('layouts.app')
+// public/js/ventas/venta-manager.js
 
-@section('title', 'Nueva Venta')
-
-@section('breadcrumbs')
-<nav class="flex items-center space-x-2 text-sm text-gray-500">
-    <a href="{{ route('dashboard') }}" class="hover:text-[#218786] transition-colors flex items-center">
-        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/></svg>
-        Dashboard
-    </a>
-    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-    </svg>
-    <a href="{{ route('ventas.index') }}" class="hover:text-[#218786] transition-colors">Ventas</a>
-    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-    </svg>
-    <span class="font-medium text-gray-900">Nueva Venta</span>
-</nav>
-@endsection
-
-@push('styles')
-<style>
-    .section-card {
-        animation: slideUp 0.5s ease-out;
-        animation-fill-mode: both;
-    }
-    .section-card:nth-child(1) { animation-delay: 0.1s; }
-    .section-card:nth-child(2) { animation-delay: 0.2s; }
-    .section-card:nth-child(3) { animation-delay: 0.3s; }
-    
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .total-section {
-        background: linear-gradient(135deg, #218786 0%, #1d7874 100%);
-        color: white;
-        box-shadow: 0 10px 15px -3px rgba(33, 135, 134, 0.2);
-    }
-    
-    .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #218786; border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #1d7874; }
-
-    input:focus, select:focus { border-color: #218786; --tw-ring-color: #218786; }
-</style>
-@endpush
-
-@section('content')
-<div class="space-y-6">
-    <!-- Header con stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Productos Disponibles</p>
-                    <p class="text-2xl font-bold text-gray-900" id="repuestosDisponibles">{{ $repuestos->where('cantidad', '>', 0)->count() }}</p>
-                </div>
-                <div class="p-3 bg-blue-100 rounded-full">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Productos en Venta</p>
-                    <p class="text-2xl font-bold text-[#218786]" id="itemsCount">0</p>
-                </div>
-                <div class="p-3 bg-[#e6f7f6] rounded-full">
-                    <svg class="w-5 h-5 text-[#218786]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0L5.4 5M7 13h10M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z"/></svg>
-                </div>
-            </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Total Venta</p>
-                    <p class="text-2xl font-bold text-green-600" id="totalVenta">S/ 0.00</p>
-                </div>
-                <div class="p-3 bg-green-100 rounded-full">
-                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <form id="ventaForm" action="{{ route('ventas.store') }}" method="POST" class="space-y-6">
-        @csrf
-        
-        <!-- Sección Cliente -->
-        <div class="section-card bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center">
-                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Información del Cliente</h2>
-                        <p class="text-sm text-gray-600">Selecciona el cliente para esta venta</p>
-                    </div>
-                </div>
-                
-                <button type="button" id="btnBuscarCliente"
-                        class="px-4 py-2 bg-[#218786] text-white rounded-lg hover:bg-[#1d7874] transition-all shadow-sm flex items-center gap-2 font-medium">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <span class="hidden sm:inline">Buscar Cliente</span>
-                </button>
-            </div>
-
-            <input type="hidden" name="cliente_id" id="clienteId">
-
-            <!-- Cliente Seleccionado -->
-            <div id="clienteSeleccionado" class="hidden p-4 bg-green-50 border-2 border-green-200 rounded-lg">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div class="flex items-center flex-1">
-                        <div class="w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center mr-3 font-bold text-xl flex-shrink-0">
-                            <span id="clienteInicial">C</span>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-green-800">Cliente Seleccionado:</p>
-                            <p class="text-base font-bold text-green-900" id="clienteNombre"></p>
-                            <p class="text-sm text-green-700">DNI: <span id="clienteDni"></span></p>
-                        </div>
-                    </div>
-                    <button type="button" id="btnCambiarCliente" 
-                            class="px-4 py-2 bg-white border-2 border-green-500 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium text-sm">
-                        Cambiar
-                    </button>
-                </div>
-            </div>
-
-            <!-- Estado sin cliente -->
-            <div id="sinCliente" class="p-8 text-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
-                <svg class="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                </svg>
-                <p class="text-gray-500 text-sm font-medium">No hay cliente seleccionado</p>
-                <p class="text-gray-400 text-xs mt-1">Haz clic en "Buscar Cliente" para comenzar</p>
-            </div>
-        </div>
-
-        <!-- Sección Productos -->
-        <div class="section-card bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center">
-                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
-                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Productos</h2>
-                        <p class="text-sm text-gray-600">Agrega repuestos a la venta</p>
-                    </div>
-                </div>
-                
-                <button type="button" id="btnBuscarRepuesto"
-                        class="px-4 py-2 bg-[#218786] text-white rounded-lg hover:bg-[#1d7874] transition-all shadow-sm flex items-center gap-2 font-medium">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                    <span class="hidden sm:inline">Agregar Producto</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Carrito -->
-        @include('ventas.partials.carrito')
-
-        <!-- Total y Finalizar -->
-        @include('ventas.partials.total-finalizar')
-    </form>
-
-    <!-- Incluir Modales -->
-    @include('ventas.modals.buscar-cliente')
-    @include('ventas.modals.buscar-repuesto', ['categorias' => $categorias ?? []])
-    @include('ventas.modals.nuevo-cliente')
-</div>
-
-@php
-    $repuestos_js = $repuestos->map(function($r){
-        return [
-            'id' => (int) $r->id,
-            'nombre' => (string) $r->nombre,
-            'categoria' => $r->categoria ? (string) $r->categoria->nombre : 'Sin categoría',
-            'categoria_id' => $r->categoria ? (int) $r->categoria->id : 0,
-            'precio_unitario' => (float) ($r->precio_unitario ?? 0),
-            'stock' => (int) ($r->cantidad ?? 0),
-        ];
-    })->values()->toArray();
-@endphp
-
-@push('scripts')
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const repuestos = @json($repuestos_js);
+function initVentaManager(repuestos) {
     let todosClientes = [];
     let items = [];
     let selectedCliente = null;
     
-    // Elementos DOM - Modales
+    // Elementos DOM
     const modalBuscarCliente = document.getElementById('modalBuscarCliente');
     const modalBuscarRepuesto = document.getElementById('modalBuscarRepuesto');
     const modalNuevoCliente = document.getElementById('modalNuevoCliente');
     
-    // Botones
     const btnBuscarCliente = document.getElementById('btnBuscarCliente');
     const btnBuscarRepuesto = document.getElementById('btnBuscarRepuesto');
     const btnCerrarModalCliente = document.getElementById('btnCerrarModalCliente');
@@ -222,26 +18,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnCancelarNuevoCliente = document.getElementById('btnCancelarNuevoCliente');
     const btnGuardarCliente = document.getElementById('btnGuardarCliente');
     
-    // Overlays
     const overlayCliente = document.getElementById('overlayCliente');
     const overlayRepuesto = document.getElementById('overlayRepuesto');
     const overlayNuevoCliente = document.getElementById('overlayNuevoCliente');
     
-    // Inputs
     const buscarClienteInput = document.getElementById('buscarClienteInput');
     const buscarRepuestoInput = document.getElementById('buscarRepuestoInput');
     const filtroCategoria = document.getElementById('filtroCategoria');
     
-    // Listas
     const listaClientesGrid = document.getElementById('listaClientesGrid');
     const listaRepuestosGrid = document.getElementById('listaRepuestosGrid');
     
-    // Cliente
     const clienteSeleccionado = document.getElementById('clienteSeleccionado');
     const sinCliente = document.getElementById('sinCliente');
     const btnCambiarCliente = document.getElementById('btnCambiarCliente');
     
-    // Carrito
     const carritoBody = document.getElementById('carritoBody');
     const carritoTable = document.getElementById('carritoTable');
     const carritoVacio = document.getElementById('carritoVacio');
@@ -249,7 +40,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const btnConfirmarVenta = document.getElementById('btnConfirmarVenta');
     const ventaForm = document.getElementById('ventaForm');
     
-    // ========== MODALES ==========
+    // Abrir modales
     btnBuscarCliente.addEventListener('click', () => {
         modalBuscarCliente.classList.remove('hidden');
         cargarTodosClientes();
@@ -267,6 +58,7 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => document.getElementById('newClientDni').focus(), 100);
     });
     
+    // Cerrar modales
     btnCerrarModalCliente.addEventListener('click', () => modalBuscarCliente.classList.add('hidden'));
     btnCerrarModalRepuesto.addEventListener('click', () => modalBuscarRepuesto.classList.add('hidden'));
     btnCancelarNuevoCliente.addEventListener('click', () => {
@@ -281,7 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
         clearModalInputs();
     });
     
-    // ========== CLIENTES ==========
+    // Cargar todos los clientes
     async function cargarTodosClientes() {
         try {
             const response = await fetch('/clientes/search?q=');
@@ -292,6 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Buscar clientes
     let timeoutCliente;
     buscarClienteInput.addEventListener('input', function() {
         clearTimeout(timeoutCliente);
@@ -309,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     });
     
+    // Render clientes
     function renderClientes(clientes) {
         listaClientesGrid.innerHTML = '';
         const sinResultados = document.getElementById('sinResultadosClientes');
@@ -342,6 +136,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Seleccionar cliente
     function selectCliente(cliente) {
         selectedCliente = cliente;
         document.getElementById('clienteId').value = cliente.id;
@@ -364,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Cambiar cliente
     btnCambiarCliente.addEventListener('click', () => {
         selectedCliente = null;
         document.getElementById('clienteId').value = '';
@@ -374,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cargarTodosClientes();
     });
     
-    // ========== REPUESTOS ==========
+    // Buscar y filtrar repuestos
     let timeoutRepuesto;
     buscarRepuestoInput.addEventListener('input', filtrarRepuestos);
     filtroCategoria.addEventListener('change', filtrarRepuestos);
@@ -402,6 +198,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     }
     
+    // Render repuestos
     function renderRepuestos(repuestosFiltrados) {
         listaRepuestosGrid.innerHTML = '';
         const sinResultados = document.getElementById('sinResultadosRepuestos');
@@ -448,6 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Agregar repuesto
     function addRepuesto(repuesto) {
         const existe = items.find(item => item.id === repuesto.id);
         if (existe) {
@@ -484,7 +282,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // ========== CARRITO ==========
+    // Render carrito
     function renderCarrito() {
         carritoBody.innerHTML = '';
         
@@ -545,6 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateTotales();
     }
     
+    // Funciones globales
     window.updateCantidad = function(itemId, nuevaCantidad) {
         const item = items.find(i => i.id === itemId);
         if (!item) return;
@@ -588,6 +387,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
     
+    // Limpiar carrito
     btnLimpiarCarrito.addEventListener('click', function() {
         Swal.fire({
             title: '¿Limpiar carrito?',
@@ -606,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // ========== TOTALES ==========
+    // Update totales
     function updateTotales() {
         const total = items.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         const totalCantidad = items.reduce((sum, item) => sum + item.cantidad, 0);
@@ -621,7 +421,7 @@ document.addEventListener('DOMContentLoaded', function() {
         updateBtnConfirmar();
     }
     
-    // ========== NUEVO CLIENTE ==========
+    // Nuevo cliente - validaciones
     document.getElementById('newClientDni').addEventListener('input', function() {
         this.value = this.value.replace(/\D/g, '').substring(0, 8);
     });
@@ -637,6 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('newClientDireccion').value = '';
     }
     
+    // Guardar nuevo cliente
     btnGuardarCliente.addEventListener('click', async function() {
         const dni = document.getElementById('newClientDni').value.trim();
         const nombre = document.getElementById('newClientNombre').value.trim();
@@ -657,11 +458,12 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            const response = await fetch("{{ route('clientes.storeQuick') }}", {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const response = await fetch("/clientes/storeQuick", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
+                    "X-CSRF-TOKEN": csrfToken
                 },
                 body: JSON.stringify({ dni, nombre, telefono, direccion })
             });
@@ -684,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // ========== MÉTODO DE PAGO ==========
+    // Método de pago
     const metodoPagoInputs = document.querySelectorAll('.metodo-pago');
     metodoPagoInputs.forEach(input => {
         input.addEventListener('change', function() {
@@ -703,6 +505,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
+    // Update botón confirmar
     function updateBtnConfirmar() {
         const metodoPagoSeleccionado = document.querySelector('input[name="metodo_pago"]:checked');
         const hayItems = items.length > 0;
@@ -711,7 +514,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btnConfirmarVenta.disabled = !(hayItems && hayCliente && metodoPagoSeleccionado);
     }
     
-    // ========== SUBMIT ==========
+    // Submit venta
     ventaForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -777,8 +580,4 @@ document.addEventListener('DOMContentLoaded', function() {
             e.returnValue = '';
         }
     });
-});
-</script>
-@endpush
-
-@endsection
+}

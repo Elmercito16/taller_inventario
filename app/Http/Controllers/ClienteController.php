@@ -105,20 +105,22 @@ class ClienteController extends Controller
 
 
     // AGREGAR ESTE MÉTODO
+    /**
+     * Buscar clientes por nombre o DNI (para AJAX)
+     */
     public function search(Request $request)
     {
-        $term = $request->get('q');
-
-        if (!$term) return response()->json([]);
-
-        // El trait UsesTenantModel filtra automáticamente por la empresa del usuario
-        $clientes = Cliente::where(function($query) use ($term) {
-                $query->where('nombre', 'like', "%{$term}%")
-                      ->orWhere('dni', 'like', "%{$term}%");
+        $query = $request->input('q', '');
+        
+        $clientes = Cliente::query()
+            ->when($query, function ($q) use ($query) {
+                $q->where('nombre', 'LIKE', "%{$query}%")
+                  ->orWhere('dni', 'LIKE', "%{$query}%");
             })
-            ->limit(20) // Limitamos resultados
-            ->get(['id', 'nombre', 'dni', 'direccion']);
-
+            ->orderBy('nombre', 'asc')
+            ->limit(50)
+            ->get(['id', 'nombre', 'dni', 'telefono', 'email']);
+        
         return response()->json($clientes);
     }
 
@@ -153,39 +155,37 @@ class ClienteController extends Controller
 
     public function storeQuick(Request $request)
     {
+        $validated = $request->validate([
+            'dni' => 'required|string|size:8|unique:clientes,dni',
+            'nombre' => 'required|string|max:255',
+            'telefono' => 'required|string|min:7|max:9',
+            'direccion' => 'nullable|string|max:500',
+        ], [
+            'dni.required' => 'El DNI es obligatorio',
+            'dni.size' => 'El DNI debe tener 8 dígitos',
+            'dni.unique' => 'Este DNI ya está registrado',
+            'nombre.required' => 'El nombre es obligatorio',
+            'telefono.required' => 'El teléfono es obligatorio',
+            'telefono.min' => 'El teléfono debe tener al menos 7 dígitos',
+        ]);
+
         try {
-            // Validación manual porque es una petición AJAX
-            $validated = $request->validate([
-                'dni' => [
-                    'required', 'string', 'max:15',
-                    // Validación única por empresa
-                    Rule::unique('clientes')->where(fn ($q) => $q->where('empresa_id', auth()->user()->empresa_id))
-                ],
-                'nombre' => 'required|string|max:255',
-                'direccion' => 'nullable|string|max:255',
-                'telefono' => 'nullable|string|max:20',
-            ]);
-
-            // Crear cliente (UsesTenantModel asigna la empresa)
             $cliente = Cliente::create($validated);
-
+            
             return response()->json([
                 'success' => true,
-                'cliente' => $cliente, // Devolvemos el cliente para seleccionarlo automáticamente
-                'message' => 'Cliente registrado correctamente'
+                'cliente' => [
+                    'id' => $cliente->id,
+                    'nombre' => $cliente->nombre,
+                    'dni' => $cliente->dni,
+                    'telefono' => $cliente->telefono,
+                ]
             ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            // Error de validación (ej. DNI duplicado)
-            return response()->json([
-                'success' => false,
-                'errors' => $e->errors()
-            ], 422);
         } catch (\Exception $e) {
-            // Error general
             return response()->json([
                 'success' => false,
-                'message' => 'Error del servidor: ' . $e->getMessage()
+                'message' => 'Error al guardar el cliente',
+                'errors' => ['general' => ['Ocurrió un error al guardar']]
             ], 500);
         }
     }

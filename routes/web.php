@@ -118,6 +118,8 @@ Route::middleware(['auth'])->group(function () {
 
     // Clientes - Búsqueda
     Route::get('/clientes/search', [ClienteController::class, 'search']);
+    Route::get('/clientes/search', [ClienteController::class, 'search'])->name('clientes.search');
+    Route::post('/clientes/storeQuick', [ClienteController::class, 'storeQuick'])->name('clientes.storeQuick');
 
     // Clientes - Historial
     Route::get('/clientes/{id}/historial', [VentaController::class, 'historialCliente'])

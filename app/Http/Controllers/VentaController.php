@@ -9,6 +9,7 @@ use App\Models\Cliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
+use App\Models\Categoria;  // 👈 AGREGAR ESTA LÍNEA
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Validation\Rule; // 1. ¡IMPORTAR LA CLASE RULE!
 
@@ -18,10 +19,12 @@ class VentaController extends Controller
      * ¡MAGIA! Esta función ya es multi-tenant.
      * Venta::with() es filtrado automáticamente por el Trait.
      */
-    public function index()
+     public function index()
     {
-        $ventas = Venta::with('cliente')->latest()->get();
-
+        $ventas = Venta::with('cliente')
+            ->orderBy('created_at', 'desc')
+            ->paginate(15);
+        
         return view('ventas.index', compact('ventas'));
     }
 
@@ -29,12 +32,16 @@ class VentaController extends Controller
      * ¡MAGIA! Esta función ya es multi-tenant.
      * Repuesto::...get() y Cliente::all() son filtrados automáticamente.
      */
-    public function create()
+   public function create()
     {
-        $repuestos = Repuesto::with('categoria')->get() ?? collect([]);
-        $clientes  = Cliente::all() ?? collect([]);
-
-        return view('ventas.create', compact('repuestos', 'clientes'));
+        $repuestos = Repuesto::with('categoria')
+            ->where('cantidad', '>', 0)
+            ->orderBy('nombre')
+            ->get();
+        
+        $categorias = Categoria::orderBy('nombre')->get();
+        
+        return view('ventas.create', compact('repuestos', 'categorias'));
     }
 
     public function store(Request $request)
@@ -175,13 +182,16 @@ class VentaController extends Controller
         }
     }
 
-    // ¡MAGIA! Esta función ya es multi-tenant.
-    public function show($id)
+    /**
+     * Mostrar detalles de una venta
+     */
+    public function show(Venta $venta)
     {
-        $venta = Venta::with(['cliente', 'detalles.repuesto'])->findOrFail($id);
-
+        $venta->load(['cliente', 'detalles.repuesto']);
+        
         return view('ventas.show', compact('venta'));
     }
+
 
     // ¡MAGIA! Esta función ya es multi-tenant.
     public function historialCliente(Request $request, $id)
