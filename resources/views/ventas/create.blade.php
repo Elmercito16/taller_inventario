@@ -4,491 +4,221 @@
 
 @section('breadcrumbs')
 <nav class="flex items-center space-x-2 text-sm text-gray-500">
-    <a href="{{ route('dashboard') }}" class="hover:text-[#218786] transition-colors flex items-center">
-        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/></svg>
-        Dashboard
-    </a>
-    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-    </svg>
-    <a href="{{ route('ventas.index') }}" class="hover:text-[#218786] transition-colors">Ventas</a>
-    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-        <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-    </svg>
+    <a href="{{ route('dashboard') }}" class="hover:text-[#218786]">Dashboard</a>
+    <span>/</span>
+    <a href="{{ route('ventas.index') }}" class="hover:text-[#218786]">Ventas</a>
+    <span>/</span>
     <span class="font-medium text-gray-900">Nueva Venta</span>
 </nav>
 @endsection
 
-@push('styles')
-<style>
-    .section-card {
-        animation: slideUp 0.5s ease-out;
-        animation-fill-mode: both;
-    }
-    .section-card:nth-child(1) { animation-delay: 0.1s; }
-    .section-card:nth-child(2) { animation-delay: 0.2s; }
-    .section-card:nth-child(3) { animation-delay: 0.3s; }
-    
-    @keyframes slideUp {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .total-section {
-        background: linear-gradient(135deg, #218786 0%, #1d7874 100%);
-        color: white;
-        box-shadow: 0 10px 15px -3px rgba(33, 135, 134, 0.2);
-    }
-    
-    .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb { background: #218786; border-radius: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #1d7874; }
-
-    input:focus, select:focus { border-color: #218786; --tw-ring-color: #218786; }
-</style>
-@endpush
-
 @section('content')
-<div class="space-y-6">
-    <!-- Header con stats -->
+<div class="max-w-7xl mx-auto space-y-4">
+    <!-- Stats -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Productos Disponibles</p>
-                    <p class="text-2xl font-bold text-gray-900" id="repuestosDisponibles">{{ $repuestos->where('cantidad', '>', 0)->count() }}</p>
-                </div>
-                <div class="p-3 bg-blue-100 rounded-full">
-                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-                </div>
-            </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <p class="text-sm text-gray-600">Productos Disponibles</p>
+            <p class="text-2xl font-bold text-gray-900">{{ $repuestos->where('cantidad', '>', 0)->count() }}</p>
         </div>
-        
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Productos en Venta</p>
-                    <p class="text-2xl font-bold text-[#218786]" id="itemsCount">0</p>
-                </div>
-                <div class="p-3 bg-[#e6f7f6] rounded-full">
-                    <svg class="w-5 h-5 text-[#218786]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0L5.4 5M7 13h10M17 21a2 2 0 100-4 2 2 0 000 4zM9 21a2 2 0 100-4 2 2 0 000 4z"/></svg>
-                </div>
-            </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <p class="text-sm text-gray-600">Productos en Venta</p>
+            <p class="text-2xl font-bold text-[#218786]" id="itemsCount">0</p>
         </div>
-        
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between">
-                <div>
-                    <p class="text-sm font-medium text-gray-600">Total Venta</p>
-                    <p class="text-2xl font-bold text-green-600" id="totalVenta">S/ 0.00</p>
-                </div>
-                <div class="p-3 bg-green-100 rounded-full">
-                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/></svg>
-                </div>
-            </div>
+        <div class="bg-white rounded-lg shadow p-4">
+            <p class="text-sm text-gray-600">Total</p>
+            <p class="text-2xl font-bold text-green-600" id="totalVenta">S/ 0.00</p>
         </div>
     </div>
 
-    <form id="ventaForm" action="{{ route('ventas.store') }}" method="POST" class="space-y-6">
+    <form id="ventaForm" action="{{ route('ventas.store') }}" method="POST" class="space-y-4">
         @csrf
         
-        <!-- Sección Cliente -->
-        <div class="section-card bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center">
-                    <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
-                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Información del Cliente</h2>
-                        <p class="text-sm text-gray-600">Selecciona el cliente para esta venta</p>
-                    </div>
-                </div>
-                
-                <button type="button" id="btnBuscarCliente"
-                        class="px-4 py-2 bg-[#218786] text-white rounded-lg hover:bg-[#1d7874] transition-all shadow-sm flex items-center gap-2 font-medium">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    <span class="hidden sm:inline">Buscar Cliente</span>
+        <!-- Cliente -->
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-gray-900">Cliente</h2>
+                <button type="button" onclick="if(window.abrirModalClientes) window.abrirModalClientes()"
+                        class="px-4 py-2 bg-[#218786] text-white rounded hover:bg-[#1d7874]">
+                    Buscar Cliente
                 </button>
             </div>
 
             <input type="hidden" name="cliente_id" id="clienteId">
 
-            <!-- Cliente Seleccionado -->
-            <div id="clienteSeleccionado" class="hidden p-4 bg-green-50 border-2 border-green-200 rounded-lg">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                    <div class="flex items-center flex-1">
-                        <div class="w-12 h-12 rounded-full bg-green-500 text-white flex items-center justify-center mr-3 font-bold text-xl flex-shrink-0">
-                            <span id="clienteInicial">C</span>
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-green-800">Cliente Seleccionado:</p>
-                            <p class="text-base font-bold text-green-900" id="clienteNombre"></p>
-                            <p class="text-sm text-green-700">DNI: <span id="clienteDni"></span></p>
-                        </div>
+            <div id="clienteSeleccionado" class="hidden p-3 bg-green-50 border border-green-200 rounded">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="font-bold text-green-900" id="clienteNombre"></p>
+                        <p class="text-sm text-green-700">DNI: <span id="clienteDni"></span></p>
                     </div>
-                    <button type="button" id="btnCambiarCliente" 
-                            class="px-4 py-2 bg-white border-2 border-green-500 text-green-700 rounded-lg hover:bg-green-50 transition-colors font-medium text-sm">
+                    <button type="button" onclick="if(window.cambiarCliente) window.cambiarCliente()" 
+                            class="px-3 py-1 border border-green-500 text-green-700 rounded hover:bg-green-50">
                         Cambiar
                     </button>
                 </div>
             </div>
 
-            <!-- Estado sin cliente -->
-            <div id="sinCliente" class="p-8 text-center border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
-                <svg class="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                </svg>
-                <p class="text-gray-500 text-sm font-medium">No hay cliente seleccionado</p>
-                <p class="text-gray-400 text-xs mt-1">Haz clic en "Buscar Cliente" para comenzar</p>
+            <div id="sinCliente" class="p-8 text-center border-2 border-dashed border-gray-300 rounded">
+                <p class="text-gray-500">No hay cliente seleccionado</p>
             </div>
         </div>
 
-        <!-- Sección Productos -->
-        <div class="section-card bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex items-center justify-between mb-6">
-                <div class="flex items-center">
-                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center mr-4">
-                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Productos</h2>
-                        <p class="text-sm text-gray-600">Agrega repuestos a la venta</p>
-                    </div>
-                </div>
-                
-                <button type="button" id="btnBuscarRepuesto"
-                        class="px-4 py-2 bg-[#218786] text-white rounded-lg hover:bg-[#1d7874] transition-all shadow-sm flex items-center gap-2 font-medium">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                    <span class="hidden sm:inline">Agregar Producto</span>
+        <!-- Productos -->
+        <div class="bg-white rounded-lg shadow p-4">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-lg font-bold text-gray-900">Productos</h2>
+                <button type="button" onclick="if(window.abrirModalRepuestos) window.abrirModalRepuestos()"
+                        class="px-4 py-2 bg-[#218786] text-white rounded hover:bg-[#1d7874]">
+                    Agregar Producto
                 </button>
             </div>
         </div>
 
         <!-- Carrito -->
-        @include('ventas.partials.carrito')
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
+                <h2 class="text-lg font-bold text-gray-900">Carrito</h2>
+                <button id="btnLimpiarCarrito" type="button" class="hidden text-red-600 hover:text-red-800 text-sm">
+                    Limpiar
+                </button>
+            </div>
 
-        <!-- Total y Finalizar -->
-        @include('ventas.partials.total-finalizar')
+            <table id="carritoTable" class="hidden w-full">
+                <thead class="bg-gray-50 text-xs text-gray-500 uppercase">
+                    <tr>
+                        <th class="px-4 py-2 text-left">Producto</th>
+                        <th class="px-4 py-2 text-left">Precio</th>
+                        <th class="px-4 py-2 text-left">Cantidad</th>
+                        <th class="px-4 py-2 text-left">Subtotal</th>
+                        <th class="px-4 py-2"></th>
+                    </tr>
+                </thead>
+                <tbody id="carritoBody"></tbody>
+            </table>
+            
+            <div id="carritoVacio" class="p-8 text-center">
+                <p class="text-gray-500">El carrito está vacío</p>
+            </div>
+        </div>
+
+        <!-- Total -->
+        <div class="bg-white rounded-lg shadow overflow-hidden">
+            <div class="bg-gradient-to-r from-[#218786] to-[#1d7874] p-4 text-white">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <p class="text-sm opacity-90">Total</p>
+                        <p class="text-3xl font-bold" id="totalDisplay">S/ 0.00</p>
+                    </div>
+                    <div class="text-right text-sm opacity-90">
+                        <p><span id="productosCount">0</span> productos</p>
+                        <p><span id="articulosCount">0</span> artículos</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 space-y-4">
+                <!-- Método de pago -->
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-2">Método de Pago *</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="metodo_pago" value="efectivo" class="sr-only metodo-pago" required>
+                            <div class="metodo-pago-card p-3 border-2 rounded text-center hover:border-[#218786] border-gray-300">
+                                <span class="font-medium">Efectivo</span>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="metodo_pago" value="tarjeta" class="sr-only metodo-pago" required>
+                            <div class="metodo-pago-card p-3 border-2 rounded text-center hover:border-[#218786] border-gray-300">
+                                <span class="font-medium">Tarjeta</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex gap-3">
+                    <a href="{{ route('ventas.index') }}" 
+                       class="flex-1 px-4 py-3 border-2 border-gray-300 text-gray-700 font-bold rounded text-center hover:bg-gray-50">
+                        Cancelar
+                    </a>
+                    
+                    <button type="submit" 
+                            id="btnConfirmarVenta"
+                            disabled
+                            class="flex-1 px-4 py-3 bg-gradient-to-r from-[#218786] to-[#1a6d6c] text-white font-bold rounded disabled:opacity-50 hover:shadow-lg">
+                        Confirmar Venta
+                    </button>
+                </div>
+            </div>
+            
+            <input type="hidden" name="total" id="totalInput" value="0">
+        </div>
     </form>
 
-    <!-- Incluir Modales -->
+    <!-- Modales -->
     @include('ventas.modals.buscar-cliente')
-    @include('ventas.modals.buscar-repuesto', ['categorias' => $categorias ?? []])
+    @include('ventas.modals.buscar-repuesto')
     @include('ventas.modals.nuevo-cliente')
 </div>
 
-@php
-    $repuestos_js = $repuestos->map(function($r){
-        return [
-            'id' => (int) $r->id,
-            'nombre' => (string) $r->nombre,
-            'categoria' => $r->categoria ? (string) $r->categoria->nombre : 'Sin categoría',
-            'categoria_id' => $r->categoria ? (int) $r->categoria->id : 0,
-            'precio_unitario' => (float) ($r->precio_unitario ?? 0),
-            'stock' => (int) ($r->cantidad ?? 0),
-        ];
-    })->values()->toArray();
-@endphp
-
 @push('scripts')
 <script>
+window.carritoItems = [];
+let selectedCliente = null;
+
 document.addEventListener('DOMContentLoaded', function() {
-    const repuestos = @json($repuestos_js);
-    let todosClientes = [];
-    let items = [];
-    let selectedCliente = null;
-    
-    // Elementos DOM - Modales
-    const modalBuscarCliente = document.getElementById('modalBuscarCliente');
-    const modalBuscarRepuesto = document.getElementById('modalBuscarRepuesto');
-    const modalNuevoCliente = document.getElementById('modalNuevoCliente');
-    
-    // Botones
-    const btnBuscarCliente = document.getElementById('btnBuscarCliente');
-    const btnBuscarRepuesto = document.getElementById('btnBuscarRepuesto');
-    const btnCerrarModalCliente = document.getElementById('btnCerrarModalCliente');
-    const btnCerrarModalRepuesto = document.getElementById('btnCerrarModalRepuesto');
-    const btnNuevoClienteModal = document.getElementById('btnNuevoClienteModal');
-    const btnCancelarNuevoCliente = document.getElementById('btnCancelarNuevoCliente');
-    const btnGuardarCliente = document.getElementById('btnGuardarCliente');
-    
-    // Overlays
-    const overlayCliente = document.getElementById('overlayCliente');
-    const overlayRepuesto = document.getElementById('overlayRepuesto');
-    const overlayNuevoCliente = document.getElementById('overlayNuevoCliente');
-    
-    // Inputs
-    const buscarClienteInput = document.getElementById('buscarClienteInput');
-    const buscarRepuestoInput = document.getElementById('buscarRepuestoInput');
-    const filtroCategoria = document.getElementById('filtroCategoria');
-    
-    // Listas
-    const listaClientesGrid = document.getElementById('listaClientesGrid');
-    const listaRepuestosGrid = document.getElementById('listaRepuestosGrid');
-    
-    // Cliente
-    const clienteSeleccionado = document.getElementById('clienteSeleccionado');
-    const sinCliente = document.getElementById('sinCliente');
-    const btnCambiarCliente = document.getElementById('btnCambiarCliente');
-    
-    // Carrito
-    const carritoBody = document.getElementById('carritoBody');
-    const carritoTable = document.getElementById('carritoTable');
-    const carritoVacio = document.getElementById('carritoVacio');
-    const btnLimpiarCarrito = document.getElementById('btnLimpiarCarrito');
-    const btnConfirmarVenta = document.getElementById('btnConfirmarVenta');
     const ventaForm = document.getElementById('ventaForm');
+    const btnConfirmarVenta = document.getElementById('btnConfirmarVenta');
+    const btnLimpiarCarrito = document.getElementById('btnLimpiarCarrito');
     
-    // ========== MODALES ==========
-    btnBuscarCliente.addEventListener('click', () => {
-        modalBuscarCliente.classList.remove('hidden');
-        cargarTodosClientes();
-        setTimeout(() => buscarClienteInput.focus(), 100);
-    });
-    
-    btnBuscarRepuesto.addEventListener('click', () => {
-        modalBuscarRepuesto.classList.remove('hidden');
-        renderRepuestos(repuestos);
-        setTimeout(() => buscarRepuestoInput.focus(), 100);
-    });
-    
-    btnNuevoClienteModal.addEventListener('click', () => {
-        modalNuevoCliente.classList.remove('hidden');
-        setTimeout(() => document.getElementById('newClientDni').focus(), 100);
-    });
-    
-    btnCerrarModalCliente.addEventListener('click', () => modalBuscarCliente.classList.add('hidden'));
-    btnCerrarModalRepuesto.addEventListener('click', () => modalBuscarRepuesto.classList.add('hidden'));
-    btnCancelarNuevoCliente.addEventListener('click', () => {
-        modalNuevoCliente.classList.add('hidden');
-        clearModalInputs();
-    });
-    
-    overlayCliente.addEventListener('click', () => modalBuscarCliente.classList.add('hidden'));
-    overlayRepuesto.addEventListener('click', () => modalBuscarRepuesto.classList.add('hidden'));
-    overlayNuevoCliente.addEventListener('click', () => {
-        modalNuevoCliente.classList.add('hidden');
-        clearModalInputs();
-    });
-    
-    // ========== CLIENTES ==========
-    async function cargarTodosClientes() {
-        try {
-            const response = await fetch('/clientes/search?q=');
-            todosClientes = await response.json();
-            renderClientes(todosClientes);
-        } catch (error) {
-            console.error('Error cargando clientes:', error);
-        }
-    }
-    
-    let timeoutCliente;
-    buscarClienteInput.addEventListener('input', function() {
-        clearTimeout(timeoutCliente);
-        timeoutCliente = setTimeout(() => {
-            const query = this.value.toLowerCase().trim();
-            if (query === '') {
-                renderClientes(todosClientes);
-            } else {
-                const filtrados = todosClientes.filter(c => 
-                    c.nombre.toLowerCase().includes(query) || 
-                    c.dni.includes(query)
-                );
-                renderClientes(filtrados);
-            }
-        }, 300);
-    });
-    
-    function renderClientes(clientes) {
-        listaClientesGrid.innerHTML = '';
-        const sinResultados = document.getElementById('sinResultadosClientes');
-        
-        if (clientes.length === 0) {
-            sinResultados.classList.remove('hidden');
-            return;
-        }
-        
-        sinResultados.classList.add('hidden');
-        
-        clientes.forEach(cliente => {
-            const div = document.createElement('div');
-            div.className = 'p-4 border-2 border-gray-200 rounded-xl hover:border-[#218786] cursor-pointer transition-all duration-200 hover:shadow-md';
-            div.innerHTML = `
-                <div class="flex items-center">
-                    <div class="w-12 h-12 rounded-full bg-gradient-to-r from-[#218786] to-[#1d7874] text-white flex items-center justify-center mr-3 font-bold text-lg flex-shrink-0">
-                        ${cliente.nombre.charAt(0).toUpperCase()}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="font-bold text-gray-900 truncate">${cliente.nombre}</p>
-                        <p class="text-sm text-gray-600">DNI: ${cliente.dni}</p>
-                        ${cliente.telefono ? `<p class="text-xs text-gray-500">Tel: ${cliente.telefono}</p>` : ''}
-                    </div>
-                    <svg class="w-6 h-6 text-[#218786] flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                    </svg>
-                </div>`;
-            div.addEventListener('click', () => selectCliente(cliente));
-            listaClientesGrid.appendChild(div);
-        });
-    }
-    
-    function selectCliente(cliente) {
+    window.selectCliente = function(cliente) {
         selectedCliente = cliente;
         document.getElementById('clienteId').value = cliente.id;
-        document.getElementById('clienteInicial').textContent = cliente.nombre.charAt(0).toUpperCase();
         document.getElementById('clienteNombre').textContent = cliente.nombre;
         document.getElementById('clienteDni').textContent = cliente.dni;
-        clienteSeleccionado.classList.remove('hidden');
-        sinCliente.classList.add('hidden');
-        modalBuscarCliente.classList.add('hidden');
+        document.getElementById('clienteSeleccionado').classList.remove('hidden');
+        document.getElementById('sinCliente').classList.add('hidden');
+        document.getElementById('modalBuscarCliente').classList.add('hidden');
         updateBtnConfirmar();
-        
-        Swal.fire({
-            icon: 'success',
-            title: 'Cliente seleccionado',
-            text: cliente.nombre,
-            toast: true,
-            position: 'top-end',
-            timer: 2000,
-            showConfirmButton: false
-        });
-    }
+        Swal.fire({icon: 'success', title: 'Cliente seleccionado', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false});
+    };
     
-    btnCambiarCliente.addEventListener('click', () => {
+    window.cambiarCliente = function() {
         selectedCliente = null;
         document.getElementById('clienteId').value = '';
-        clienteSeleccionado.classList.add('hidden');
-        sinCliente.classList.remove('hidden');
+        document.getElementById('clienteSeleccionado').classList.add('hidden');
+        document.getElementById('sinCliente').classList.remove('hidden');
         updateBtnConfirmar();
-        modalBuscarCliente.classList.remove('hidden');
-        cargarTodosClientes();
-    });
+        if (window.abrirModalClientes) window.abrirModalClientes();
+    };
     
-    // ========== REPUESTOS ==========
-    let timeoutRepuesto;
-    buscarRepuestoInput.addEventListener('input', filtrarRepuestos);
-    filtroCategoria.addEventListener('change', filtrarRepuestos);
-    
-    function filtrarRepuestos() {
-        clearTimeout(timeoutRepuesto);
-        timeoutRepuesto = setTimeout(() => {
-            const query = buscarRepuestoInput.value.toLowerCase().trim();
-            const categoriaId = parseInt(filtroCategoria.value) || 0;
-            
-            let filtrados = repuestos.filter(r => r.stock > 0);
-            
-            if (query !== '') {
-                filtrados = filtrados.filter(r => 
-                    r.nombre.toLowerCase().includes(query) || 
-                    r.categoria.toLowerCase().includes(query)
-                );
-            }
-            
-            if (categoriaId > 0) {
-                filtrados = filtrados.filter(r => r.categoria_id === categoriaId);
-            }
-            
-            renderRepuestos(filtrados);
-        }, 300);
-    }
-    
-    function renderRepuestos(repuestosFiltrados) {
-        listaRepuestosGrid.innerHTML = '';
-        const sinResultados = document.getElementById('sinResultadosRepuestos');
-        
-        if (repuestosFiltrados.length === 0) {
-            sinResultados.classList.remove('hidden');
+    window.addRepuesto = function(repuesto) {
+        if (window.carritoItems.find(item => item.id === repuesto.id)) {
+            Swal.fire({icon: 'warning', title: 'Ya está en la lista', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false});
             return;
         }
         
-        sinResultados.classList.add('hidden');
-        
-        repuestosFiltrados.forEach(repuesto => {
-            const yaAgregado = items.find(i => i.id === repuesto.id);
-            const div = document.createElement('div');
-            div.className = `p-4 border-2 rounded-xl cursor-pointer transition-all duration-200 ${yaAgregado ? 'border-gray-300 bg-gray-50 opacity-60' : 'border-gray-200 hover:border-[#218786] hover:shadow-md'}`;
-            div.innerHTML = `
-                <div class="flex flex-col h-full">
-                    <div class="flex items-start justify-between mb-2">
-                        <div class="flex-1">
-                            <h4 class="font-bold text-gray-900 text-sm mb-1 line-clamp-2">${repuesto.nombre}</h4>
-                            <span class="inline-block px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium">${repuesto.categoria}</span>
-                        </div>
-                    </div>
-                    <div class="mt-auto pt-3 border-t border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <div>
-                                <p class="text-xs text-gray-500 font-medium">Precio</p>
-                                <p class="text-lg font-bold text-[#218786]">S/ ${repuesto.precio_unitario.toFixed(2)}</p>
-                            </div>
-                            <div class="text-right">
-                                <p class="text-xs text-gray-500 font-medium">Stock</p>
-                                <p class="text-sm font-bold ${repuesto.stock <= 5 ? 'text-red-600' : 'text-green-600'}">${repuesto.stock}</p>
-                            </div>
-                        </div>
-                    </div>
-                    ${yaAgregado ? '<p class="text-xs text-center text-green-600 mt-2 font-medium">✓ Ya agregado</p>' : ''}
-                </div>`;
-            
-            if (!yaAgregado) {
-                div.addEventListener('click', () => addRepuesto(repuesto));
-            }
-            
-            listaRepuestosGrid.appendChild(div);
-        });
-    }
-    
-    function addRepuesto(repuesto) {
-        const existe = items.find(item => item.id === repuesto.id);
-        if (existe) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Ya está en la lista',
-                toast: true,
-                position: 'top-end',
-                timer: 2000,
-                showConfirmButton: false
-            });
-            return;
-        }
-        
-        items.push({
+        window.carritoItems.push({
             id: repuesto.id,
             nombre: repuesto.nombre,
-            categoria: repuesto.categoria,
             precio: repuesto.precio_unitario,
             stock: repuesto.stock,
             cantidad: 1
         });
         
         renderCarrito();
-        renderRepuestos(repuestos.filter(r => r.stock > 0));
-        
-        Swal.fire({
-            icon: 'success',
-            title: 'Producto agregado',
-            toast: true,
-            position: 'top-end',
-            timer: 1500,
-            showConfirmButton: false
-        });
-    }
+        Swal.fire({icon: 'success', title: 'Producto agregado', toast: true, position: 'top-end', timer: 1500, showConfirmButton: false});
+    };
     
-    // ========== CARRITO ==========
     function renderCarrito() {
+        const carritoBody = document.getElementById('carritoBody');
+        const carritoTable = document.getElementById('carritoTable');
+        const carritoVacio = document.getElementById('carritoVacio');
+        
         carritoBody.innerHTML = '';
         
-        if (items.length === 0) {
+        if (window.carritoItems.length === 0) {
             carritoTable.classList.add('hidden');
             carritoVacio.classList.remove('hidden');
             btnLimpiarCarrito.classList.add('hidden');
@@ -497,43 +227,26 @@ document.addEventListener('DOMContentLoaded', function() {
             carritoVacio.classList.add('hidden');
             btnLimpiarCarrito.classList.remove('hidden');
             
-            items.forEach((item, index) => {
+            window.carritoItems.forEach((item, index) => {
                 const tr = document.createElement('tr');
-                tr.className = 'hover:bg-gray-50 transition-colors';
+                tr.className = 'border-b hover:bg-gray-50';
                 tr.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center">
-                            <div class="w-10 h-10 bg-[#e6f7f6] rounded-lg flex items-center justify-center mr-3 flex-shrink-0">
-                                <svg class="w-5 h-5 text-[#218786]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                                </svg>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-gray-900">${item.nombre}</p>
-                                <p class="text-xs text-gray-500">${item.categoria}</p>
-                            </div>
-                        </div>
+                    <td class="px-4 py-3">
+                        <p class="font-medium text-sm">${item.nombre}</p>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">S/ ${item.precio.toFixed(2)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="flex items-center space-x-2">
+                    <td class="px-4 py-3 text-sm">S/ ${item.precio.toFixed(2)}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center gap-2">
                             <button type="button" onclick="updateCantidad(${item.id}, ${item.cantidad - 1})" ${item.cantidad <= 1 ? 'disabled' : ''}
-                                    class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-[#218786] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
-                            </button>
-                            <span class="w-12 text-center font-bold text-gray-900">${item.cantidad}</span>
+                                    class="w-7 h-7 rounded bg-gray-200 hover:bg-[#218786] hover:text-white disabled:opacity-50">-</button>
+                            <span class="w-8 text-center font-bold">${item.cantidad}</span>
                             <button type="button" onclick="updateCantidad(${item.id}, ${item.cantidad + 1})" ${item.cantidad >= item.stock ? 'disabled' : ''}
-                                    class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-[#218786] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-all">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-                            </button>
+                                    class="w-7 h-7 rounded bg-gray-200 hover:bg-[#218786] hover:text-white disabled:opacity-50">+</button>
                         </div>
                     </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm ${item.stock <= 5 ? 'text-red-600 font-semibold' : 'text-gray-500'}">${item.stock}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">S/ ${(item.precio * item.cantidad).toFixed(2)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <button type="button" onclick="removeItem(${item.id})" class="text-red-600 hover:text-white hover:bg-red-600 p-2 rounded-lg transition-all">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                        </button>
+                    <td class="px-4 py-3 font-bold text-sm">S/ ${(item.precio * item.cantidad).toFixed(2)}</td>
+                    <td class="px-4 py-3">
+                        <button type="button" onclick="removeItem(${item.id})" class="text-red-600 hover:text-red-800">✕</button>
                     </td>
                     <input type="hidden" name="repuestos[${index}][id]" value="${item.id}">
                     <input type="hidden" name="repuestos[${index}][cantidad]" value="${item.cantidad}">
@@ -541,240 +254,87 @@ document.addEventListener('DOMContentLoaded', function() {
                 carritoBody.appendChild(tr);
             });
         }
-        
         updateTotales();
     }
     
     window.updateCantidad = function(itemId, nuevaCantidad) {
-        const item = items.find(i => i.id === itemId);
+        const item = window.carritoItems.find(i => i.id === itemId);
         if (!item) return;
         
-        nuevaCantidad = parseInt(nuevaCantidad);
         if (nuevaCantidad < 1) nuevaCantidad = 1;
         if (nuevaCantidad > item.stock) {
             nuevaCantidad = item.stock;
-            Swal.fire({
-                icon: 'warning',
-                title: 'Stock máximo alcanzado',
-                toast: true,
-                position: 'top-end',
-                timer: 2000,
-                showConfirmButton: false
-            });
+            Swal.fire({icon: 'warning', title: 'Stock máximo', toast: true, position: 'top-end', timer: 2000, showConfirmButton: false});
         }
-        
         item.cantidad = nuevaCantidad;
         renderCarrito();
     };
     
     window.removeItem = function(itemId) {
-        Swal.fire({
-            title: '¿Eliminar producto?',
-            text: 'Se quitará del carrito',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#ef4444',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                items = items.filter(i => i.id !== itemId);
-                renderCarrito();
-                if (!modalBuscarRepuesto.classList.contains('hidden')) {
-                    filtrarRepuestos();
-                }
-            }
-        });
+        window.carritoItems = window.carritoItems.filter(i => i.id !== itemId);
+        renderCarrito();
     };
     
-    btnLimpiarCarrito.addEventListener('click', function() {
-        Swal.fire({
-            title: '¿Limpiar carrito?',
-            text: 'Se eliminarán todos los productos',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#218786',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Sí, limpiar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                items = [];
-                renderCarrito();
-            }
-        });
+    btnLimpiarCarrito.addEventListener('click', () => {
+        if (confirm('¿Limpiar carrito?')) {
+            window.carritoItems = [];
+            renderCarrito();
+        }
     });
     
-    // ========== TOTALES ==========
     function updateTotales() {
-        const total = items.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-        const totalCantidad = items.reduce((sum, item) => sum + item.cantidad, 0);
+        const total = window.carritoItems.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
+        const totalCantidad = window.carritoItems.reduce((sum, item) => sum + item.cantidad, 0);
         
         document.getElementById('totalVenta').textContent = `S/ ${total.toFixed(2)}`;
         document.getElementById('totalDisplay').textContent = `S/ ${total.toFixed(2)}`;
         document.getElementById('totalInput').value = total.toFixed(2);
-        document.getElementById('itemsCount').textContent = items.length;
-        document.getElementById('productosCount').textContent = items.length;
+        document.getElementById('itemsCount').textContent = window.carritoItems.length;
+        document.getElementById('productosCount').textContent = window.carritoItems.length;
         document.getElementById('articulosCount').textContent = totalCantidad;
-        
         updateBtnConfirmar();
     }
     
-    // ========== NUEVO CLIENTE ==========
-    document.getElementById('newClientDni').addEventListener('input', function() {
-        this.value = this.value.replace(/\D/g, '').substring(0, 8);
-    });
-    
-    document.getElementById('newClientTelefono').addEventListener('input', function() {
-        this.value = this.value.replace(/\D/g, '').substring(0, 9);
-    });
-    
-    function clearModalInputs() {
-        document.getElementById('newClientDni').value = '';
-        document.getElementById('newClientNombre').value = '';
-        document.getElementById('newClientTelefono').value = '';
-        document.getElementById('newClientDireccion').value = '';
-    }
-    
-    btnGuardarCliente.addEventListener('click', async function() {
-        const dni = document.getElementById('newClientDni').value.trim();
-        const nombre = document.getElementById('newClientNombre').value.trim();
-        const telefono = document.getElementById('newClientTelefono').value.trim();
-        const direccion = document.getElementById('newClientDireccion').value.trim();
-        
-        if (!dni || dni.length < 8) {
-            Swal.fire({icon: 'error', title: 'Error', text: 'El DNI debe tener 8 dígitos'});
-            return;
-        }
-        if (!nombre) {
-            Swal.fire({icon: 'error', title: 'Error', text: 'El nombre es obligatorio'});
-            return;
-        }
-        if (!telefono || telefono.length < 7) {
-            Swal.fire({icon: 'error', title: 'Error', text: 'El teléfono debe tener al menos 7 dígitos'});
-            return;
-        }
-        
-        try {
-            const response = await fetch("{{ route('clientes.storeQuick') }}", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-                body: JSON.stringify({ dni, nombre, telefono, direccion })
-            });
-            
-            const data = await response.json();
-            
-            if (data.success) {
-                selectCliente(data.cliente);
-                modalNuevoCliente.classList.add('hidden');
-                clearModalInputs();
-                await cargarTodosClientes();
-            } else {
-                let errorMsg = 'Error al guardar';
-                if (data.errors) errorMsg = Object.values(data.errors).flat().join('\n');
-                Swal.fire({icon: 'error', title: 'Error', text: errorMsg});
-            }
-        } catch (error) {
-            console.error(error);
-            Swal.fire({icon: 'error', title: 'Error', text: 'Ocurrió un error en el servidor'});
-        }
-    });
-    
-    // ========== MÉTODO DE PAGO ==========
-    const metodoPagoInputs = document.querySelectorAll('.metodo-pago');
-    metodoPagoInputs.forEach(input => {
+    document.querySelectorAll('.metodo-pago').forEach(input => {
         input.addEventListener('change', function() {
             document.querySelectorAll('.metodo-pago-card').forEach(card => {
                 card.classList.remove('border-[#218786]', 'bg-[#e6f7f6]');
                 card.classList.add('border-gray-300');
             });
-            
             if (this.checked) {
-                const card = this.parentElement.querySelector('.metodo-pago-card');
-                card.classList.remove('border-gray-300');
-                card.classList.add('border-[#218786]', 'bg-[#e6f7f6]');
+                this.parentElement.querySelector('.metodo-pago-card').classList.remove('border-gray-300');
+                this.parentElement.querySelector('.metodo-pago-card').classList.add('border-[#218786]', 'bg-[#e6f7f6]');
             }
-            
             updateBtnConfirmar();
         });
     });
     
     function updateBtnConfirmar() {
-        const metodoPagoSeleccionado = document.querySelector('input[name="metodo_pago"]:checked');
-        const hayItems = items.length > 0;
-        const hayCliente = selectedCliente !== null;
-        
-        btnConfirmarVenta.disabled = !(hayItems && hayCliente && metodoPagoSeleccionado);
+        const metodoPago = document.querySelector('input[name="metodo_pago"]:checked');
+        btnConfirmarVenta.disabled = !(window.carritoItems.length > 0 && selectedCliente && metodoPago);
     }
     
-    // ========== SUBMIT ==========
     ventaForm.addEventListener('submit', async function(e) {
         e.preventDefault();
         
-        if (!selectedCliente) {
-            Swal.fire({icon: 'error', title: 'Error', text: 'Selecciona un cliente'});
+        if (!selectedCliente || window.carritoItems.length === 0) {
+            Swal.fire({icon: 'error', title: 'Error', text: 'Completa todos los datos'});
             return;
         }
-        
-        if (items.length === 0) {
-            Swal.fire({icon: 'error', title: 'Error', text: 'Agrega productos a la venta'});
-            return;
-        }
-        
-        const metodoPago = document.querySelector('input[name="metodo_pago"]:checked');
-        if (!metodoPago) {
-            Swal.fire({icon: 'error', title: 'Error', text: 'Selecciona un método de pago'});
-            return;
-        }
-        
-        const total = items.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
         
         const result = await Swal.fire({
             title: '¿Confirmar venta?',
-            html: `
-                <div class="text-left space-y-2 bg-gray-50 p-4 rounded-lg">
-                    <p class="flex justify-between"><strong>Cliente:</strong> <span>${selectedCliente.nombre}</span></p>
-                    <p class="flex justify-between"><strong>DNI:</strong> <span>${selectedCliente.dni}</span></p>
-                    <p class="flex justify-between"><strong>Productos:</strong> <span>${items.length}</span></p>
-                    <p class="flex justify-between"><strong>Método de pago:</strong> <span class="capitalize">${metodoPago.value}</span></p>
-                    <hr class="my-2">
-                    <p class="flex justify-between text-lg"><strong>Total:</strong> <span class="text-[#218786] font-bold">S/ ${total.toFixed(2)}</span></p>
-                </div>
-            `,
+            text: `Total: S/ ${window.carritoItems.reduce((s, i) => s + (i.precio * i.cantidad), 0).toFixed(2)}`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#218786',
-            cancelButtonColor: '#6b7280',
-            confirmButtonText: 'Sí, confirmar venta',
-            cancelButtonText: 'Cancelar'
+            confirmButtonText: 'Sí, confirmar'
         });
         
         if (result.isConfirmed) {
             btnConfirmarVenta.disabled = true;
-            btnConfirmarVenta.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Procesando...</span>';
-            
-            Swal.fire({
-                title: 'Procesando venta...',
-                html: 'Por favor espera un momento',
-                allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
-            });
-            
+            btnConfirmarVenta.textContent = 'Procesando...';
             this.submit();
-        }
-    });
-    
-    // Advertencia al salir
-    window.addEventListener('beforeunload', function(e) {
-        if (items.length > 0) {
-            e.preventDefault();
-            e.returnValue = '';
         }
     });
 });

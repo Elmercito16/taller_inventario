@@ -83,12 +83,11 @@ Route::middleware(['auth'])->group(function () {
     Route::resource('categorias', CategoriaController::class);
 
     // Clientes ------------------------------
+    Route::get('/clientes/search', [ClienteController::class, 'search'])->name('clientes.search');
+Route::post('/clientes/storeQuick', [ClienteController::class, 'storeQuick'])->name('clientes.storeQuick');
     Route::resource('clientes', ClienteController::class);
  // Búsqueda de clientes (Autocompletado)
-    Route::get('/clientes/search', [ClienteController::class, 'search'])->name('clientes.search');
-
-    // Crear cliente rápido desde Ventas (AJAX)
-    Route::post('/clientes/quick', [ClienteController::class, 'storeQuick'])->name('clientes.storeQuick');
+   
  //-------------------------------------------------------------------------
     // Repuestos
     Route::resource('repuestos', RepuestoController::class);

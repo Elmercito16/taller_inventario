@@ -132,14 +132,7 @@
             </div>
 
             <nav class="flex-1 px-4 py-4 space-y-2 overflow-y-auto custom-scrollbar">
-                <a href="{{ route('dashboard') }}" 
-                   class="group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 hover:bg-primary-50 hover:text-primary-700 {{ request()->routeIs('dashboard') ? 'bg-primary-50 text-primary-700 border-r-2 border-primary-500' : 'text-gray-700 hover:text-primary-700' }}">
-                    <svg class="mr-3 h-5 w-5 transition-colors group-hover:text-primary-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5v4M16 5v4"/>
-                    </svg>
-                    Dashboard
-                </a>
+                
 
                 <div x-data="{ open: {{ request()->routeIs('repuestos.*', 'categorias.*') ? 'true' : 'false' }} }">
                     <button @click="open = !open" 
@@ -159,7 +152,7 @@
                         <a href="{{ route('repuestos.index') }}" 
                            class="group flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-50 hover:text-primary-700 transition-colors {{ request()->routeIs('repuestos.*') ? 'text-primary-700 bg-primary-50' : '' }}">
                             <span class="w-2 h-2 bg-gray-300 rounded-full mr-3 group-hover:bg-primary-500 {{ request()->routeIs('repuestos.*') ? 'bg-primary-500' : '' }}"></span>
-                            Lista de Repuestos
+                            Lista de Productos
                         </a>
                         <a href="{{ route('categorias.index') }}" 
                            class="group flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-50 hover:text-primary-700 transition-colors {{ request()->routeIs('categorias.*') ? 'text-primary-700 bg-primary-50' : '' }}">
