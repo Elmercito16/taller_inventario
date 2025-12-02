@@ -205,13 +205,7 @@
                             </svg>
                         </button>
                         
-                        <nav class="hidden md:flex items-center space-x-2 text-sm">
-                            @hasSection('breadcrumbs')
-                                @yield('breadcrumbs')
-                            @else
-                                <span class="text-gray-500">Dashboard</span>
-                            @endif
-                        </nav>
+                        
                     </div>
 
                     <div class="flex-1 text-center lg:text-left">
