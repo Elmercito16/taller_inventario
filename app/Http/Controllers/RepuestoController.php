@@ -168,14 +168,13 @@ class RepuestoController extends Controller
      * * ¡MAGIA! FindOrFail() fallará si el 'id' del repuesto
      * no pertenece a la empresa del usuario.
      */
-    public function edit($id)
-    {
-        $repuesto    = Repuesto::findOrFail($id);
-        $proveedores = Proveedor::all();
-        $categorias  = Categoria::all();
+    public function edit($id) {
+    $repuesto = Repuesto::findOrFail($id);
+    $categorias = Categoria::all();
+    $proveedores = Proveedor::all();
+    return view('repuestos.edit', compact('repuesto', 'categorias', 'proveedores'));
+}
 
-        return view('repuestos.edit', compact('repuesto', 'proveedores', 'categorias'));
-    }
 
     /**
      * Actualizar repuesto
