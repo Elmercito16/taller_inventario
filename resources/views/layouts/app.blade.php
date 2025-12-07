@@ -136,37 +136,43 @@
                 
 
                 <div x-data="{ open: {{ request()->routeIs('repuestos.*', 'categorias.*') ? 'true' : 'false' }} }">
-                    <button @click="open = !open" 
-                            class="group w-full flex items-center justify-between px-3 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
-                        <div class="flex items-center">
-                            <svg class="mr-3 h-5 w-5 text-gray-400 group-hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                            </svg>
-                            Productos
-                        </div>
-                        <svg class="h-4 w-4 text-gray-400 transform transition-transform duration-200" 
-                             :class="{'rotate-90': open}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
-                        </svg>
-                    </button>
-                    <div x-show="open" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" class="ml-6 mt-1 space-y-1">
-                        <a href="{{ route('repuestos.index') }}" 
-                           class="group flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-50 hover:text-primary-700 transition-colors {{ request()->routeIs('repuestos.*') ? 'text-primary-700 bg-primary-50' : '' }}">
-                            <span class="w-2 h-2 bg-gray-300 rounded-full mr-3 group-hover:bg-primary-500 {{ request()->routeIs('repuestos.*') ? 'bg-primary-500' : '' }}"></span>
-                            Lista de Productos
-                        </a>
-                        <a href="{{ route('categorias.index') }}" 
-                           class="group flex items-center px-3 py-2 text-sm text-gray-600 rounded-lg hover:bg-gray-50 hover:text-primary-700 transition-colors {{ request()->routeIs('categorias.*') ? 'text-primary-700 bg-primary-50' : '' }}">
-                            <span class="w-2 h-2 bg-gray-300 rounded-full mr-3 group-hover:bg-primary-500 {{ request()->routeIs('categorias.*') ? 'bg-primary-500' : '' }}"></span>
-                            Categorías
-                        </a>
-                    </div>
-                </div>
+    <button @click="open = !open" 
+            class="nav-item group w-full flex items-center justify-between px-4 py-3 text-sm font-semibold rounded-xl transition-all {{ request()->routeIs('repuestos.*', 'categorias.*') ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700' }}">
+        <div class="flex items-center">
+            <svg class="mr-3 h-5 w-5 {{ request()->routeIs('repuestos.*', 'categorias.*') ? 'text-primary-700' : 'text-gray-400' }} group-hover:text-primary-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            Productos
+        </div>
+        <svg class="h-4 w-4 transform transition-transform duration-200 {{ request()->routeIs('repuestos.*', 'categorias.*') ? 'text-primary-700' : 'text-gray-400' }}" 
+             :class="{'rotate-90': open}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+    </button>
+    <div x-show="open" 
+         x-cloak
+         x-transition:enter="transition ease-out duration-200" 
+         x-transition:enter-start="opacity-0 transform -translate-y-2" 
+         x-transition:enter-end="opacity-100 transform translate-y-0" 
+         class="ml-6 mt-2 space-y-1">
+        <a href="{{ route('repuestos.index') }}" 
+           class="group flex items-center px-4 py-2.5 text-sm rounded-lg transition-all {{ request()->routeIs('repuestos.*') ? 'text-primary-700 bg-primary-50 font-semibold' : 'text-gray-600 hover:bg-gray-50 hover:text-primary-700' }}">
+            <span class="w-2 h-2 rounded-full mr-3 transition-all {{ request()->routeIs('repuestos.*') ? 'bg-primary-500 scale-110' : 'bg-gray-300 group-hover:bg-primary-500 group-hover:scale-110' }}"></span>
+            Lista de Productos
+        </a>
+        <a href="{{ route('categorias.index') }}" 
+           class="group flex items-center px-4 py-2.5 text-sm rounded-lg transition-all {{ request()->routeIs('categorias.*') ? 'text-primary-700 bg-primary-50 font-semibold' : 'text-gray-600 hover:bg-gray-50 hover:text-primary-700' }}">
+            <span class="w-2 h-2 rounded-full mr-3 transition-all {{ request()->routeIs('categorias.*') ? 'bg-primary-500 scale-110' : 'bg-gray-300 group-hover:bg-primary-500 group-hover:scale-110' }}"></span>
+            Categorías
+        </a>
+    </div>
+</div>
+
 
                 @foreach([
                     ['route' => 'ventas.*', 'href' => route('ventas.index'), 'label' => 'Ventas', 'icon' => 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'],
                     ['route' => 'reportes.*', 'href' => route('reportes.index'), 'label' => 'Reportes', 'icon' => 'M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'],
-                    ['route' => 'clientes.*', 'href' => route('clientes.index'), 'label' => 'Clientes', 'icon' => 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.50 11-5 0 2.5 2.5 0 015 0z'],
+                    ['route' => 'clientes.*', 'href' => route('clientes.index'), 'label' => 'Clientes', 'icon' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z'],
                     ['route' => 'proveedores.*', 'href' => route('proveedores.index'), 'label' => 'Proveedores', 'icon' => 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4'],
                     ['route' => 'finanzas.*', 'href' => route('finanzas.index'), 'label' => 'Finanzas', 'icon' => 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1']
                 ] as $item)
