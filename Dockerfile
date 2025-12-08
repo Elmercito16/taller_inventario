@@ -3,7 +3,7 @@ FROM php:8.2-fpm-alpine
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_NO_INTERACTION=1
 
-# Instalar dependencias
+# Instalar dependencias del sistema
 RUN apk add --no-cache \
     postgresql-dev \
     postgresql-client \
@@ -36,44 +36,52 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copiar archivos
+# Copiar archivos del proyecto
 COPY . .
 
-# Instalar dependencias PHP
+# Instalar dependencias de Composer
 RUN composer install \
     --no-dev \
     --no-interaction \
     --prefer-dist \
-    --optimize-autoloader || composer install --no-dev --no-scripts --prefer-dist
+    --optimize-autoloader
 
-# Instalar dependencias Node (si existen)
-RUN if [ -f "package.json" ]; then \
-        npm ci --only=production || npm install --only=production; \
-        npm run build || echo "No build script"; \
-    fi
+# Instalar y compilar assets de Node
+RUN npm ci --only=production && npm run build
 
-# Permisos
-RUN mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+# Crear directorios y permisos
+RUN mkdir -p \
+    storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache \
     && chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 storage bootstrap/cache
+    && chmod -R 775 storage bootstrap/cache
 
-# Script de inicio
-RUN echo '#!/bin/bash\n\
-set -e\n\
-echo "🚀 Iniciando aplicación..."\n\
-until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" 2>/dev/null; do\n\
-    echo "Esperando PostgreSQL..."; sleep 2;\n\
-done\n\
-php artisan migrate --force || true\n\
-php artisan config:cache\n\
-php artisan route:cache\n\
-php artisan view:cache\n\
-exec "$@"' > /usr/local/bin/docker-entrypoint.sh \
-    && chmod +x /usr/local/bin/docker-entrypoint.sh
+# Limpiar
+RUN npm cache clean --force && rm -rf node_modules
 
 EXPOSE 8000
 
+# Crear script de inicio inline
+RUN echo '#!/bin/bash' > /entrypoint.sh && \
+    echo 'set -e' >> /entrypoint.sh && \
+    echo 'echo "🚀 Iniciando aplicación..."' >> /entrypoint.sh && \
+    echo 'echo "⏳ Esperando PostgreSQL..."' >> /entrypoint.sh && \
+    echo 'until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" 2>/dev/null; do' >> /entrypoint.sh && \
+    echo '    echo "Esperando conexión a base de datos..."; sleep 2;' >> /entrypoint.sh && \
+    echo 'done' >> /entrypoint.sh && \
+    echo 'echo "✅ PostgreSQL conectado"' >> /entrypoint.sh && \
+    echo 'php artisan migrate --force || echo "⚠️ Migraciones fallaron"' >> /entrypoint.sh && \
+    echo 'php artisan config:cache' >> /entrypoint.sh && \
+    echo 'php artisan route:cache' >> /entrypoint.sh && \
+    echo 'php artisan view:cache' >> /entrypoint.sh && \
+    echo 'echo "✨ Aplicación lista!"' >> /entrypoint.sh && \
+    echo 'exec "$@"' >> /entrypoint.sh && \
+    chmod +x /entrypoint.sh
+
 USER www-data
 
-ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
