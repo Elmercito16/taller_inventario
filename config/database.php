@@ -125,7 +125,7 @@ return [
         'prefix' => '',
         'prefix_indexes' => true,
         'schema' => 'public',
-        'sslmode' => 'require', // 🔑 Supabase exige SSL
+        'sslmode' => env('DB_SSLMODE', 'prefer'), // ← AÑADE ESTA LÍNEA
     ],
 
 
