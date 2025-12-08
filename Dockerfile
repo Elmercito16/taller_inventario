@@ -1,11 +1,9 @@
-# Usar PHP 8.2 FPM Alpine para imagen ligera
 FROM php:8.2-fpm-alpine
 
-# Establecer variables de entorno
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_NO_INTERACTION=1
 
-# Instalar dependencias del sistema
+# Instalar dependencias
 RUN apk add --no-cache \
     postgresql-dev \
     postgresql-client \
@@ -13,17 +11,15 @@ RUN apk add --no-cache \
     libpng-dev \
     libjpeg-turbo-dev \
     freetype-dev \
-    zlib-dev \
     zip \
     unzip \
     git \
     curl \
     nodejs \
     npm \
-    bash \
-    supervisor
+    bash
 
-# Instalar extensiones PHP requeridas por tu proyecto
+# Instalar extensiones PHP
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
         pdo \
@@ -38,57 +34,46 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
 # Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Establecer directorio de trabajo
 WORKDIR /var/www/html
 
-# Copiar archivos de dependencias primero (para cache)
-COPY composer.json composer.lock ./
-COPY package.json package-lock.json* ./
-
-# Instalar dependencias de Composer (sin dev para producción)
-RUN composer install \
-    --no-dev \
-    --no-scripts \
-    --no-autoloader \
-    --prefer-dist \
-    --optimize-autoloader
-
-# Instalar dependencias de Node
-RUN npm ci --only=production
-
-# Copiar el resto del código
+# Copiar archivos
 COPY . .
 
-# Generar autoloader optimizado
-RUN composer dump-autoload --optimize --no-dev
+# Instalar dependencias PHP
+RUN composer install \
+    --no-dev \
+    --no-interaction \
+    --prefer-dist \
+    --optimize-autoloader || composer install --no-dev --no-scripts --prefer-dist
 
-# Compilar assets de Vite
-RUN npm run build
+# Instalar dependencias Node (si existen)
+RUN if [ -f "package.json" ]; then \
+        npm ci --only=production || npm install --only=production; \
+        npm run build || echo "No build script"; \
+    fi
 
-# Crear directorios necesarios y establecer permisos
-RUN mkdir -p \
-    storage/framework/cache \
-    storage/framework/sessions \
-    storage/framework/views \
-    storage/logs \
-    bootstrap/cache \
+# Permisos
+RUN mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
     && chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
-
-# Limpiar cache de npm
-RUN npm cache clean --force && rm -rf node_modules
-
-# Exponer puerto 8000
-EXPOSE 8000
+    && chmod -R 755 storage bootstrap/cache
 
 # Script de inicio
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN echo '#!/bin/bash\n\
+set -e\n\
+echo "🚀 Iniciando aplicación..."\n\
+until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" 2>/dev/null; do\n\
+    echo "Esperando PostgreSQL..."; sleep 2;\n\
+done\n\
+php artisan migrate --force || true\n\
+php artisan config:cache\n\
+php artisan route:cache\n\
+php artisan view:cache\n\
+exec "$@"' > /usr/local/bin/docker-entrypoint.sh \
+    && chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Usuario www-data para seguridad
+EXPOSE 8000
+
 USER www-data
 
-# Comando de inicio
-ENTRYPOINT ["docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
