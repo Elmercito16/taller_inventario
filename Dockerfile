@@ -1,108 +1,94 @@
-FROM php:8.2-apache
+# Usar PHP 8.2 FPM Alpine para imagen ligera
+FROM php:8.2-fpm-alpine
 
-# ==============================
-# 1) Dependencias del sistema
-# ==============================
-RUN set -eux; \
-  apt-get update; \
-  apt-get install -y --no-install-recommends \
-    git curl unzip zip \
-    build-essential pkg-config autoconf \
-    libpq-dev \
+# Establecer variables de entorno
+ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV COMPOSER_NO_INTERACTION=1
+
+# Instalar dependencias del sistema
+RUN apk add --no-cache \
+    postgresql-dev \
+    postgresql-client \
     libzip-dev \
-    libicu-dev \
-    libjpeg62-turbo-dev libpng-dev libfreetype6-dev \
-    libcurl4-openssl-dev \
-    libonig-dev \
-  ; \
-  rm -rf /var/lib/apt/lists/*
+    libpng-dev \
+    libjpeg-turbo-dev \
+    freetype-dev \
+    zlib-dev \
+    zip \
+    unzip \
+    git \
+    curl \
+    nodejs \
+    npm \
+    bash \
+    supervisor
 
-# ==============================
-# 2) Extensiones PHP
-# ==============================
+# Instalar extensiones PHP requeridas por tu proyecto
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
- && docker-php-ext-install -j"$(nproc)" \
-    mbstring intl zip exif bcmath \
-    pdo_pgsql pgsql gd \
-    opcache
+    && docker-php-ext-install -j$(nproc) \
+        pdo \
+        pdo_pgsql \
+        pgsql \
+        zip \
+        gd \
+        bcmath \
+        exif \
+        pcntl
 
-# ==============================
-# 3) Configuración de Apache
-# ==============================
-RUN a2enmod rewrite
-ENV APACHE_DOCUMENT_ROOT /var/www/html/public
+# Instalar Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# VirtualHost + permisos para Laravel
-RUN set -eux; \
-  sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf; \
-  sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf; \
-  echo '<Directory "/var/www/html/public">\n\
-        AllowOverride All\n\
-        Require all granted\n\
-  </Directory>' > /etc/apache2/conf-available/laravel.conf; \
-  a2enconf laravel
-
-# ==============================
-# 4) Puerto dinámico (Render usa $PORT)
-# ==============================
-RUN sed -ri -e 's!Listen 80!Listen ${PORT}!g' /etc/apache2/ports.conf \
- && sed -ri -e 's!<VirtualHost \*:80>!<VirtualHost \*:${PORT}>!g' /etc/apache2/sites-available/000-default.conf
-
-# ==============================
-# 5) Copiar aplicación
-# ==============================
+# Establecer directorio de trabajo
 WORKDIR /var/www/html
+
+# Copiar archivos de dependencias primero (para cache)
+COPY composer.json composer.lock ./
+COPY package.json package-lock.json* ./
+
+# Instalar dependencias de Composer (sin dev para producción)
+RUN composer install \
+    --no-dev \
+    --no-scripts \
+    --no-autoloader \
+    --prefer-dist \
+    --optimize-autoloader
+
+# Instalar dependencias de Node
+RUN npm ci --only=production
+
+# Copiar el resto del código
 COPY . .
 
-# ==============================
-# 6) Instalar Composer
-# ==============================
-ENV COMPOSER_ALLOW_SUPERUSER=1
-ENV COMPOSER_MEMORY_LIMIT=-1
-COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+# Generar autoloader optimizado
+RUN composer dump-autoload --optimize --no-dev
 
-# ==============================
-# 7) Dependencias de Laravel
-# ==============================
-RUN composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+# Compilar assets de Vite
+RUN npm run build
 
-# ==============================
-# 8) Configuración PHP
-# ==============================
-RUN echo "memory_limit = 256M" > /usr/local/etc/php/conf.d/custom.ini \
- && echo "upload_max_filesize = 20M" >> /usr/local/etc/php/conf.d/custom.ini \
- && echo "post_max_size = 20M" >> /usr/local/etc/php/conf.d/custom.ini \
- && echo "max_execution_time = 120" >> /usr/local/etc/php/conf.d/custom.ini \
- && echo "log_errors = On" >> /usr/local/etc/php/conf.d/custom.ini \
- && echo "display_errors = On" >> /usr/local/etc/php/conf.d/custom.ini \
- && echo "error_reporting = E_ALL" >> /usr/local/etc/php/conf.d/custom.ini
+# Crear directorios necesarios y establecer permisos
+RUN mkdir -p \
+    storage/framework/cache \
+    storage/framework/sessions \
+    storage/framework/views \
+    storage/logs \
+    bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 755 /var/www/html/storage \
+    && chmod -R 755 /var/www/html/bootstrap/cache
 
-# ==============================
-# 9) Permisos y configuración Laravel
-# ==============================
-RUN chown -R www-data:www-data storage bootstrap/cache \
- && chmod -R 775 storage bootstrap/cache
+# Limpiar cache de npm
+RUN npm cache clean --force && rm -rf node_modules
 
-# Crear directorios necesarios
-RUN mkdir -p storage/logs storage/framework/cache storage/framework/sessions storage/framework/views \
- && mkdir -p bootstrap/cache
+# Exponer puerto 8000
+EXPOSE 8000
 
-# IMPORTANTE: NO ejecutar comandos artisan que requieren BD durante build
-# Solo limpiar archivos de cache, NO acceder a base de datos
-RUN rm -rf bootstrap/cache/*.php \
- && rm -rf storage/framework/cache/* \
- && rm -rf storage/framework/sessions/* \
- && rm -rf storage/framework/views/*
+# Script de inicio
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# ==============================
-# 10) Evitar warning de ServerName
-# ==============================
-RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
+# Usuario www-data para seguridad
+USER www-data
 
-# ==============================
-# 11) Script de inicio
-# ==============================
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
-
-CMD ["/start.sh"]
+# Comando de inicio
+ENTRYPOINT ["docker-entrypoint.sh"]
+CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
