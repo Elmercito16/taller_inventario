@@ -32,12 +32,10 @@ COPY . .
 # Instalar dependencias PHP
 RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Instalar dependencias Node Y compilar (con manejo de errores)
+# Instalar y compilar assets
 RUN if [ -f "package.json" ]; then \
         npm install --legacy-peer-deps && \
         npm run build; \
-    else \
-        echo "No package.json found, skipping npm"; \
     fi
 
 # Crear directorios y permisos
@@ -46,7 +44,11 @@ RUN mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cac
 
 EXPOSE 8000
 
-# Inicio simplificado
-CMD php artisan config:cache && \
-    php artisan migrate --force && \
+# Inicio SIN migraciones (ya están ejecutadas)
+CMD echo "🚀 Iniciando aplicación..." && \
+    php artisan config:cache && \
+    php artisan route:cache && \
+    php artisan view:cache && \
+    php artisan storage:link 2>/dev/null || true && \
+    echo "✨ Servidor listo" && \
     php artisan serve --host=0.0.0.0 --port=8000
