@@ -46,9 +46,9 @@ EXPOSE 8000
 
 # Inicio SIN migraciones (ya están ejecutadas)
 CMD echo "🚀 Iniciando aplicación..." && \
-    php artisan config:cache && \
-    php artisan route:cache && \
-    php artisan view:cache && \
+    sleep 2 && \
+    php artisan config:clear && \
+    php artisan view:clear && \
     php artisan storage:link 2>/dev/null || true && \
     echo "✨ Servidor listo" && \
     php artisan serve --host=0.0.0.0 --port=8000
