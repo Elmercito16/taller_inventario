@@ -95,86 +95,95 @@
         </div>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Total Ventas -->
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-3">
-                <div class="p-3 bg-blue-100 rounded-lg">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-                    </svg>
-                </div>
+   <!-- Stats Grid -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Total Ventas -->
+    <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+            <div class="p-3 bg-blue-100 rounded-lg">
+                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                </svg>
             </div>
-            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Ventas</p>
-            <p class="text-3xl font-bold text-gray-900 mt-1">{{ $ventas->count() }}</p>
-            <p class="text-xs text-gray-500 mt-1">Transacciones registradas</p>
         </div>
-
-        <!-- Monto Total -->
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-3">
-                <div class="p-3 bg-green-100 rounded-lg">
-                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-            </div>
-            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Monto Total</p>
-            <p class="text-3xl font-bold text-green-600 mt-1">S/ {{ number_format($ventas->sum('total'), 2) }}</p>
-            <p class="text-xs text-gray-500 mt-1">Acumulado total</p>
-        </div>
-
-        <!-- Promedio -->
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-3">
-                <div class="p-3 bg-purple-100 rounded-lg">
-                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                    </svg>
-                </div>
-            </div>
-            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Promedio</p>
-            <p class="text-3xl font-bold text-purple-600 mt-1">
-                S/ {{ $ventas->count() > 0 ? number_format($ventas->avg('total'), 2) : '0.00' }}
-            </p>
-            <p class="text-xs text-gray-500 mt-1">Por transacción</p>
-        </div>
-
-        <!-- Última Compra -->
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-3">
-                <div class="p-3 bg-amber-100 rounded-lg">
-                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                </div>
-            </div>
-            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Última Compra</p>
-            <p class="text-xl font-bold text-gray-900 mt-1">
-                {{ optional($ventas->first())->fecha ? \Carbon\Carbon::parse($ventas->first()->fecha)->format('d/m/Y') : '—' }}
-            </p>
-            <p class="text-xs text-gray-500 mt-1">
-                {{ optional($ventas->first())->fecha ? \Carbon\Carbon::parse($ventas->first()->fecha)->diffForHumans() : 'Sin compras' }}
-            </p>
-        </div>
+        <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total Ventas</p>
+        <p class="text-3xl font-bold text-gray-900 mt-1">{{ $ventas->total() }}</p> <!-- 👈 Cambio -->
+        <p class="text-xs text-gray-500 mt-1">Transacciones registradas</p>
     </div>
 
-    <!-- Lista de Transacciones -->
-    <div class="fade-in bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div class="flex items-center justify-between mb-6">
-            <div class="flex items-center gap-3">
-                <div class="p-3 bg-orange-100 rounded-lg">
-                    <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                </div>
-                <div>
-                    <h2 class="text-xl font-bold text-gray-900">Transacciones</h2>
-                    <p class="text-sm text-gray-600">{{ $ventas->count() }} registros encontrados</p>
-                </div>
+    <!-- Monto Total -->
+    <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+            <div class="p-3 bg-green-100 rounded-lg">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
             </div>
         </div>
+        <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Monto Total</p>
+        <p class="text-3xl font-bold text-green-600 mt-1">
+            S/ {{ number_format($cliente->ventas()->sum('total'), 2) }}
+        </p> <!-- 👈 Cambio para que sume todas las ventas, no solo las de la página -->
+        <p class="text-xs text-gray-500 mt-1">Acumulado total</p>
+    </div>
+
+    <!-- Promedio -->
+    <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+            <div class="p-3 bg-purple-100 rounded-lg">
+                <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+            </div>
+        </div>
+        <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Promedio</p>
+        <p class="text-3xl font-bold text-purple-600 mt-1">
+            S/ {{ $cliente->ventas()->count() > 0 ? number_format($cliente->ventas()->avg('total'), 2) : '0.00' }}
+        </p> <!-- 👈 Cambio -->
+        <p class="text-xs text-gray-500 mt-1">Por transacción</p>
+    </div>
+
+    <!-- Última Compra -->
+    <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
+        <div class="flex items-center justify-between mb-3">
+            <div class="p-3 bg-amber-100 rounded-lg">
+                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+        </div>
+        <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Última Compra</p>
+        @php
+            $ultimaVenta = $cliente->ventas()->orderBy('fecha', 'desc')->first();
+        @endphp
+        <p class="text-xl font-bold text-gray-900 mt-1">
+            {{ $ultimaVenta ? \Carbon\Carbon::parse($ultimaVenta->fecha)->format('d/m/Y') : '—' }}
+        </p>
+        <p class="text-xs text-gray-500 mt-1">
+            {{ $ultimaVenta ? \Carbon\Carbon::parse($ultimaVenta->fecha)->diffForHumans() : 'Sin compras' }}
+        </p>
+    </div>
+</div>
+
+
+    <!-- Lista de Transacciones -->
+    <!-- Lista de Transacciones -->
+<div class="fade-in bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center gap-3">
+            <div class="p-3 bg-orange-100 rounded-lg">
+                <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <div>
+                <h2 class="text-xl font-bold text-gray-900">Transacciones</h2>
+                <p class="text-sm text-gray-600">{{ $ventas->total() }} registros encontrados</p>
+                <!-- 👆 ESTE ES EL CONTADOR QUE DEBES CAMBIAR -->
+            </div>
+        </div>
+    </div>  
+
 
         @if($ventas->count() > 0)
             <div class="space-y-4">
@@ -303,6 +312,92 @@
                     </div>
                 @endforeach
             </div>
+             <!-- 👇 PAGINACIÓN AÑADIDA AQUÍ -->
+            @if($ventas->hasPages())
+                <div class="mt-6 pt-6 border-t-2 border-gray-200">
+                    <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <!-- Info de resultados -->
+                        <div class="text-sm text-gray-600">
+                            Mostrando 
+                            <span class="font-bold text-[#218786]">{{ $ventas->firstItem() }}</span>
+                            a 
+                            <span class="font-bold text-[#218786]">{{ $ventas->lastItem() }}</span>
+                            de 
+                            <span class="font-bold text-[#218786]">{{ $ventas->total() }}</span>
+                            transacciones
+                        </div>
+
+                        <!-- Links de paginación -->
+                        <div class="flex items-center gap-2">
+                            {{-- Botón Anterior --}}
+                            @if ($ventas->onFirstPage())
+                                <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
+                                    ← Anterior
+                                </span>
+                            @else
+                                <a href="{{ $ventas->appends(request()->except('page'))->previousPageUrl() }}" 
+                                   class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
+                                    ← Anterior
+                                </a>
+                            @endif
+
+                            {{-- Números de página --}}
+                            <div class="hidden sm:flex items-center gap-2">
+                                @php
+                                    $start = max($ventas->currentPage() - 2, 1);
+                                    $end = min($ventas->currentPage() + 2, $ventas->lastPage());
+                                @endphp
+                                
+                                @if($start > 1)
+                                    <a href="{{ $ventas->appends(request()->except('page'))->url(1) }}" 
+                                       class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                        1
+                                    </a>
+                                    @if($start > 2)
+                                        <span class="px-2 text-gray-500">...</span>
+                                    @endif
+                                @endif
+
+                                @for ($page = $start; $page <= $end; $page++)
+                                    @if ($page == $ventas->currentPage())
+                                        <span class="px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#218786] to-[#1a6d6c] rounded-xl shadow-lg">
+                                            {{ $page }}
+                                        </span>
+                                    @else
+                                        <a href="{{ $ventas->appends(request()->except('page'))->url($page) }}" 
+                                           class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                            {{ $page }}
+                                        </a>
+                                    @endif
+                                @endfor
+
+                                @if($end < $ventas->lastPage())
+                                    @if($end < $ventas->lastPage() - 1)
+                                        <span class="px-2 text-gray-500">...</span>
+                                    @endif
+                                    <a href="{{ $ventas->appends(request()->except('page'))->url($ventas->lastPage()) }}" 
+                                       class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                        {{ $ventas->lastPage() }}
+                                    </a>
+                                @endif
+                            </div>
+
+                            {{-- Botón Siguiente --}}
+                            @if ($ventas->hasMorePages())
+                                <a href="{{ $ventas->appends(request()->except('page'))->nextPageUrl() }}" 
+                                   class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
+                                    Siguiente →
+                                </a>
+                            @else
+                                <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
+                                    Siguiente →
+                                </span>
+                            @endif
+                        </div>
+                    </div>
+                </div>
+            @endif
+            <!-- 👆 HASTA AQUÍ -->
         @else
             <!-- Estado Vacío -->
             <div class="text-center py-20">

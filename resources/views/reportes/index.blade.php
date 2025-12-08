@@ -337,7 +337,7 @@
             </div>
         </div>
 
-        <!-- Categorías y Métodos -->
+                <!-- Categorías y Clientes Top -->
         <div class="space-y-6">
             <!-- Mejores Categorías -->
             <div class="fade-in bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
@@ -386,44 +386,74 @@
                 </div>
             </div>
 
-            <!-- Métodos de Pago -->
+
+            <!-- Top Clientes -->
             <div class="fade-in bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-                <div class="px-6 py-5 bg-gradient-to-r from-green-50 via-white to-green-50 border-b border-green-100">
-                    <div class="flex items-center gap-3">
-                        <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg">
-                            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                <div class="px-6 py-5 bg-gradient-to-r from-blue-50 via-white to-blue-50 border-b border-blue-100">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900">Clientes Top</h3>
+                                <p class="text-xs text-gray-600">Mejores compradores</p>
+                            </div>
+                        </div>
+                        <a href="{{ route('clientes.index') }}" 
+                           class="inline-flex items-center text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-4 py-2 rounded-xl hover:bg-blue-100 transition-all">
+                            Ver todos
+                            <svg class="w-4 h-4 ml-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                             </svg>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-900">Métodos de Pago</h3>
-                            <p class="text-xs text-gray-600">Distribución de pagos</p>
-                        </div>
+                        </a>
                     </div>
                 </div>
                 <div class="p-6">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-xl border-2 border-green-200 hover:shadow-xl transition-all transform hover:-translate-y-1 cursor-pointer">
-                            <div class="w-16 h-16 mx-auto bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-4 shadow-xl">
-                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    @forelse($topClientes as $index => $cliente)
+                        <div class="mb-4 last:mb-0">
+                            <div class="flex items-center justify-between p-4 hover:bg-gradient-to-r hover:from-blue-50 hover:to-transparent rounded-xl transition-all group cursor-pointer">
+                                <div class="flex items-center gap-4 flex-1 min-w-0">
+                                    <div class="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                                        <span class="text-white text-xl font-bold">
+                                            {{ strtoupper(substr($cliente['nombre'], 0, 1)) }}
+                                        </span>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <p class="text-sm font-bold text-gray-900 truncate">{{ $cliente['nombre'] }}</p>
+                                        <p class="text-xs text-gray-500">{{ $cliente['cantidad_compras'] }} compras realizadas</p>
+                                    </div>
+                                </div>
+                                <div class="text-right ml-4">
+                                    <p class="text-sm font-bold text-blue-600">S/ {{ number_format($cliente['total_gastado'], 2) }}</p>
+                                    <p class="text-xs text-gray-500">Promedio: S/ {{ number_format($cliente['total_gastado'] / $cliente['cantidad_compras'], 2) }}</p>
+                                </div>
+                            </div>
+                            <div class="mt-2 w-full bg-gray-100 rounded-full h-2 overflow-hidden shadow-inner">
+                                <div class="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full progress-bar shadow-sm" 
+                                     style="width: {{ ($cliente['total_gastado'] / ($topClientes->first()['total_gastado'] ?? 1)) * 100 }}%"></div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="text-center py-12">
+                            <div class="w-16 h-16 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
                                 </svg>
                             </div>
-                            <p class="text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">Efectivo</p>
-                            <p class="text-4xl font-bold text-green-600">100%</p>
+                            <h3 class="text-sm font-bold text-gray-900 mb-1">Sin clientes</h3>
+                            <p class="text-xs text-gray-500">No hay clientes con compras en este periodo</p>
                         </div>
-                        <div class="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border-2 border-gray-200 opacity-60">
-                            <div class="w-16 h-16 mx-auto bg-gradient-to-br from-gray-400 to-gray-500 rounded-xl flex items-center justify-center mb-4">
-                                <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                </svg>
-                            </div>
-                            <p class="text-xs font-bold text-gray-600 mb-2 uppercase tracking-wide">Digital</p>
-                            <p class="text-4xl font-bold text-gray-500">0%</p>
-                        </div>
-                    </div>
+                    @endforelse
                 </div>
             </div>
+        </div>
+    </div>
+
+
+           
         </div>
     </div>
 

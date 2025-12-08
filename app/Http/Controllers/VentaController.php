@@ -21,10 +21,10 @@ class VentaController extends Controller
      */
      public function index()
     {
-        $ventas = Venta::with('cliente')
-            ->orderBy('created_at', 'desc')
-            ->paginate(15);
-        
+        $ventas = Venta::with('cliente', 'detalles')
+        ->orderBy('fecha', 'desc')
+        ->paginate(10); // 👈 10 ventas por página
+    
         return view('ventas.index', compact('ventas'));
     }
 
@@ -264,7 +264,8 @@ class VentaController extends Controller
         }
 
         // Obtener las ventas filtradas
-        $ventas = $ventas->get();
+        $ventas = $ventas->orderBy('fecha', 'desc')->paginate(10); // 👈 10 ventas por página
+    // 👆 HASTA AQUÍ
 
         return view('ventas.historial', compact('cliente', 'ventas'));
     } 

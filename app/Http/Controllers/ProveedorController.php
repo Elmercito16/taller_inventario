@@ -10,8 +10,11 @@ class ProveedorController extends Controller
     public function index()
     {
         // Traer todos los proveedores
-        $proveedores = Proveedor::all();
-        return view('proveedores.index', compact('proveedores'));
+         // Por esto:
+    $proveedores = Proveedor::orderBy('nombre', 'asc')
+        ->paginate(10); // 👈 10 proveedores por página
+    
+    return view('proveedores.index', compact('proveedores'));
     }
 
     public function create()

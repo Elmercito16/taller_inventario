@@ -63,80 +63,81 @@
 @section('content')
 <div class="space-y-6">
     <!-- Estadísticas Mejoradas -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Total Categorías -->
-        <div class="stat-card bg-gradient-to-br from-[#218786] to-[#1a6d6c] rounded-xl shadow-lg p-6 text-white overflow-hidden relative">
-            <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full"></div>
-            <div class="relative">
-                <div class="flex items-center justify-between mb-2">
-                    <p class="text-sm font-medium text-white/80">Total Categorías</p>
-                    <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                        </svg>
-                    </div>
-                </div>
-                <p class="text-4xl font-bold">{{ $categorias->count() }}</p>
-            </div>
-        </div>
-        
-        <!-- Con Descripción -->
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <!-- Total Categorías -->
+    <div class="stat-card bg-gradient-to-br from-[#218786] to-[#1a6d6c] rounded-xl shadow-lg p-6 text-white overflow-hidden relative">
+        <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white opacity-10 rounded-full"></div>
+        <div class="relative">
             <div class="flex items-center justify-between mb-2">
-                <p class="text-sm font-medium text-gray-600">Completas</p>
-                <div class="p-2 bg-green-100 rounded-lg">
-                    <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                <p class="text-sm font-medium text-white/80">Total Categorías</p>
+                <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
                     </svg>
                 </div>
             </div>
-            <p class="text-3xl font-bold text-green-600">
-                {{ $categorias->filter(fn($cat) => !empty($cat->descripcion))->count() }}
-            </p>
-            <p class="text-xs text-gray-500 mt-1">Con descripción</p>
-        </div>
-        
-        <!-- Sin Descripción -->
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-center justify-between mb-2">
-                <p class="text-sm font-medium text-gray-600">Incompletas</p>
-                <div class="p-2 bg-amber-100 rounded-lg">
-                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                    </svg>
-                </div>
-            </div>
-            <p class="text-3xl font-bold text-amber-600">
-                {{ $categorias->filter(fn($cat) => empty($cat->descripcion))->count() }}
-            </p>
-            <p class="text-xs text-gray-500 mt-1">Sin descripción</p>
-        </div>
-        
-        <!-- Total Productos -->
-        <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-            <div class="flex items-center justify-between mb-2">
-                <p class="text-sm font-medium text-gray-600">Total Productos</p>
-                <div class="p-2 bg-purple-100 rounded-lg">
-                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                    </svg>
-                </div>
-            </div>
-            <p class="text-3xl font-bold text-purple-600">
-                {{ $categorias->sum('repuestos_count') }}
-            </p>
-            <p class="text-xs text-gray-500 mt-1">En todas las categorías</p>
+            <p class="text-4xl font-bold">{{ $categorias->total() }}</p> <!-- 👈 Cambio -->
         </div>
     </div>
-
-    <!-- Barra de Acciones Mejorada -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <!-- Título -->
-            <div class="flex-1">
-                <h2 class="text-xl font-bold text-gray-900">Lista de Categorías</h2>
-                <p class="text-sm text-gray-600 mt-1">{{ $categorias->count() }} categorías registradas</p>
+    
+    <!-- Con Descripción -->
+    <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-medium text-gray-600">Completas</p>
+            <div class="p-2 bg-green-100 rounded-lg">
+                <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
             </div>
+        </div>
+        <p class="text-3xl font-bold text-green-600">
+            {{ \App\Models\Categoria::whereNotNull('descripcion')->where('descripcion', '!=', '')->count() }}
+        </p> <!-- 👈 Cambio para contar todas, no solo las de la página -->
+        <p class="text-xs text-gray-500 mt-1">Con descripción</p>
+    </div>
+    
+    <!-- Sin Descripción -->
+    <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-medium text-gray-600">Incompletas</p>
+            <div class="p-2 bg-amber-100 rounded-lg">
+                <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                </svg>
+            </div>
+        </div>
+        <p class="text-3xl font-bold text-amber-600">
+            {{ \App\Models\Categoria::where(function($q) {
+                $q->whereNull('descripcion')->orWhere('descripcion', '');
+            })->count() }}
+        </p> <!-- 👈 Cambio -->
+        <p class="text-xs text-gray-500 mt-1">Sin descripción</p>
+    </div>
+    
+    <!-- Total Productos -->
+    <div class="stat-card bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-2">
+            <p class="text-sm font-medium text-gray-600">Total Productos</p>
+            <div class="p-2 bg-purple-100 rounded-lg">
+                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                </svg>
+            </div>
+        </div>
+        <p class="text-3xl font-bold text-purple-600">
+            {{ \App\Models\Repuesto::count() }}
+        </p> <!-- 👈 Cambio -->
+        <p class="text-xs text-gray-500 mt-1">En todas las categorías</p>
+    </div>
+</div>
+
+
+            <!-- Barra de Acciones Mejorada -->
+                   <div class="flex-1">
+                        <h2 class="text-xl font-bold text-gray-900">Lista de Categorías</h2>
+                        <p class="text-sm text-gray-600 mt-1">{{ $categorias->total() }} categorías registradas</p> <!-- 👈 Cambio -->
+                  </div>
+
             
             <!-- Barra de búsqueda -->
             <div class="flex-1 max-w-md">
@@ -315,6 +316,92 @@
             </div>
         @endforelse
     </div>
+    <!-- 👇 PAGINACIÓN AÑADIDA AQUÍ -->
+    @if($categorias->hasPages())
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <!-- Info de resultados -->
+                <div class="text-sm text-gray-600">
+                    Mostrando 
+                    <span class="font-bold text-[#218786]">{{ $categorias->firstItem() }}</span>
+                    a 
+                    <span class="font-bold text-[#218786]">{{ $categorias->lastItem() }}</span>
+                    de 
+                    <span class="font-bold text-[#218786]">{{ $categorias->total() }}</span>
+                    categorías
+                </div>
+
+                <!-- Links de paginación -->
+                <div class="flex items-center gap-2">
+                    {{-- Botón Anterior --}}
+                    @if ($categorias->onFirstPage())
+                        <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
+                            ← Anterior
+                        </span>
+                    @else
+                        <a href="{{ $categorias->previousPageUrl() }}" 
+                           class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
+                            ← Anterior
+                        </a>
+                    @endif
+
+                    {{-- Números de página --}}
+                    <div class="hidden sm:flex items-center gap-2">
+                        @php
+                            $start = max($categorias->currentPage() - 2, 1);
+                            $end = min($categorias->currentPage() + 2, $categorias->lastPage());
+                        @endphp
+                        
+                        @if($start > 1)
+                            <a href="{{ $categorias->url(1) }}" 
+                               class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                1
+                            </a>
+                            @if($start > 2)
+                                <span class="px-2 text-gray-500">...</span>
+                            @endif
+                        @endif
+
+                        @for ($page = $start; $page <= $end; $page++)
+                            @if ($page == $categorias->currentPage())
+                                <span class="px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#218786] to-[#1a6d6c] rounded-xl shadow-lg">
+                                    {{ $page }}
+                                </span>
+                            @else
+                                <a href="{{ $categorias->url($page) }}" 
+                                   class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                    {{ $page }}
+                                </a>
+                            @endif
+                        @endfor
+
+                        @if($end < $categorias->lastPage())
+                            @if($end < $categorias->lastPage() - 1)
+                                <span class="px-2 text-gray-500">...</span>
+                            @endif
+                            <a href="{{ $categorias->url($categorias->lastPage()) }}" 
+                               class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                {{ $categorias->lastPage() }}
+                            </a>
+                        @endif
+                    </div>
+
+                    {{-- Botón Siguiente --}}
+                    @if ($categorias->hasMorePages())
+                        <a href="{{ $categorias->nextPageUrl() }}" 
+                           class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
+                            Siguiente →
+                        </a>
+                    @else
+                        <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
+                            Siguiente →
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+    <!-- 👆 HASTA AQUÍ -->
 
     <!-- Mensaje de sin resultados (oculto por defecto) -->
     <div id="noResults" class="hidden col-span-full text-center py-12">

@@ -266,6 +266,93 @@
             </div>
         @endforelse
     </div>
+
+     <!-- 👇 PAGINACIÓN AÑADIDA AQUÍ -->
+    @if($proveedores->hasPages())
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <!-- Info de resultados -->
+                <div class="text-sm text-gray-600">
+                    Mostrando 
+                    <span class="font-bold text-[#218786]">{{ $proveedores->firstItem() }}</span>
+                    a 
+                    <span class="font-bold text-[#218786]">{{ $proveedores->lastItem() }}</span>
+                    de 
+                    <span class="font-bold text-[#218786]">{{ $proveedores->total() }}</span>
+                    proveedores
+                </div>
+
+                <!-- Links de paginación -->
+                <div class="flex items-center gap-2">
+                    {{-- Botón Anterior --}}
+                    @if ($proveedores->onFirstPage())
+                        <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
+                            ← Anterior
+                        </span>
+                    @else
+                        <a href="{{ $proveedores->previousPageUrl() }}" 
+                           class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
+                            ← Anterior
+                        </a>
+                    @endif
+
+                    {{-- Números de página --}}
+                    <div class="hidden sm:flex items-center gap-2">
+                        @php
+                            $start = max($proveedores->currentPage() - 2, 1);
+                            $end = min($proveedores->currentPage() + 2, $proveedores->lastPage());
+                        @endphp
+                        
+                        @if($start > 1)
+                            <a href="{{ $proveedores->url(1) }}" 
+                               class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                1
+                            </a>
+                            @if($start > 2)
+                                <span class="px-2 text-gray-500">...</span>
+                            @endif
+                        @endif
+
+                        @for ($page = $start; $page <= $end; $page++)
+                            @if ($page == $proveedores->currentPage())
+                                <span class="px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#218786] to-[#1a6d6c] rounded-xl shadow-lg">
+                                    {{ $page }}
+                                </span>
+                            @else
+                                <a href="{{ $proveedores->url($page) }}" 
+                                   class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                    {{ $page }}
+                                </a>
+                            @endif
+                        @endfor
+
+                        @if($end < $proveedores->lastPage())
+                            @if($end < $proveedores->lastPage() - 1)
+                                <span class="px-2 text-gray-500">...</span>
+                            @endif
+                            <a href="{{ $proveedores->url($proveedores->lastPage()) }}" 
+                               class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                {{ $proveedores->lastPage() }}
+                            </a>
+                        @endif
+                    </div>
+
+                    {{-- Botón Siguiente --}}
+                    @if ($proveedores->hasMorePages())
+                        <a href="{{ $proveedores->nextPageUrl() }}" 
+                           class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
+                            Siguiente →
+                        </a>
+                    @else
+                        <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
+                            Siguiente →
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+    <!-- 👆 HASTA AQUÍ -->
 </div>
 
 @push('scripts')

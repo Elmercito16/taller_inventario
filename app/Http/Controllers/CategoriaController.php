@@ -12,8 +12,10 @@ class CategoriaController extends Controller
      */
     public function index()
     {
-        $categorias = Categoria::all();
-        return view('categorias.index', compact('categorias'));
+       $categorias = Categoria::withCount('repuestos')
+        ->orderBy('nombre', 'asc')
+        ->paginate(12); // 👈 12 categorías por página (3x4 grid)
+    return view('categorias.index', compact('categorias'));
     }
 
     /**

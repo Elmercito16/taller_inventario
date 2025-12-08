@@ -274,6 +274,93 @@
         @endforelse
     </div>
 
+      <!-- 👇 PAGINACIÓN AÑADIDA AQUÍ -->
+    @if($ventas->hasPages())
+        <div class="fade-in bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <!-- Info de resultados -->
+                <div class="text-sm text-gray-600">
+                    Mostrando 
+                    <span class="font-bold text-[#218786]">{{ $ventas->firstItem() }}</span>
+                    a 
+                    <span class="font-bold text-[#218786]">{{ $ventas->lastItem() }}</span>
+                    de 
+                    <span class="font-bold text-[#218786]">{{ $ventas->total() }}</span>
+                    ventas
+                </div>
+
+                <!-- Links de paginación -->
+                <div class="flex items-center gap-2">
+                    {{-- Botón Anterior --}}
+                    @if ($ventas->onFirstPage())
+                        <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
+                            ← Anterior
+                        </span>
+                    @else
+                        <a href="{{ $ventas->previousPageUrl() }}" 
+                           class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
+                            ← Anterior
+                        </a>
+                    @endif
+
+                    {{-- Números de página --}}
+                    <div class="hidden sm:flex items-center gap-2">
+                        @php
+                            $start = max($ventas->currentPage() - 2, 1);
+                            $end = min($ventas->currentPage() + 2, $ventas->lastPage());
+                        @endphp
+                        
+                        @if($start > 1)
+                            <a href="{{ $ventas->url(1) }}" 
+                               class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                1
+                            </a>
+                            @if($start > 2)
+                                <span class="px-2 text-gray-500">...</span>
+                            @endif
+                        @endif
+
+                        @for ($page = $start; $page <= $end; $page++)
+                            @if ($page == $ventas->currentPage())
+                                <span class="px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#218786] to-[#1a6d6c] rounded-xl shadow-lg">
+                                    {{ $page }}
+                                </span>
+                            @else
+                                <a href="{{ $ventas->url($page) }}" 
+                                   class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                    {{ $page }}
+                                </a>
+                            @endif
+                        @endfor
+
+                        @if($end < $ventas->lastPage())
+                            @if($end < $ventas->lastPage() - 1)
+                                <span class="px-2 text-gray-500">...</span>
+                            @endif
+                            <a href="{{ $ventas->url($ventas->lastPage()) }}" 
+                               class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                {{ $ventas->lastPage() }}
+                            </a>
+                        @endif
+                    </div>
+
+                    {{-- Botón Siguiente --}}
+                    @if ($ventas->hasMorePages())
+                        <a href="{{ $ventas->nextPageUrl() }}" 
+                           class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
+                            Siguiente →
+                        </a>
+                    @else
+                        <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
+                            Siguiente →
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+    <!-- 👆 HASTA AQUÍ -->
+
     <!-- Modal de Acciones -->
     <div x-show="showAccionesModal" 
          x-cloak

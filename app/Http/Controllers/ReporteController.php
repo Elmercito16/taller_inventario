@@ -78,6 +78,25 @@ class ReporteController extends Controller
             ->sortByDesc('total_generado') // Ordenar por dinero generado
             ->take(5);
 
+
+
+        $topClientes = Venta::whereBetween('fecha', [$fechaInicio, $fechaFin])
+             ->where('estado', 'pagado')
+             ->whereNotNull('cliente_id')
+             ->select('cliente_id', DB::raw('SUM(total) as total_gastado'), DB::raw('COUNT(*) as cantidad_compras'))
+             ->with('cliente:id,nombre')
+             ->groupBy('cliente_id')
+             ->orderBy('total_gastado', 'desc')
+             ->limit(5)  
+             ->get()
+             ->map(function($venta) {
+        return [
+            'nombre' => $venta->cliente->nombre ?? 'Cliente sin nombre',
+            'total_gastado' => $venta->total_gastado,
+            'cantidad_compras' => $venta->cantidad_compras
+        ];
+    });
+
         // 6. Mejores Categorías
         $topCategorias = $detalles->groupBy(function ($detalle) {
                 return $detalle->repuesto && $detalle->repuesto->categoria 
@@ -95,9 +114,9 @@ class ReporteController extends Controller
             ->take(5);
 
         return view('reportes.index', compact(
-            'rango', 'fechaInicio', 'fechaFin',
+            'rango','topClientes', 'fechaInicio', 'fechaFin',
             'totalIngresos', 'cantidadVentas', 'gananciaEstimada',
-            'metodosPago', 'topProductos', 'topCategorias'
+            'metodosPago', 'topProductos', 'topCategorias', 
         ));
     }
 }

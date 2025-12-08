@@ -390,6 +390,93 @@
         @endforelse
     </div>
 
+    <!-- 👇 PAGINACIÓN AÑADIDA AQUÍ -->
+    @if($clientes->hasPages())
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <!-- Info de resultados -->
+                <div class="text-sm text-gray-600">
+                    Mostrando 
+                    <span class="font-bold text-[#218786]">{{ $clientes->firstItem() }}</span>
+                    a 
+                    <span class="font-bold text-[#218786]">{{ $clientes->lastItem() }}</span>
+                    de 
+                    <span class="font-bold text-[#218786]">{{ $clientes->total() }}</span>
+                    clientes
+                </div>
+
+                <!-- Links de paginación -->
+                <div class="flex items-center gap-2">
+                    {{-- Botón Anterior --}}
+                    @if ($clientes->onFirstPage())
+                        <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
+                            ← Anterior
+                        </span>
+                    @else
+                        <a href="{{ $clientes->previousPageUrl() }}" 
+                           class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
+                            ← Anterior
+                        </a>
+                    @endif
+
+                    {{-- Números de página --}}
+                    <div class="hidden sm:flex items-center gap-2">
+                        @php
+                            $start = max($clientes->currentPage() - 2, 1);
+                            $end = min($clientes->currentPage() + 2, $clientes->lastPage());
+                        @endphp
+                        
+                        @if($start > 1)
+                            <a href="{{ $clientes->url(1) }}" 
+                               class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                1
+                            </a>
+                            @if($start > 2)
+                                <span class="px-2 text-gray-500">...</span>
+                            @endif
+                        @endif
+
+                        @for ($page = $start; $page <= $end; $page++)
+                            @if ($page == $clientes->currentPage())
+                                <span class="px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#218786] to-[#1a6d6c] rounded-xl shadow-lg">
+                                    {{ $page }}
+                                </span>
+                            @else
+                                <a href="{{ $clientes->url($page) }}" 
+                                   class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                    {{ $page }}
+                                </a>
+                            @endif
+                        @endfor
+
+                        @if($end < $clientes->lastPage())
+                            @if($end < $clientes->lastPage() - 1)
+                                <span class="px-2 text-gray-500">...</span>
+                            @endif
+                            <a href="{{ $clientes->url($clientes->lastPage()) }}" 
+                               class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
+                                {{ $clientes->lastPage() }}
+                            </a>
+                        @endif
+                    </div>
+
+                    {{-- Botón Siguiente --}}
+                    @if ($clientes->hasMorePages())
+                        <a href="{{ $clientes->nextPageUrl() }}" 
+                           class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
+                            Siguiente →
+                        </a>
+                    @else
+                        <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
+                            Siguiente →
+                        </span>
+                    @endif
+                </div>
+            </div>
+        </div>
+    @endif
+    <!-- 👆 HASTA AQUÍ -->
+
     <!-- Sin resultados -->
     <div x-show="filteredCount === 0" x-cloak class="text-center py-16 bg-white rounded-xl border-2 border-dashed border-gray-300">
         <svg class="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -14,8 +14,11 @@ class ClienteController extends Controller
     public function index()
     {
         // El trait BelongsToTenant filtra automáticamente por la empresa actual
-        $clientes = Cliente::all();
-        return view('clientes.index', compact('clientes'));
+        $clientes = Cliente::withCount('ventas')
+        ->orderBy('created_at', 'desc')
+        ->paginate(10); // 👈 15 clientes por página
+    
+    return view('clientes.index', compact('clientes'));
     }
 
     // Formulario para crear cliente
