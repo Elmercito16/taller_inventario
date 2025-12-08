@@ -126,7 +126,8 @@ Route::post('/clientes/storeQuick', [ClienteController::class, 'storeQuick'])->n
 
     // Ventas - Funciones especiales
     Route::get('/ventas/success', [VentaController::class, 'success'])->name('ventas.success');
-    Route::post('ventas/{venta}/anular', [VentaController::class, 'anular'])->name('ventas.anular');
+    Route::post('ventas/{id}/anular', [VentaController::class, 'anular'])->name('ventas.anular');
+
     Route::get('ventas/{id}/historial', [VentaController::class, 'historialCliente'])->name('ventas.historial');
     Route::get('ventas/{id}/detalles', [VentaController::class, 'detalles']);
 
@@ -160,6 +161,10 @@ Route::post('/clientes/storeQuick', [ClienteController::class, 'storeQuick'])->n
     // ==============================
     Route::get('/finanzas', [FinanzasController::class, 'index'])->name('finanzas.index');
     Route::post('/finanzas/gasto', [FinanzasController::class, 'storeGasto'])->name('finanzas.storeGasto');
+    // Ruta para registrar otros ingresos
+Route::post('/finanzas/ingreso', [FinanzasController::class, 'storeIngreso'])->name('finanzas.storeIngreso');
+
+
 
     //Modulo de Reportes
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');

@@ -155,32 +155,47 @@ class VentaController extends Controller
     // ¡MAGIA! Esta función ya es multi-tenant.
     // Venta::...findOrFail() solo encontrará ventas de esta empresa.
     public function anular($id)
-    {
-        try {
-            DB::transaction(function () use ($id) {
-                $venta = Venta::with('detalles.repuesto')->findOrFail($id);
+{
+    try {
+        DB::transaction(function () use ($id) {
+            // Cargar la venta con sus detalles
+            $venta = Venta::with(['detalles.repuesto'])->findOrFail($id);
 
-                if ($venta->estado === 'anulado') {
-                    throw new \Exception("La venta ya está anulada.");
-                }
+            // Verificar estado
+            if ($venta->estado === 'anulado') {
+                throw new \Exception("La venta ya está anulada.");
+            }
 
-                // Devolver stock de cada repuesto
-                foreach ($venta->detalles as $detalle) {
-                    // $detalle->repuesto está seguro porque la venta fue encontrada
-                    $detalle->repuesto->increment('cantidad', $detalle->cantidad);
-                }
+            // Verificar que tenga detalles
+            if ($venta->detalles->isEmpty()) {
+                throw new \Exception("La venta no tiene productos para devolver al stock.");
+            }
 
-                // Cambiar estado de la venta
-                $venta->update(['estado' => 'anulado']);
-            });
+            // Devolver stock de cada repuesto
+            foreach ($venta->detalles as $detalle) {
+                $repuesto = Repuesto::findOrFail($detalle->repuesto_id);
+                $repuesto->increment('cantidad', $detalle->cantidad);
+            }
 
-            return redirect()->route('ventas.index')
-                ->with('success', '✅ Venta anulada y stock devuelto correctamente.');
-        } catch (\Exception $e) {
-            return redirect()->route('ventas.index')
-                ->with('error', '❌ No se pudo anular la venta: ' . $e->getMessage());
-        }
+            // Cambiar estado de la venta
+            $venta->update(['estado' => 'anulado']);
+        });
+
+        // 👇 RETORNAR JSON EN LUGAR DE REDIRECT
+        return response()->json([
+            'success' => true,
+            'message' => 'Venta anulada y stock devuelto correctamente.'
+        ]);
+        
+    } catch (\Exception $e) {
+        // 👇 RETORNAR JSON DE ERROR
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 500);
     }
+}
+
 
     /**
      * Mostrar detalles de una venta

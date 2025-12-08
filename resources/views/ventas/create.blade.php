@@ -264,7 +264,16 @@
                                                 class="w-8 h-8 rounded-lg bg-gray-200 hover:bg-[#218786] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed font-bold transition-colors">
                                             -
                                         </button>
-                                        <span class="w-12 text-center font-bold text-gray-900" x-text="item.cantidad"></span>
+                                        
+                                        <!-- 👇 INPUT EDITABLE -->
+                                        <input type="number"
+                                               :value="item.cantidad"
+                                               @input="updateCantidad(item.id, parseInt($event.target.value) || 1)"
+                                               @blur="validarCantidad(item.id, $event.target.value, item.stock)"
+                                               min="1"
+                                               :max="item.stock"
+                                               class="w-16 text-center font-bold text-gray-900 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] py-1.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
+                                        
                                         <button type="button" 
                                                 @click="updateCantidad(item.id, item.cantidad + 1)"
                                                 :disabled="item.cantidad >= item.stock"
@@ -498,6 +507,7 @@ document.addEventListener('alpine:init', () => {
                 Swal.fire({
                     icon: 'warning',
                     title: 'Stock máximo alcanzado',
+                    text: `Solo hay ${item.stock} unidades disponibles`,
                     toast: true,
                     position: 'top-end',
                     timer: 2000,
@@ -505,6 +515,43 @@ document.addEventListener('alpine:init', () => {
                 });
             }
             item.cantidad = nuevaCantidad;
+        },
+        
+        // 👇 NUEVA FUNCIÓN PARA VALIDAR
+        validarCantidad(itemId, valor, stockMax) {
+            const item = this.carritoItems.find(i => i.id === itemId);
+            if (!item) return;
+            
+            let cantidad = parseInt(valor);
+            
+            // Si no es un número válido, regresar a 1
+            if (isNaN(cantidad) || cantidad < 1) {
+                item.cantidad = 1;
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Cantidad inválida',
+                    text: 'Se estableció la cantidad mínima (1)',
+                    toast: true,
+                    position: 'top-end',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                return;
+            }
+            
+            // Si excede el stock
+            if (cantidad > stockMax) {
+                item.cantidad = stockMax;
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Stock insuficiente',
+                    text: `Solo hay ${stockMax} unidades disponibles`,
+                    toast: true,
+                    position: 'top-end',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
         },
         
         removeItem(itemId) {

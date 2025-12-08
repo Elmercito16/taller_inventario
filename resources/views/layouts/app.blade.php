@@ -256,17 +256,17 @@
             document.getElementById('loading-screen').style.display = 'none';
         };
 
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                        console.log('SW registered: ', registration);
-                    })
-                    .catch(function(registrationError) {
-                        console.log('SW registration failed: ', registrationError);
-                    });
-            });
-        }
+        //if ('serviceWorker' in navigator) {
+          //  window.addEventListener('load', function() {
+            //    navigator.serviceWorker.register('/sw.js')
+              //      .then(function(registration) {
+                //        console.log('SW registered: ', registration);
+                  //  })
+                   // .catch(function(registrationError) {
+                    //    console.log('SW registration failed: ', registrationError);
+                   // });
+            //});
+       // }
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
