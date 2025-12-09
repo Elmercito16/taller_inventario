@@ -164,8 +164,6 @@ Route::post('/clientes/storeQuick', [ClienteController::class, 'storeQuick'])->n
     // Ruta para registrar otros ingresos
 Route::post('/finanzas/ingreso', [FinanzasController::class, 'storeIngreso'])->name('finanzas.storeIngreso');
 
-
-
     //Modulo de Reportes
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
 
