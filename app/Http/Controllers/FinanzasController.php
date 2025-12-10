@@ -138,7 +138,7 @@ $cajaFlujo = $flujoVentas->concat($flujoIngresos)->concat($flujoGastos)->sortByD
             'balance', 
             'cajaFlujo',
             'filtro',
-            'fechaInicio',
+            'fechaInicio',  
             'fechaFin'
         ));
     }
