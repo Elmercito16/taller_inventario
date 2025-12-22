@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB; // Necesario para la ruta /test
 use App\Http\Controllers\FinanzasController; //
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\ComprobanteController;
+
 // ==============================
 // RUTAS PÚBLICAS (sin autenticación)
 // ==============================
@@ -86,8 +88,54 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/clientes/search', [ClienteController::class, 'search'])->name('clientes.search');
 Route::post('/clientes/storeQuick', [ClienteController::class, 'storeQuick'])->name('clientes.storeQuick');
     Route::resource('clientes', ClienteController::class);
- // Búsqueda de clientes (Autocompletado)
-   
+
+    
+
+// ==============================
+    // COMPROBANTES ELECTRÓNICOS
+    // ==============================
+    Route::prefix('comprobantes')->name('comprobantes.')->group(function () {
+    
+    // Listar comprobantes
+    Route::get('/', [ComprobanteController::class, 'index'])->name('index');
+    
+    // Ver detalle
+    Route::get('/{comprobante}', [ComprobanteController::class, 'show'])->name('show');
+    
+    // Emitir comprobante desde venta
+    Route::post('/emitir/{venta}', [ComprobanteController::class, 'emitir'])->name('emitir');
+    
+    // Descargas (SIN /comprobantes/ porque ya está en el prefix)
+    Route::get('/{comprobante}/xml', [ComprobanteController::class, 'descargarXml'])
+        ->name('descargar-xml');
+    
+    Route::get('/{comprobante}/cdr', [ComprobanteController::class, 'descargarCdr'])
+        ->name('descargar-cdr');
+    
+    Route::get('/{comprobante}/pdf', [ComprobanteController::class, 'descargarPdf'])
+        ->name('descargar-pdf');
+    
+    // Ver PDF
+    Route::get('/{comprobante}/ver-pdf', [ComprobanteController::class, 'verPdf'])->name('ver-pdf');
+    
+    // Consultar estado en SUNAT
+    Route::get('/{comprobante}/consultar-estado', [ComprobanteController::class, 'consultarEstado'])->name('consultar-estado');
+    
+    // Anular
+    Route::post('/{comprobante}/anular', [ComprobanteController::class, 'anular'])->name('anular');
+});
+
+
+    // ==============================
+    // CONFIGURACIÓN DE EMPRESA
+    // ==============================
+    Route::get('/empresa', [EmpresaController::class, 'index'])->name('empresa.index');
+    Route::put('/empresa', [EmpresaController::class, 'update'])->name('empresa.update');
+
+
+
+
+
  //-------------------------------------------------------------------------
     // Repuestos
     Route::resource('repuestos', RepuestoController::class);

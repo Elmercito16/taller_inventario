@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL; // ← IMPORTANTE: Añadir esta línea
+use App\Services\FacturacionService; // 👈 AÑADIDO
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -12,7 +13,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // 👇 NUEVO: Registrar FacturacionService como singleton
+        $this->app->singleton(FacturacionService::class, function ($app) {
+            return new FacturacionService();
+        });
     }
 
     /**

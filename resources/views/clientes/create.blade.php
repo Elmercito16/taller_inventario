@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
+
 @section('title', isset($cliente) ? 'Editar Cliente' : 'Nuevo Cliente')
+
 
 @section('breadcrumbs')
 <nav class="flex items-center space-x-2 text-sm text-gray-500">
@@ -15,6 +17,7 @@
 </nav>
 @endsection
 
+
 @push('styles')
 <style>
     /* Animaciones personalizadas */
@@ -22,23 +25,23 @@
         animation: slideUp 0.5s ease-out;
         animation-fill-mode: both;
     }
-    
+   
     .form-section:nth-child(1) { animation-delay: 0.1s; }
     .form-section:nth-child(2) { animation-delay: 0.2s; }
-    
+   
     @keyframes slideUp {
         from { opacity: 0; transform: translateY(20px); }
         to { opacity: 1; transform: translateY(0); }
     }
-    
+   
     /* Estilos para inputs mejorados */
     .input-group { position: relative; }
-    
+   
     .input-group input:focus + .input-icon,
     .input-group select:focus + .input-icon {
         color: #218786;
     }
-    
+   
     .input-icon {
         position: absolute;
         right: 12px;
@@ -48,19 +51,20 @@
         transition: color 0.2s ease;
         pointer-events: none;
     }
-    
+   
     /* Estados de validación */
     .input-valid { border-color: #10b981; background-color: #ecfdf5; }
     .input-invalid { border-color: #ef4444; background-color: #fef2f2; }
-    
+   
     /* Focus ring personalizado */
     input:focus { --tw-ring-color: #218786; border-color: #218786; }
 </style>
 @endpush
 
+
 @section('content')
 <div class="max-w-4xl mx-auto">
-    
+   
     <!-- Header con información -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6 form-section">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -79,7 +83,7 @@
                     </p>
                 </div>
             </div>
-            
+           
             @if(isset($cliente))
                 <div class="text-right text-xs text-gray-500 bg-gray-50 p-2 rounded-lg border border-gray-100">
                     <p>Registro: {{ $cliente->created_at->format('d/m/Y') }}</p>
@@ -89,12 +93,14 @@
         </div>
     </div>
 
-    <form id="clienteForm" action="{{ isset($cliente) ? route('clientes.update', $cliente->id) : route('clientes.store') }}" 
+
+    <form id="clienteForm" action="{{ isset($cliente) ? route('clientes.update', $cliente->id) : route('clientes.store') }}"
           method="POST" class="space-y-6">
         @csrf
         @if(isset($cliente))
             @method('PUT')
         @endif
+
 
         <!-- Sección: Datos Principales -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 form-section">
@@ -105,17 +111,18 @@
                 <h2 class="text-lg font-semibold text-gray-900">Información Personal</h2>
             </div>
 
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
+               
                 <!-- DNI -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         DNI <span class="text-red-500">*</span>
                     </label>
                     <div class="input-group">
-                        <input type="text" 
-                               id="dni" 
-                               name="dni" 
+                        <input type="text"
+                               id="dni"
+                               name="dni"
                                maxlength="8"
                                value="{{ old('dni', $cliente->dni ?? '') }}"
                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-colors duration-200"
@@ -130,13 +137,14 @@
                     @enderror
                 </div>
 
+
                 <!-- Nombre Completo -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         Nombre Completo <span class="text-red-500">*</span>
                     </label>
                     <div class="input-group">
-                        <input type="text" 
+                        <input type="text"
                                name="nombre"
                                value="{{ old('nombre', $cliente->nombre ?? '') }}"
                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-colors duration-200"
@@ -153,6 +161,7 @@
             </div>
         </div>
 
+
         <!-- Sección: Información de Contacto -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 form-section">
             <div class="flex items-center mb-6 border-b border-gray-100 pb-4">
@@ -162,6 +171,7 @@
                 <h2 class="text-lg font-semibold text-gray-900">Datos de Contacto</h2>
             </div>
 
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- Teléfono -->
                 <div>
@@ -169,7 +179,7 @@
                         Teléfono / Celular <span class="text-red-500">*</span>
                     </label>
                     <div class="input-group">
-                        <input type="tel" 
+                        <input type="tel"
                                name="telefono"
                                value="{{ old('telefono', $cliente->telefono ?? '') }}"
                                maxlength="9"
@@ -185,13 +195,14 @@
                     @enderror
                 </div>
 
+
                 <!-- Email -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         Correo Electrónico
                     </label>
                     <div class="input-group">
-                        <input type="email" 
+                        <input type="email"
                                name="email"
                                value="{{ old('email', $cliente->email ?? '') }}"
                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-colors duration-200"
@@ -205,13 +216,14 @@
                     @enderror
                 </div>
 
+
                 <!-- Dirección -->
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         Dirección
                     </label>
                     <div class="input-group">
-                        <input type="text" 
+                        <input type="text"
                                name="direccion"
                                value="{{ old('direccion', $cliente->direccion ?? '') }}"
                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-colors duration-200"
@@ -228,18 +240,19 @@
             </div>
         </div>
 
+
         <!-- Botones de acción -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 form-section">
             <div class="flex flex-col-reverse sm:flex-row justify-end items-stretch sm:items-center gap-4">
-                <a href="{{ route('clientes.index') }}" 
+                <a href="{{ route('clientes.index') }}"
                    class="px-8 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors duration-200 flex justify-center items-center text-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                     </svg>
                     Cancelar
                 </a>
-                
-                <button type="submit" 
+               
+                <button type="submit"
                         id="btnGuardar"
                         class="px-8 py-3 bg-gradient-to-r from-[#218786] to-[#1d7874] text-white font-semibold rounded-lg hover:shadow-lg hover:scale-105 transition-all duration-200 flex justify-center items-center text-center">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -252,20 +265,21 @@
     </form>
 </div>
 
+
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('clienteForm');
     const btnGuardar = document.getElementById('btnGuardar');
     const dniInput = document.getElementById('dni');
-    
+   
     // Validación de DNI en tiempo real
     if (dniInput) {
         dniInput.addEventListener('input', function(e) {
             this.value = this.value.replace(/\D/g, '').substring(0, 8);
         });
     }
-    
+   
     // Validación de teléfono
     const telefonoInput = document.querySelector('input[name="telefono"]');
     if (telefonoInput) {
@@ -273,17 +287,17 @@ document.addEventListener('DOMContentLoaded', function() {
             this.value = this.value.replace(/\D/g, '').substring(0, 9);
         });
     }
-    
+   
     // Manejo del envío del formulario
     if (form) {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            
+           
             // Validaciones
             const dni = dniInput.value.trim();
             const nombre = document.querySelector('input[name="nombre"]').value.trim();
             const telefono = telefonoInput.value.trim();
-            
+           
             if (!dni || dni.length < 8) {
                 Swal.fire({
                     icon: 'error',
@@ -293,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 return;
             }
-            
+           
             if (!nombre) {
                 Swal.fire({
                     icon: 'error',
@@ -303,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 return;
             }
-            
+           
             if (!telefono || telefono.length < 7) {
                 Swal.fire({
                     icon: 'error',
@@ -313,11 +327,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
                 return;
             }
-            
+           
             // Deshabilitar botón para evitar doble envío
             btnGuardar.disabled = true;
             btnGuardar.innerHTML = '<svg class="animate-spin w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><span>Guardando...</span>';
-            
+           
             // Mostrar loading
             const actionText = '{{ isset($cliente) ? "Actualizando" : "Registrando" }}';
             Swal.fire({
@@ -328,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     Swal.showLoading();
                 }
             });
-            
+           
             // Enviar formulario
             form.submit();
         });
@@ -336,5 +350,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 @endpush
+
 
 @endsection

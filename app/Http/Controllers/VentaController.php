@@ -23,7 +23,7 @@ class VentaController extends Controller
     {
         $ventas = Venta::with('cliente', 'detalles')
         ->orderBy('fecha', 'desc')
-        ->paginate(10); // 👈 10 ventas por página
+        ->paginate(5); // 👈 10 ventas por página
     
         return view('ventas.index', compact('ventas'));
     }
@@ -200,13 +200,22 @@ class VentaController extends Controller
     /**
      * Mostrar detalles de una venta
      */
-    public function show(Venta $venta)
-    {
-        $venta->load(['cliente', 'detalles.repuesto']);
-        
-        return view('ventas.show', compact('venta'));
+   public function show(Venta $venta)
+{
+    // Verificar que la venta pertenece a la empresa del usuario
+    if ($venta->empresa_id !== auth()->user()->empresa_id) {
+        abort(403, 'No autorizado');
     }
 
+    // Cargar relaciones necesarias
+    $venta->load([
+        'cliente', 
+        'detalles.repuesto',
+        'comprobante' // 👈 Añadir esta relación
+    ]);
+    
+    return view('ventas.show', compact('venta'));
+}
 
     // ¡MAGIA! Esta función ya es multi-tenant.
     public function historialCliente(Request $request, $id)

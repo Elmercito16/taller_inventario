@@ -21,6 +21,11 @@ class DetalleVenta extends Model
         'precio_unitario',
         'subtotal',
     ];
+     protected $casts = [
+        'cantidad' => 'integer',
+        'precio_unitario' => 'decimal:2',
+        'subtotal' => 'decimal:2',
+    ];
 
     protected static function booted()
     {
@@ -50,5 +55,32 @@ class DetalleVenta extends Model
     public function repuesto()
     {
         return $this->belongsTo(Repuesto::class);
+    }
+     // ==========================================
+    // 👇 MÉTODOS NUEVOS PARA GREENTER
+    // ==========================================
+
+    // Accesor para total del detalle
+    public function getTotalAttribute()
+    {
+        return $this->subtotal;
+    }
+
+    // Accesor para precio sin IGV (para comprobantes SUNAT)
+    public function getPrecioUnitarioSinIgvAttribute()
+    {
+        return round($this->precio_unitario / 1.18, 2);
+    }
+
+    // Accesor para subtotal sin IGV
+    public function getSubtotalSinIgvAttribute()
+    {
+        return round($this->subtotal / 1.18, 2);
+    }
+
+    // Calcular IGV del detalle
+    public function getIgvAttribute()
+    {
+        return round($this->subtotal - $this->subtotal_sin_igv, 2);
     }
 }

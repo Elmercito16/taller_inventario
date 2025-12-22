@@ -82,4 +82,53 @@ class Repuesto extends Model
     {
         return $this->belongsTo(Proveedor::class, 'proveedor_id');
     }
+
+    // ==========================================
+    // 👇 MÉTODOS NUEVOS PARA GREENTER
+    // ==========================================
+
+    public function detallesVenta()
+    {
+        return $this->hasMany(DetalleVenta::class);
+    }
+
+    // Scopes adicionales
+    public function scopeConStockBajo($query)
+    {
+        return $query->whereColumn('cantidad', '<=', 'minimo_stock');
+    }
+
+    public function scopeDisponibles($query)
+    {
+        return $query->where('cantidad', '>', 0);
+    }
+
+    // Métodos auxiliares
+    public function tieneStockBajo()
+    {
+        return $this->cantidad <= $this->minimo_stock;
+    }
+
+    public function tieneStock($cantidadRequerida = 1)
+    {
+        return $this->cantidad >= $cantidadRequerida;
+    }
+
+    // Para stock (alias)
+    public function getStockAttribute()
+    {
+        return $this->cantidad;
+    }
+
+    // Precio con IGV (para mostrar)
+    public function getPrecioVentaConIgvAttribute()
+    {
+        return round($this->precio_unitario * 1.18, 2);
+    }
+
+    // Precio sin IGV (para SUNAT)
+    public function getPrecioVentaSinIgvAttribute()
+    {
+        return $this->precio_unitario;
+    }
 }

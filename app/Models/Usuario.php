@@ -28,9 +28,10 @@ class Usuario extends Authenticatable
 
 
     public function getAuthIdentifierName()
-    {
-        return 'correo';
-    }
+{
+    return 'id'; // ← Asegúrate de que retorne 'id'
+}
+
 
     /**
      * Mapear 'contraseña' a 'password' para el sistema de login.
@@ -80,5 +81,41 @@ class Usuario extends Authenticatable
     {
         return $this->correo;
     }
-    
+    // ==========================================
+    // 👇 MÉTODOS NUEVOS PARA GREENTER
+    // ==========================================
+
+    public function ventasCreadas()
+    {
+        return $this->hasMany(Venta::class, 'usuario_id');
+    }
+
+    public function comprobantesEmitidos()
+    {
+        return $this->hasMany(Comprobante::class, 'usuario_emision_id');
+    }
+
+    public function comprobantesAnulados()
+    {
+        return $this->hasMany(Comprobante::class, 'usuario_anulacion_id');
+    }
+
+    // Métodos auxiliares
+    public function esAdmin()
+    {
+        return $this->rol === 'admin';
+    }
+
+    public function puedeEmitirComprobantes()
+    {
+        return $this->empresa && $this->empresa->tieneFacturacionActiva();
+    }
+    public function getKey()
+{
+    return (int) $this->getAttribute('id');
+}
+public function getKeyName()
+{
+    return 'id';
+}
 }
