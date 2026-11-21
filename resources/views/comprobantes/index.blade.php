@@ -45,6 +45,8 @@
                         <option value="aceptado" {{ request('estado') == 'aceptado' ? 'selected' : '' }}>Aceptado</option>
                         <option value="pendiente" {{ request('estado') == 'pendiente' ? 'selected' : '' }}>Pendiente</option>
                         <option value="rechazado" {{ request('estado') == 'rechazado' ? 'selected' : '' }}>Rechazado</option>
+                        <option value="observado" {{ request('estado') == 'observado' ? 'selected' : '' }}>Observado</option>
+                        <option value="baja_pendiente" {{ request('estado') == 'baja_pendiente' ? 'selected' : '' }}>Baja en proceso</option>
                         <option value="anulado" {{ request('estado') == 'anulado' ? 'selected' : '' }}>Anulado</option>
                     </select>
                 </div>
@@ -133,23 +135,17 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    @if($comprobante->estado_sunat == 'aceptado' && !$comprobante->anulado)
-                                        <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-bold">
-                                            ✅ Aceptado
-                                        </span>
-                                    @elseif($comprobante->estado_sunat == 'pendiente')
-                                        <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-bold">
-                                            ⏳ Pendiente
-                                        </span>
-                                    @elseif($comprobante->estado_sunat == 'rechazado')
-                                        <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-bold">
-                                            ❌ Rechazado
-                                        </span>
-                                    @elseif($comprobante->anulado)
-                                        <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-bold">
-                                            🚫 Anulado
-                                        </span>
-                                    @endif
+                                    @php
+                                        $badge = [
+                                            'aceptado' => ['bg-green-100 text-green-800', '✅ Aceptado'],
+                                            'observado' => ['bg-emerald-100 text-emerald-800', '✅ Observado'],
+                                            'pendiente' => ['bg-yellow-100 text-yellow-800', '⏳ Pendiente'],
+                                            'rechazado' => ['bg-red-100 text-red-800', '❌ Rechazado'],
+                                            'baja_pendiente' => ['bg-amber-100 text-amber-800', '⏳ Baja en proceso'],
+                                            'anulado' => ['bg-gray-100 text-gray-800', '🚫 Anulado'],
+                                        ][$comprobante->anulado ? 'anulado' : $comprobante->estado_sunat] ?? ['bg-gray-100 text-gray-700', ucfirst($comprobante->estado_sunat)];
+                                    @endphp
+                                    <span class="px-3 py-1 {{ $badge[0] }} rounded-full text-xs font-bold whitespace-nowrap">{{ $badge[1] }}</span>
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex items-center justify-center gap-2">

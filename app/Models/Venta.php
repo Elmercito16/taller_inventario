@@ -2,14 +2,20 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToEmpresa;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
-use Spatie\Multitenancy\Models\Tenant;
 
 class Venta extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToEmpresa;
+
+    public const METODOS_PAGO = [
+        'efectivo'      => 'Efectivo',
+        'yape'          => 'Yape / Plin',
+        'tarjeta'       => 'Tarjeta',
+        'transferencia' => 'Transferencia',
+    ];
 
     protected $fillable = [
         'empresa_id',
@@ -18,40 +24,17 @@ class Venta extends Model
         'fecha',
         'total',
         'estado',
+        'metodo_pago',
     ];
 
     protected $casts = [
-        'fecha' => 'date',
+        'fecha' => 'datetime',
         'total' => 'decimal:2',
     ];
 
     // ==========================================
-    // MULTI-TENANCY (Spatie)
-    // ==========================================
-    
-    protected static function booted()
-    {
-        static::addGlobalScope('tenant', function (Builder $builder) {
-            if ($tenant = Tenant::current()) {
-                $builder->where('empresa_id', $tenant->id);
-            }
-        });
-
-        static::creating(function ($model) {
-            if ($tenant = Tenant::current()) {
-                $model->empresa_id = $tenant->id;
-            }
-        });
-    }
-
-    // ==========================================
     // RELACIONES
     // ==========================================
-
-    public function empresa()
-    {
-        return $this->belongsTo(Empresa::class, 'empresa_id');
-    }
 
     public function cliente()
     {
@@ -68,19 +51,22 @@ class Venta extends Model
         return $this->hasMany(DetalleVenta::class);
     }
 
+    /**
+     * Último comprobante emitido para la venta (puede haber intentos rechazados previos).
+     */
     public function comprobante()
     {
-        return $this->hasOne(Comprobante::class);
+        return $this->hasOne(Comprobante::class)->latestOfMany();
+    }
+
+    public function comprobantes()
+    {
+        return $this->hasMany(Comprobante::class);
     }
 
     // ==========================================
     // SCOPES
     // ==========================================
-
-    public function scopeCompletadas($query)
-    {
-        return $query->where('estado', 'completada');
-    }
 
     public function scopePagadas($query)
     {
@@ -98,165 +84,118 @@ class Venta extends Model
     }
 
     // ==========================================
-    // MÉTODOS PARA COMPROBANTES ELECTRÓNICOS
+    // COMPROBANTES ELECTRÓNICOS
     // ==========================================
 
     /**
-     * Verifica si la venta ya tiene un comprobante electrónico
+     * ¿Tiene un comprobante vigente? (aceptado/observado/pendiente y no anulado).
+     * Los rechazados no cuentan, así se puede volver a intentar la emisión.
      */
-    public function tieneComprobante()
+    public function tieneComprobante(): bool
     {
-        return $this->comprobante()->exists();
+        return $this->comprobantes()
+            ->whereIn('estado_sunat', ['aceptado', 'observado', 'pendiente'])
+            ->where('anulado', false)
+            ->exists();
     }
 
-    /**
-     * Alias de tieneComprobante() para mantener compatibilidad
-     */
-    // ✅ DESPUÉS (correcto)
-public function tieneComprobanteElectronico()
-{
-    return $this->comprobante()->exists();
-}
-
-
-    /**
-     * Verifica si el comprobante fue aceptado por SUNAT
-     */
-    public function comprobanteAceptadoPorSunat()
+    public function tieneComprobanteElectronico(): bool
     {
-        return $this->comprobante()
-                    ->where('estado', 'aceptado')
-                    ->exists();
+        return $this->tieneComprobante();
     }
 
-    /**
-     * Sugiere el tipo de comprobante según el cliente
-     * 01 = Factura (si tiene RUC)
-     * 03 = Boleta (si solo tiene DNI)
-     */
-    public function getTipoComprobanteSugerido()
+    public function comprobanteAceptadoPorSunat(): bool
     {
-        if ($this->cliente && !empty($this->cliente->ruc)) {
-            return '01'; // Factura
-        }
-        return '03'; // Boleta
+        return $this->comprobantes()
+            ->whereIn('estado_sunat', ['aceptado', 'observado'])
+            ->where('anulado', false)
+            ->exists();
     }
 
-    /**
-     * Verifica si se puede emitir un comprobante electrónico
-     */
-    public function puedeEmitirComprobante()
+    public function getTipoComprobanteSugerido(): string
     {
-        // No tiene comprobante
-        if ($this->tieneComprobante()) {
+        return $this->cliente && $this->cliente->tieneRuc() ? '01' : '03';
+    }
+
+    public function puedeEmitirComprobante(): bool
+    {
+        if ($this->estado !== 'pagado' || $this->tieneComprobante()) {
             return false;
         }
 
-        // Estado válido (pagado o completada)
-        $estadosValidos = ['pagado', 'completada'];
-        if (!in_array($this->estado, $estadosValidos)) {
+        if (! $this->detalles()->exists()) {
             return false;
         }
 
-        // Tiene detalles
-        if (!$this->detalles()->exists()) {
-            return false;
-        }
-
-        // La empresa tiene facturación activa
-        if (!$this->empresa || !$this->empresa->facturacion_activa) {
-            return false;
-        }
-
-        return true;
+        return $this->empresa && $this->empresa->facturacion_activa;
     }
 
     // ==========================================
-    // ACCESORIOS (GETTERS)
+    // ACCESORIOS
     // ==========================================
 
-    /**
-     * Resumen de la venta
-     */
-    public function getResumenAttribute()
+    public function getResumenAttribute(): string
     {
         $cantidadItems = $this->detalles->sum('cantidad');
+
         return "Venta #{$this->id} - {$cantidadItems} items - S/ {$this->total}";
     }
 
-    /**
-     * Estado del comprobante electrónico
-     */
-    public function getEstadoComprobanteAttribute()
+    public function getMetodoPagoNombreAttribute(): string
     {
-        if (!$this->tieneComprobante()) {
+        return self::METODOS_PAGO[$this->metodo_pago] ?? 'Efectivo';
+    }
+
+    public function getEstadoComprobanteAttribute(): string
+    {
+        $comprobante = $this->comprobante;
+
+        if (! $comprobante) {
             return 'sin_comprobante';
         }
 
-        $comprobante = $this->comprobante;
-
-        // Si está anulado
-        if ($comprobante->estado === 'anulado') {
-            return 'anulado';
-        }
-
-        // Retornar estado actual
-        return $comprobante->estado;
+        return $comprobante->anulado ? 'anulado' : $comprobante->estado_sunat;
     }
 
-    /**
-     * Número de comprobante (si existe)
-     */
-    public function getNumeroComprobanteAttribute()
+    public function getNumeroComprobanteAttribute(): ?string
     {
-        if (!$this->tieneComprobante()) {
-            return null;
-        }
-
-        return $this->comprobante->numero_comprobante;
+        return $this->comprobante?->numero_completo;
     }
 
-    /**
-     * Tipo de comprobante en texto (si existe)
-     */
-    public function getTipoComprobanteTextoAttribute()
+    public function getTipoComprobanteTextoAttribute(): ?string
     {
-        if (!$this->tieneComprobante()) {
-            return null;
-        }
-
-        return $this->comprobante->tipo_comprobante_nombre;
+        return $this->comprobante?->tipo_comprobante_nombre;
     }
 
     // ==========================================
-    // MÉTODOS AUXILIARES
+    // AUXILIARES (precios con IGV incluido)
     // ==========================================
 
     /**
-     * Calcular base imponible (sin IGV)
+     * Base imponible (operaciones gravadas, sin IGV).
+     * Solo las líneas gravadas incluyen IGV; exoneradas/inafectas se suman aparte.
      */
-    public function calcularBaseImponible()
+    public function calcularBaseImponible(): float
     {
-        return round($this->total / 1.18, 2);
+        return round($this->detalles->filter->esGravado()->sum(fn ($d) => $d->subtotal_sin_igv), 2);
     }
 
-    /**
-     * Calcular IGV (18%)
-     */
-    public function calcularIgv()
+    public function calcularNoGravado(): float
     {
-        return round($this->total - $this->calcularBaseImponible(), 2);
+        return round($this->detalles->reject->esGravado()->sum('subtotal'), 2);
     }
 
-    /**
-     * Verificar si tiene items válidos para facturar
-     */
-    public function tieneItemsValidos()
+    public function calcularIgv(): float
+    {
+        return round($this->detalles->filter->esGravado()->sum(fn ($d) => $d->igv), 2);
+    }
+
+    public function tieneItemsValidos(): bool
     {
         return $this->detalles()
-                    ->whereHas('repuesto')
-                    ->where('cantidad', '>', 0)
-                    ->where('precio_unitario', '>', 0)
-                    ->exists();
+            ->whereHas('repuesto')
+            ->where('cantidad', '>', 0)
+            ->where('precio_unitario', '>', 0)
+            ->exists();
     }
 }

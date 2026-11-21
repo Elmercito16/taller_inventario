@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Editar Repuesto')
+@section('title', 'Editar Producto')
 
 @push('styles')
 <style>
@@ -28,7 +28,7 @@
     <div class="bg-white rounded-xl shadow-sm border p-4 sm:p-6 mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-                <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Editar Repuesto</h1>
+                <h1 class="text-xl sm:text-2xl font-bold text-gray-900">Editar Producto</h1>
                 <p class="text-sm text-gray-600 mt-1">Actualizando: <strong class="text-[#218786]">{{ $repuesto->nombre }}</strong></p>
             </div>
             <div class="flex items-center gap-2 bg-[#218786]/10 px-3 py-2 rounded-lg">
@@ -67,10 +67,10 @@
                 </div>
 
                 <div class="input-group">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Marca <span class="text-red-500">*</span></label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Marca <span class="text-xs font-normal text-gray-400">(opcional)</span></label>
                     <input type="text" name="marca" value="{{ old('marca', $repuesto->marca) }}"
                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786]" 
-                           placeholder="Ej: Toyota, Bosch" required>
+                           placeholder="Ej: Samsung, Gloria, Stanley">
                     @error('marca')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
                 </div>
 
@@ -81,6 +81,10 @@
                               placeholder="Descripción detallada del repuesto...">{{ old('descripcion', $repuesto->descripcion) }}</textarea>
                 </div>
             </div>
+        </div>
+
+        <div class="mb-6">
+            @include('repuestos.partials.datos-comerciales')
         </div>
 
         <!-- Inventario y Precios -->
@@ -95,7 +99,7 @@
             </h2>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-                <div class="input-group">
+                <div class="input-group solo-producto">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Cantidad <span class="text-red-500">*</span></label>
                     <input type="number" 
                            name="cantidad" 
@@ -129,9 +133,26 @@
                                required>
                     </div>
                     @error('precio_unitario')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    <p class="mt-1 text-xs text-gray-500">Precio final al cliente (IGV incluido)</p>
                 </div>
 
                 <div class="input-group">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Precio de Compra (S/)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">S/</span>
+                        <input type="number"
+                               name="precio_compra"
+                               value="{{ old('precio_compra', $repuesto->precio_compra) }}"
+                               step="0.01"
+                               min="0"
+                               class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786]"
+                               placeholder="0.00">
+                    </div>
+                    @error('precio_compra')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
+                    <p class="mt-1 text-xs text-gray-500">Opcional. Se usa para calcular la ganancia real.</p>
+                </div>
+
+                <div class="input-group solo-producto">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Stock Mínimo</label>
                     <input type="number" 
                            name="minimo_stock" 
@@ -223,7 +244,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
                 </span>
-                Imagen del Repuesto
+                Imagen del Producto
             </h2>
 
             <div class="drag-area rounded-xl p-6 text-center hover:border-[#218786] transition-colors" 
@@ -300,7 +321,7 @@
                             ircle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span x-text="loading ? 'Actualizando...' : 'Actualizar Repuesto'">Actualizar Repuesto</span>
+                        <span x-text="loading ? 'Actualizando...' : 'Actualizar Producto'">Actualizar Producto</span>
                     </button>
                 </div>
             </div>
@@ -378,7 +399,7 @@ function repuestoForm() {
         async submitForm(e) {
             if (this.loading) return;
             
-            if (!this.cantidad || this.cantidad < 0) {
+            if (this.cantidad < 0) {
                 Swal.fire({ 
                     icon: 'error', 
                     title: 'Error de validación', 
@@ -399,10 +420,10 @@ function repuestoForm() {
             }
             
             const result = await Swal.fire({
-                title: '<strong>¿Actualizar repuesto?</strong>',
+                title: '<strong>¿Actualizar producto?</strong>',
                 html: `
                     <div class="text-left bg-gray-50 p-4 rounded-lg space-y-2">
-                        <p class="text-sm"><strong class="text-gray-700">Cantidad:</strong> <span class="text-gray-900">${this.cantidad} unidades</span></p>
+                        <p class="text-sm"><strong class="text-gray-700">Cantidad:</strong> <span class="text-gray-900">${document.getElementById('campo-tipo')?.value === 'servicio' ? 'Servicio (sin stock)' : this.cantidad + ' ' + (document.getElementById('campo-unidad')?.selectedOptions[0]?.text ?? '')}</span></p>
                         <p class="text-sm"><strong class="text-gray-700">Precio:</strong> <span class="text-gray-900">S/ ${parseFloat(this.precio).toFixed(2)}</span></p>
                         <p class="text-sm"><strong class="text-gray-700">Valor Total:</strong> <span class="text-[#218786] font-bold text-lg">S/ ${this.total.toFixed(2)}</span></p>
                     </div>

@@ -189,6 +189,13 @@
                         <p class="text-sm text-gray-600">Agrega productos a la venta</p>
                     </div>
                 </div>
+                <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+                <div class="relative">
+                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                    <input type="text" x-ref="escaner" @keydown.enter.prevent="escanear($event)"
+                           class="w-full sm:w-64 pl-10 pr-3 py-2.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] text-sm"
+                           placeholder="Escanear código + Enter" autocomplete="off">
+                </div>
                 <button type="button" 
                         @click="abrirModalRepuestos()"
                         class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-[#218786] to-[#1a6d6c] text-white font-bold rounded-lg hover:shadow-lg transition-all">
@@ -197,6 +204,7 @@
                     </svg>
                     Agregar Producto
                 </button>
+                </div>
             </div>
         </div>
 
@@ -249,7 +257,7 @@
                                         </div>
                                         <div>
                                             <p class="font-bold text-gray-900" x-text="item.nombre"></p>
-                                            <p class="text-xs text-gray-500">Stock: <span x-text="item.stock"></span></p>
+                                            <p class="text-xs text-gray-500" x-text="item.servicio ? 'Servicio' : ('Stock: ' + (+item.stock.toFixed(3)) + ' ' + item.unidad)"></p>
                                         </div>
                                     </div>
                                 </td>
@@ -268,10 +276,11 @@
                                         <!-- 👇 INPUT EDITABLE -->
                                         <input type="number"
                                                :value="item.cantidad"
-                                               @input="updateCantidad(item.id, parseInt($event.target.value) || 1)"
+                                               @change="updateCantidad(item.id, parseFloat($event.target.value) || 1)"
                                                @blur="validarCantidad(item.id, $event.target.value, item.stock)"
-                                               min="1"
-                                               :max="item.stock"
+                                               :min="item.decimales ? 0.001 : 1"
+                                               :step="item.decimales ? 0.001 : 1"
+                                               :max="item.servicio ? null : item.stock"
                                                class="w-16 text-center font-bold text-gray-900 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] py-1.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
                                         
                                         <button type="button" 
@@ -383,6 +392,44 @@
                                 <p class="text-xs text-gray-500 mt-1">Débito o crédito</p>
                             </div>
                         </label>
+
+                        <label class="cursor-pointer">
+                            <input type="radio"
+                                   name="metodo_pago"
+                                   value="yape"
+                                   x-model="metodoPago"
+                                   class="sr-only"
+                                   required>
+                            <div class="metodo-pago-card p-6 border-2 rounded-xl text-center transition-all"
+                                 :class="metodoPago === 'yape' ? 'selected' : 'border-gray-300'">
+                                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                                    </svg>
+                                </div>
+                                <span class="font-bold text-gray-900">Yape / Plin</span>
+                                <p class="text-xs text-gray-500 mt-1">Billetera digital</p>
+                            </div>
+                        </label>
+
+                        <label class="cursor-pointer">
+                            <input type="radio"
+                                   name="metodo_pago"
+                                   value="transferencia"
+                                   x-model="metodoPago"
+                                   class="sr-only"
+                                   required>
+                            <div class="metodo-pago-card p-6 border-2 rounded-xl text-center transition-all"
+                                 :class="metodoPago === 'transferencia' ? 'selected' : 'border-gray-300'">
+                                <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                                    </svg>
+                                </div>
+                                <span class="font-bold text-gray-900">Transferencia</span>
+                                <p class="text-xs text-gray-500 mt-1">Depósito bancario</p>
+                            </div>
+                        </label>
                     </div>
                 </div>
 
@@ -431,7 +478,7 @@ document.addEventListener('alpine:init', () => {
         },
         
         calcularCantidadTotal() {
-            return this.carritoItems.reduce((sum, item) => sum + item.cantidad, 0);
+            return +this.carritoItems.reduce((sum, item) => sum + item.cantidad, 0).toFixed(3);
         },
         
         puedeConfirmar() {
@@ -482,7 +529,11 @@ document.addEventListener('alpine:init', () => {
                 id: repuesto.id,
                 nombre: repuesto.nombre,
                 precio: parseFloat(repuesto.precio_unitario),
-                stock: repuesto.stock,
+                // Los servicios no tienen límite de stock
+                stock: repuesto.servicio ? Infinity : parseFloat(repuesto.stock),
+                servicio: !!repuesto.servicio,
+                decimales: !!repuesto.decimales,
+                unidad: repuesto.unidad || 'und',
                 cantidad: 1
             });
             
@@ -501,13 +552,13 @@ document.addEventListener('alpine:init', () => {
             const item = this.carritoItems.find(i => i.id === itemId);
             if (!item) return;
             
-            if (nuevaCantidad < 1) nuevaCantidad = 1;
+            nuevaCantidad = this.normalizarCantidad(item, nuevaCantidad);
             if (nuevaCantidad > item.stock) {
                 nuevaCantidad = item.stock;
                 Swal.fire({
                     icon: 'warning',
                     title: 'Stock máximo alcanzado',
-                    text: `Solo hay ${item.stock} unidades disponibles`,
+                    text: `Solo hay ${item.stock} ${item.unidad} disponibles`,
                     toast: true,
                     position: 'top-end',
                     timer: 2000,
@@ -522,10 +573,10 @@ document.addEventListener('alpine:init', () => {
             const item = this.carritoItems.find(i => i.id === itemId);
             if (!item) return;
             
-            let cantidad = parseInt(valor);
-            
+                        let cantidad = parseFloat(valor);
+
             // Si no es un número válido, regresar a 1
-            if (isNaN(cantidad) || cantidad < 1) {
+            if (isNaN(cantidad) || cantidad <= 0) {
                 item.cantidad = 1;
                 Swal.fire({
                     icon: 'warning',
@@ -539,13 +590,16 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
             
+            cantidad = this.normalizarCantidad(item, cantidad);
+            item.cantidad = cantidad;
+
             // Si excede el stock
             if (cantidad > stockMax) {
                 item.cantidad = stockMax;
                 Swal.fire({
                     icon: 'warning',
                     title: 'Stock insuficiente',
-                    text: `Solo hay ${stockMax} unidades disponibles`,
+                    text: `Solo hay ${stockMax} ${item.unidad} disponibles`,
                     toast: true,
                     position: 'top-end',
                     timer: 2000,
@@ -554,6 +608,32 @@ document.addEventListener('alpine:init', () => {
             }
         },
         
+        // Unidades enteras se redondean; kg/litros/metros admiten hasta 3 decimales
+        normalizarCantidad(item, valor) {
+            let cantidad = parseFloat(valor) || 0;
+            cantidad = item.decimales ? Math.round(cantidad * 1000) / 1000 : Math.round(cantidad);
+            const minimo = item.decimales ? 0.001 : 1;
+            return cantidad < minimo ? minimo : cantidad;
+        },
+
+        // Lector de código de barras / código interno
+        escanear(evento) {
+            const texto = evento.target.value.trim().toLowerCase();
+            if (!texto) return;
+            const lista = window.catalogoProductos || [];
+            const producto = lista.find(p => (p.barras && p.barras.toLowerCase() === texto) || p.codigo.toLowerCase() === texto);
+
+            if (!producto) {
+                Swal.fire({ icon: 'error', title: 'Código no encontrado', text: evento.target.value, toast: true, position: 'top-end', timer: 2500, showConfirmButton: false });
+            } else if (!producto.servicio && producto.stock <= 0) {
+                Swal.fire({ icon: 'warning', title: 'Sin stock', text: producto.nombre, toast: true, position: 'top-end', timer: 2500, showConfirmButton: false });
+            } else {
+                const existente = this.carritoItems.find(i => i.id === producto.id);
+                existente ? this.updateCantidad(existente.id, existente.cantidad + 1) : this.addRepuesto(producto);
+            }
+            evento.target.value = '';
+        },
+
         removeItem(itemId) {
             this.carritoItems = this.carritoItems.filter(i => i.id !== itemId);
             Swal.fire({
@@ -607,7 +687,7 @@ document.addEventListener('alpine:init', () => {
                         <p><strong>Cliente:</strong> ${this.selectedCliente.nombre}</p>
                         <p><strong>Productos:</strong> ${this.carritoItems.length}</p>
                         <p><strong>Total:</strong> <span class="text-green-600 font-bold">S/ ${this.calcularTotal().toFixed(2)}</span></p>
-                        <p><strong>Método:</strong> ${this.metodoPago === 'efectivo' ? 'Efectivo' : 'Tarjeta'}</p>
+                        <p><strong>Método:</strong> ${({efectivo: 'Efectivo', tarjeta: 'Tarjeta', yape: 'Yape / Plin', transferencia: 'Transferencia'})[this.metodoPago] || this.metodoPago}</p>
                     </div>
                 `,
                 icon: 'question',

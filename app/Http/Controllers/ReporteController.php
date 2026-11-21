@@ -2,121 +2,115 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Venta;
 use App\Models\DetalleVenta;
+use App\Models\Venta;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ReporteController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Configuración de Filtros de Fecha
-        $rango = $request->get('rango', 'mes'); // Por defecto: mes actual
-        $fechaInicio = Carbon::now()->startOfMonth();
-        $fechaFin = Carbon::now()->endOfMonth();
+        // 1. Rango de fechas
+        $rango = $request->get('rango', 'mes');
+        [$fechaInicio, $fechaFin] = match ($rango) {
+            'hoy' => [Carbon::today(), Carbon::today()->endOfDay()],
+            'semana' => [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()],
+            'anio' => [Carbon::now()->startOfYear(), Carbon::now()->endOfYear()],
+            'personalizado' => $request->filled(['fecha_inicio', 'fecha_fin'])
+                ? [Carbon::parse($request->fecha_inicio)->startOfDay(), Carbon::parse($request->fecha_fin)->endOfDay()]
+                : [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()],
+            default => [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()],
+        };
 
-        if ($rango === 'hoy') {
-            $fechaInicio = Carbon::today();
-            $fechaFin = Carbon::today()->endOfDay();
-        } elseif ($rango === 'semana') {
-            $fechaInicio = Carbon::now()->startOfWeek();
-            $fechaFin = Carbon::now()->endOfWeek();
-        } elseif ($rango === 'anio') {
-            $fechaInicio = Carbon::now()->startOfYear();
-            $fechaFin = Carbon::now()->endOfYear();
-        } elseif ($rango === 'personalizado' && $request->fecha_inicio && $request->fecha_fin) {
-            $fechaInicio = Carbon::parse($request->fecha_inicio)->startOfDay();
-            $fechaFin = Carbon::parse($request->fecha_fin)->endOfDay();
-        }
-
-        // 2. Consultas Base (El Multi-tenant filtra automáticamente)
-        
-        // Ventas completadas en el rango
+        // 2. Ventas pagadas del rango (filtradas por empresa automáticamente)
         $ventas = Venta::where('estado', 'pagado')
             ->whereBetween('fecha', [$fechaInicio, $fechaFin])
-            ->get();
+            ->get(['id', 'cliente_id', 'total', 'metodo_pago']);
 
-        // Detalles de esas ventas (para productos y categorías)
-        // Usamos whereIn para filtrar detalles que pertenezcan a las ventas filtradas
         $detalles = DetalleVenta::whereIn('venta_id', $ventas->pluck('id'))
-            ->with(['repuesto.categoria']) // Cargar relaciones para evitar N+1
+            ->with(['repuesto.categoria'])
             ->get();
 
-        // 3. Cálculos para el Resumen de Ventas
-        $totalIngresos = $ventas->sum('total');
+        // 3. Resumen
+        $totalIngresos = (float) $ventas->sum('total');
         $cantidadVentas = $ventas->count();
-        
-        // Cálculo de Ganancia Estimada
-        // Nota: Si no tienes un campo 'costo' en tus repuestos, esto será igual al ingreso.
-        // Si lo tienes, la fórmula sería: (precio_venta - costo) * cantidad
-        // Aquí asumiremos un margen simple del 30% para el ejemplo visual, 
-        // o puedes ajustar si añades el campo 'costo' a tu tabla repuestos.
-        $gananciaEstimada = $totalIngresos * 0.30; 
 
-        // 4. Método de Pago (Simulado si no tienes la columna, o real si la añades)
-        // Como tu tabla 'ventas' actual no tiene 'metodo_pago', 
-        // asumiremos 'Efectivo' por defecto o lo calcularemos si lo añades después.
-        $metodosPago = [
-            'Efectivo' => $totalIngresos, // Por ahora todo es efectivo
-            'Yape/Plin' => 0,
-            'Tarjeta' => 0
-        ];
+        // 4. Ganancia REAL: (precio de venta - costo) * cantidad.
+        //    Usa el costo guardado en la venta o, si no existe, el precio de compra actual.
+        $itemsSinCosto = 0;
+        $gananciaEstimada = $detalles->sum(function ($detalle) use (&$itemsSinCosto) {
+            $costo = $detalle->costo_unitario ?? $detalle->repuesto?->precio_compra;
 
-        // 5. Mejores Productos (Top 5)
+            if ($costo === null) {
+                $itemsSinCosto++;
+
+                return 0;
+            }
+
+            return ((float) $detalle->precio_unitario - (float) $costo) * $detalle->cantidad;
+        });
+
+        $ventasConCosto = $detalles
+            ->filter(fn ($d) => ($d->costo_unitario ?? $d->repuesto?->precio_compra) !== null)
+            ->sum('subtotal');
+        $margenPorcentaje = $ventasConCosto > 0 ? ($gananciaEstimada / $ventasConCosto) * 100 : 0;
+
+        // 5. Métodos de pago (reales)
+        $metodosPago = collect(Venta::METODOS_PAGO)
+            ->mapWithKeys(fn ($nombre, $clave) => [
+                $nombre => (float) $ventas->where('metodo_pago', $clave)->sum('total')
+                    + ($clave === 'efectivo' ? (float) $ventas->whereNull('metodo_pago')->sum('total') : 0),
+            ])
+            ->all();
+
+        // 6. Top productos
         $topProductos = $detalles->groupBy('repuesto_id')
             ->map(function ($items) {
                 $repuesto = $items->first()->repuesto;
+
                 return [
-                    'nombre' => $repuesto ? $repuesto->nombre : 'Desconocido',
-                    'codigo' => $repuesto ? $repuesto->codigo : 'N/A',
+                    'nombre' => $repuesto->nombre ?? 'Desconocido',
+                    'codigo' => $repuesto->codigo ?? 'N/A',
                     'cantidad_vendida' => $items->sum('cantidad'),
-                    'total_generado' => $items->sum('subtotal')
-                ];
-            })
-            ->sortByDesc('total_generado') // Ordenar por dinero generado
-            ->take(5);
-
-
-
-        $topClientes = Venta::whereBetween('fecha', [$fechaInicio, $fechaFin])
-             ->where('estado', 'pagado')
-             ->whereNotNull('cliente_id')
-             ->select('cliente_id', DB::raw('SUM(total) as total_gastado'), DB::raw('COUNT(*) as cantidad_compras'))
-             ->with('cliente:id,nombre')
-             ->groupBy('cliente_id')
-             ->orderBy('total_gastado', 'desc')
-             ->limit(5)  
-             ->get()
-             ->map(function($venta) {
-        return [
-            'nombre' => $venta->cliente->nombre ?? 'Cliente sin nombre',
-            'total_gastado' => $venta->total_gastado,
-            'cantidad_compras' => $venta->cantidad_compras
-        ];
-    });
-
-        // 6. Mejores Categorías
-        $topCategorias = $detalles->groupBy(function ($detalle) {
-                return $detalle->repuesto && $detalle->repuesto->categoria 
-                    ? $detalle->repuesto->categoria->nombre 
-                    : 'Sin Categoría';
-            })
-            ->map(function ($items, $categoriaNombre) {
-                return [
-                    'nombre' => $categoriaNombre,
-                    'cantidad_items' => $items->sum('cantidad'),
-                    'total_generado' => $items->sum('subtotal')
+                    'total_generado' => $items->sum('subtotal'),
                 ];
             })
             ->sortByDesc('total_generado')
             ->take(5);
 
+        // 7. Top clientes
+        $topClientes = Venta::whereBetween('fecha', [$fechaInicio, $fechaFin])
+            ->where('estado', 'pagado')
+            ->whereNotNull('cliente_id')
+            ->select('cliente_id', DB::raw('SUM(total) as total_gastado'), DB::raw('COUNT(*) as cantidad_compras'))
+            ->with('cliente:id,nombre')
+            ->groupBy('cliente_id')
+            ->orderBy('total_gastado', 'desc')
+            ->limit(5)
+            ->get()
+            ->map(fn ($venta) => [
+                'nombre' => $venta->cliente->nombre ?? 'Cliente sin nombre',
+                'total_gastado' => $venta->total_gastado,
+                'cantidad_compras' => $venta->cantidad_compras,
+            ]);
+
+        // 8. Top categorías
+        $topCategorias = $detalles->groupBy(fn ($d) => $d->repuesto?->categoria?->nombre ?? 'Sin Categoría')
+            ->map(fn ($items, $categoriaNombre) => [
+                'nombre' => $categoriaNombre,
+                'cantidad_items' => $items->sum('cantidad'),
+                'total_generado' => $items->sum('subtotal'),
+            ])
+            ->sortByDesc('total_generado')
+            ->take(5);
+
         return view('reportes.index', compact(
-            'rango','topClientes', 'fechaInicio', 'fechaFin',
+            'rango', 'topClientes', 'fechaInicio', 'fechaFin',
             'totalIngresos', 'cantidadVentas', 'gananciaEstimada',
-            'metodosPago', 'topProductos', 'topCategorias', 
+            'margenPorcentaje', 'itemsSinCosto',
+            'metodosPago', 'topProductos', 'topCategorias',
         ));
     }
 }

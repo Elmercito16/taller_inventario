@@ -90,7 +90,7 @@
                                name="nombre"
                                value="{{ old('nombre') }}"
                                class="w-full px-4 py-3.5 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-all font-medium @error('nombre') border-red-300 bg-red-50 @enderror"
-                               placeholder="Ej: Repuestos García SAC"
+                               placeholder="Ej: Distribuidora García SAC"
                                required>
                         @error('nombre')
                             <div class="mt-2 flex items-center gap-2 text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">

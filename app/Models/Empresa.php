@@ -33,6 +33,7 @@ class Empresa extends Tenant
         'telefono',
         'email',
         'web',
+        'logo',
         // Credenciales SUNAT
         'sol_user',
         'sol_pass',
@@ -137,9 +138,10 @@ class Empresa extends Tenant
      * Verifica si está en ambiente Beta (pruebas)
      */
     public function esBeta()
-{
-    return $this->ambiente_sunat === 'beta';
-}
+    {
+        // Si no está configurado, se asume Beta (pruebas) por seguridad.
+        return $this->ambiente_sunat !== 'produccion';
+    }
 
     /**
      * Obtiene la serie activa para un tipo de comprobante
@@ -179,15 +181,23 @@ class Empresa extends Tenant
     /**
      * Obtiene la ruta completa del certificado digital
      */
-    public function getRutaCertificado()
-{
-    if (empty($this->certificado_path)) {
-        return null;
-    }
-    
-    return storage_path('app/certificados/' . $this->certificado_path);
-}
+    public function getRutaCertificado(): ?string
+    {
+        if (empty($this->certificado_path)) {
+            return null;
+        }
 
+        $archivo = basename($this->certificado_path);
+        $ruta = rtrim(config('sunat.paths.certificados'), '/\\') . DIRECTORY_SEPARATOR . $archivo;
+
+        // Compatibilidad: versiones anteriores guardaban en storage/app/private/sunat/certificados
+        $rutaAntigua = storage_path('app/private/sunat/certificados/' . $archivo);
+        if (! file_exists($ruta) && file_exists($rutaAntigua)) {
+            return $rutaAntigua;
+        }
+
+        return $ruta;
+    }
 
     /**
      * Verifica si tiene certificado configurado
@@ -230,67 +240,51 @@ class Empresa extends Tenant
     }
 
     /**
-     * Obtiene el usuario SOL (RUC + usuario)
+     * Usuario SOL SIN el RUC adelante (Greenter concatena RUC + usuario).
+     * En Beta se usan las credenciales públicas de pruebas de SUNAT.
      */
-    public function getSolUser()
-{
-    // En ambiente Beta no se necesita usuario SOL
-    if ($this->esBeta()) {
-        return null;
-    }
-    
-    // Si no tiene sol_user configurado
-    if (!isset($this->sol_user) || empty($this->sol_user)) {
-        return null;
+    public function getSolUser(): ?string
+    {
+        if ($this->esBeta()) {
+            return config('sunat.beta.sol_user', 'MODDATOS');
+        }
+
+        $usuario = trim((string) $this->sol_user);
+        if ($usuario === '') {
+            return null;
+        }
+
+        // Si lo guardaron como RUC+USUARIO, quitamos el RUC.
+        if ($this->ruc && str_starts_with($usuario, $this->ruc)) {
+            $usuario = substr($usuario, strlen($this->ruc));
+        }
+
+        return $usuario;
     }
 
-    // Formato: RUC + USUARIO (ej: 20123456789MODDATOS)
-    if (strpos($this->sol_user, $this->ruc) === 0) {
-        return $this->sol_user;
-    }
+    public function getSolPass(): ?string
+    {
+        if ($this->esBeta()) {
+            return config('sunat.beta.sol_pass', 'moddatos');
+        }
 
-    return $this->ruc . $this->sol_user;
-}
-
-    /**
-     * Obtiene la contraseña SOL
-     */
-    public function getSolPass()
-{
-    // En ambiente Beta no se necesita contraseña SOL
-    if ($this->esBeta()) {
-        return null;
+        return $this->sol_pass ?: null;
     }
-    
-    return $this->sol_pass ?? null;
-}
 
     /**
  * Obtiene las credenciales completas para SUNAT
  * Usado por Greenter
  */
-     public function getCredencialesSunat()
-{
-    $usuario = null;
-    $clave = null;
-    
-    // Solo obtener credenciales si NO es ambiente Beta
-    if (!$this->esBeta()) {
-        $usuario = $this->getSolUser();
-        $clave = $this->getSolPass();
+    public function getCredencialesSunat(): array
+    {
+        return [
+            'ruc' => $this->ruc,
+            'usuario' => $this->getSolUser(),
+            'clave' => $this->getSolPass(),
+            'certificado' => $this->getRutaCertificado(),
+            'password_certificado' => $this->getPasswordCertificado(),
+        ];
     }
-    
-    return [
-        'ruc' => $this->ruc,
-        'usuario' => $usuario,
-        'clave' => $clave,
-        'certificado' => $this->getRutaCertificado(),
-        'password_certificado' => $this->getPasswordCertificado(),
-    ];
-}
-
-
-
 
     // ==========================================
     // VALIDACIONES
@@ -308,11 +302,6 @@ class Empresa extends Tenant
 
         // Dirección fiscal
         if (empty($this->direccion_fiscal) || empty($this->ubigeo)) {
-            return false;
-        }
-
-        // Debe tener al menos una serie configurada
-        if (!$this->series()->where('activo', true)->exists()) {
             return false;
         }
 
@@ -352,10 +341,6 @@ class Empresa extends Tenant
 
         if (empty($this->ubigeo)) {
             $errores[] = 'Falta configurar el Ubigeo';
-        }
-
-        if (!$this->series()->where('activo', true)->exists()) {
-            $errores[] = 'No hay series de comprobantes configuradas';
         }
 
         if (!$this->facturacion_activa) {
@@ -405,8 +390,7 @@ class Empresa extends Tenant
      */
     public function getLogoUrlAttribute()
     {
-        // TODO: Implementar manejo de logos
-        return null;
+        return ! empty($this->logo) ? asset('storage/' . $this->logo) : null;
     }
 
     

@@ -2,42 +2,112 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\Usuario;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
+/**
+ * Gestión de usuarios de la empresa (solo administradores).
+ * El registro público fue eliminado: los usuarios siempre se crean
+ * dentro de la empresa del administrador que los da de alta.
+ */
 class UsuarioController extends Controller
 {
-    /**
-     * Mostrar formulario de registro
-     */
-    public function create()
+    public const ROLES = [
+        'admin' => 'Administrador',
+        'encargado' => 'Encargado',
+        'usuario' => 'Vendedor',
+    ];
+
+    public function index()
     {
-        return view('auth.register');
+        $usuarios = Usuario::where('empresa_id', auth()->user()->empresa_id)
+            ->orderBy('nombre')
+            ->get();
+
+        return view('usuarios.index', [
+            'usuarios' => $usuarios,
+            'roles' => self::ROLES,
+        ]);
     }
 
-    /**
-     * Guardar un nuevo usuario
-     */
     public function store(Request $request)
     {
-        // Validar datos
-        $request->validate([
+        $validated = $request->validate([
             'nombre' => 'required|string|max:255',
-            'correo' => 'required|email|unique:usuarios,correo',
-            'contraseña' => 'required|string|min:6',
-            'rol' => 'required|in:admin,usuario',
+            'correo' => 'required|email|max:255|unique:usuarios,correo',
+            'contraseña' => ['required', 'string', Password::min(8)],
+            'rol' => ['required', Rule::in(array_keys(self::ROLES))],
         ]);
 
-        // Crear usuario
         Usuario::create([
-            'nombre' => $request->nombre,
-            'correo' => $request->correo,
-            'contraseña' => Hash::make($request->contraseña), // 🔐 Encripta la contraseña
-            'rol' => $request->rol,
+            'nombre' => $validated['nombre'],
+            'correo' => mb_strtolower($validated['correo']),
+            'contraseña' => Hash::make($validated['contraseña']),
+            'rol' => $validated['rol'],
+            'empresa_id' => auth()->user()->empresa_id,
         ]);
 
-        // Redirigir al login
-        return redirect()->route('login')->with('success', 'Usuario registrado correctamente. Ahora inicia sesión.');
+        return redirect()->route('usuarios.index')->with('success', 'Usuario creado correctamente.');
+    }
+
+    public function update(Request $request, Usuario $usuario)
+    {
+        $this->autorizar($usuario);
+
+        $validated = $request->validate([
+            'nombre' => 'required|string|max:255',
+            'correo' => ['required', 'email', 'max:255', Rule::unique('usuarios', 'correo')->ignore($usuario->id)],
+            'contraseña' => ['nullable', 'string', Password::min(8)],
+            'rol' => ['required', Rule::in(array_keys(self::ROLES))],
+        ]);
+
+        // Evita que el último administrador se quite a sí mismo el rol
+        if ($usuario->esAdmin() && $validated['rol'] !== 'admin' && $this->adminsDeLaEmpresa() <= 1) {
+            return back()->with('error', 'Debe existir al menos un administrador en la empresa.');
+        }
+
+        $datos = [
+            'nombre' => $validated['nombre'],
+            'correo' => mb_strtolower($validated['correo']),
+            'rol' => $validated['rol'],
+        ];
+
+        if (! empty($validated['contraseña'])) {
+            $datos['contraseña'] = Hash::make($validated['contraseña']);
+        }
+
+        $usuario->update($datos);
+
+        return redirect()->route('usuarios.index')->with('success', 'Usuario actualizado correctamente.');
+    }
+
+    public function destroy(Usuario $usuario)
+    {
+        $this->autorizar($usuario);
+
+        if ($usuario->id === auth()->id()) {
+            return back()->with('error', 'No puedes eliminar tu propio usuario.');
+        }
+
+        if ($usuario->esAdmin() && $this->adminsDeLaEmpresa() <= 1) {
+            return back()->with('error', 'Debe existir al menos un administrador en la empresa.');
+        }
+
+        $usuario->delete();
+
+        return redirect()->route('usuarios.index')->with('success', 'Usuario eliminado correctamente.');
+    }
+
+    private function autorizar(Usuario $usuario): void
+    {
+        abort_unless((int) $usuario->empresa_id === (int) auth()->user()->empresa_id, 404);
+    }
+
+    private function adminsDeLaEmpresa(): int
+    {
+        return Usuario::where('empresa_id', auth()->user()->empresa_id)->where('rol', 'admin')->count();
     }
 }

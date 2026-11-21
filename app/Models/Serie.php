@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToEmpresa;
+use Illuminate\Support\Facades\DB;
 
 class Serie extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToEmpresa;
 
     protected $fillable = [
         'empresa_id',
@@ -24,11 +26,6 @@ class Serie extends Model
     ];
 
     // Relaciones
-    public function empresa()
-    {
-        return $this->belongsTo(Empresa::class);
-    }
-
     public function comprobantes()
     {
         return $this->hasMany(Comprobante::class, 'serie', 'serie')
@@ -36,10 +33,19 @@ class Serie extends Model
     }
 
     // Obtener siguiente correlativo
-    public function obtenerSiguienteCorrelativo()
+    /**
+     * Reserva el siguiente correlativo de forma atómica (bloqueo de fila),
+     * para que dos emisiones simultáneas nunca obtengan el mismo número.
+     */
+    public function obtenerSiguienteCorrelativo(): int
     {
-        $this->increment('correlativo_actual');
-        return $this->correlativo_actual;
+        return DB::transaction(function () {
+            $serie = static::withoutGlobalScope('tenant')->lockForUpdate()->findOrFail($this->id);
+            $serie->increment('correlativo_actual');
+            $this->correlativo_actual = $serie->correlativo_actual;
+
+            return (int) $serie->correlativo_actual;
+        });
     }
 
     // Scope para series activas

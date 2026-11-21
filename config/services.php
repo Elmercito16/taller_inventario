@@ -37,4 +37,9 @@ return [
 
 
 
+    // Consulta de DNI (RENIEC) vía apis.net.pe
+    'apis_net_pe' => [
+        'token' => env('APIS_NET_PE_TOKEN'),
+    ],
+
 ];

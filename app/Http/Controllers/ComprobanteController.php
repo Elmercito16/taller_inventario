@@ -10,25 +10,15 @@ use Illuminate\Support\Facades\Log;
 
 class ComprobanteController extends Controller
 {
-    protected $facturacionService;
-
-    public function __construct(FacturacionService $facturacionService)
+    public function __construct(protected FacturacionService $facturacionService)
     {
-        $this->facturacionService = $facturacionService;
     }
 
-    /**
-     * Listar comprobantes
-     */
     public function index(Request $request)
     {
-        $empresaId = auth()->user()->empresa_id;
-
         $query = Comprobante::with(['venta', 'cliente', 'usuarioEmision'])
-            ->where('empresa_id', $empresaId)
             ->orderBy('created_at', 'desc');
 
-        // Filtros
         if ($request->filled('tipo')) {
             $query->where('tipo_comprobante', $request->tipo);
         }
@@ -47,267 +37,164 @@ class ComprobanteController extends Controller
 
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
-            $query->where(function($q) use ($buscar) {
+            $query->where(function ($q) use ($buscar) {
                 $q->where('numero_completo', 'like', "%{$buscar}%")
                   ->orWhere('cliente_nombre', 'like', "%{$buscar}%")
                   ->orWhere('cliente_num_doc', 'like', "%{$buscar}%");
             });
         }
 
-        $comprobantes = $query->paginate(20);
+        $comprobantes = $query->paginate(20)->withQueryString();
 
         return view('comprobantes.index', compact('comprobantes'));
     }
 
-    /**
-     * Ver detalle del comprobante
-     */
     public function show(Comprobante $comprobante)
     {
-        // Verificar que el comprobante pertenece a la empresa del usuario
-        if ($comprobante->empresa_id !== auth()->user()->empresa_id) {
-            abort(403, 'No autorizado');
-        }
+        $this->autorizar($comprobante);
 
         $comprobante->load(['venta.detalles.repuesto', 'cliente', 'usuarioEmision']);
 
         return view('comprobantes.show', compact('comprobante'));
     }
 
-    /**
-     * Emitir comprobante desde una venta
-     */
     public function emitir(Request $request, Venta $venta)
-{
-    // 👇 AGREGAR ESTO TEMPORALMENTE PARA DEBUG
-   
-    // Verificar que la venta pertenece a la empresa del usuario
-    if ($venta->empresa_id !== auth()->user()->empresa_id) {
-        abort(403, 'No autorizado');
-    }
+    {
+        abort_unless((int) $venta->empresa_id === (int) auth()->user()->empresa_id, 403);
 
-    try {
-        // Auto-detectar tipo de comprobante si no se envió
-        $tipoComprobante = $request->input('tipo_comprobante');
-        
-        if (!$tipoComprobante) {
-            // Si el cliente tiene RUC, emitir factura, sino boleta
-            $tipoComprobante = $venta->cliente && $venta->cliente->ruc ? '01' : '03';
-        }
-
-        // Validar que sea un tipo válido
-        if (!in_array($tipoComprobante, ['01', '03'])) {
-            return back()->with('error', 'Tipo de comprobante inválido');
-        }
-
-        // Emitir comprobante pasando el ID del usuario autenticado
-        $resultado = $this->facturacionService->emitirComprobante(
-            $venta, 
-            $tipoComprobante, 
-            auth()->id() // 👈 AGREGAR ESTO
-        );
-
-        if ($resultado['success']) {
-            return redirect()
-                ->route('comprobantes.show', $resultado['comprobante'])
-                ->with('success', '✅ ' . $resultado['mensaje']);
-        } else {
-            return back()
-                ->with('error', '❌ ' . $resultado['mensaje'])
-                ->withInput();
-        }
-
-    } catch (\Exception $e) {
-        Log::error('Error en controlador al emitir comprobante', [
-            'venta_id' => $venta->id,
-            'error' => $e->getMessage()
+        $request->validate([
+            'tipo_comprobante' => 'nullable|in:01,03',
         ]);
 
-        return back()
-            ->with('error', '❌ Error al emitir comprobante: ' . $e->getMessage())
-            ->withInput();
-    }
-}
+        $resultado = $this->facturacionService->emitirComprobante(
+            $venta,
+            $request->input('tipo_comprobante') ?: null,
+            auth()->id()
+        );
 
-
-    /**
-     * Descargar XML
-     */
-    public function descargarXml(Comprobante $comprobante)
-{
-    // Verificar que existe el XML path
-    if (!$comprobante->xml_path) {
-        return back()->with('error', 'Este comprobante no tiene XML generado');
-    }
-
-    // Construir ruta completa (sin usar Storage para evitar problemas en Windows)
-    $rutaCompleta = storage_path('app/' . $comprobante->xml_path);
-
-    // Verificar que el archivo existe físicamente
-    if (!file_exists($rutaCompleta)) {
-        return back()->with('error', 'Archivo XML no encontrado en el servidor');
-    }
-
-    // Descargar el archivo
-    return response()->download(
-        $rutaCompleta,
-        $comprobante->numero_completo . '.xml',
-        ['Content-Type' => 'application/xml']
-    );
-}
-
-
-
-
-
-    /**
-     * Descargar PDF
-     */
-   public function descargarPdf(Comprobante $comprobante)
-{
-    // Verificar permisos
-    if ($comprobante->empresa_id !== auth()->user()->empresa_id) {
-        abort(403);
-    }
-
-    // Verificar que tiene PDF generado
-    if (!$comprobante->pdf_path) {
-        return back()->with('error', 'Este comprobante no tiene PDF generado');
-    }
-
-    // Construir ruta completa
-    $rutaCompleta = storage_path('app/' . $comprobante->pdf_path);
-
-    // Verificar que el archivo existe
-    if (!file_exists($rutaCompleta)) {
-        return back()->with('error', 'Archivo PDF no encontrado en el servidor');
-    }
-
-    // Descargar el archivo
-    return response()->download(
-        $rutaCompleta,
-        $comprobante->numero_completo . '.pdf',
-        ['Content-Type' => 'application/pdf']
-    );
-}
-
-
-    /**
-     * Descargar CDR
-     */
-    public function descargarCdr(Comprobante $comprobante)
-{
-    if (!$comprobante->cdr_path) {
-        return back()->with('error', 'Este comprobante no tiene CDR (Constancia de Recepción)');
-    }
-
-    $rutaCompleta = storage_path('app/' . $comprobante->cdr_path);
-
-    if (!file_exists($rutaCompleta)) {
-        return back()->with('error', 'Archivo CDR no encontrado');
-    }
-
-    return response()->download(
-        $rutaCompleta,
-        'R-' . $comprobante->numero_completo . '.zip',
-        ['Content-Type' => 'application/zip']
-    );
-}
-
-
-    /**
-     * Consultar estado en SUNAT
-     */
-    public function consultarEstado(Comprobante $comprobante)
-    {
-        // Verificar permisos
-        if ($comprobante->empresa_id !== auth()->user()->empresa_id) {
-            abort(403);
+        if ($resultado['comprobante']) {
+            return redirect()
+                ->route('comprobantes.show', $resultado['comprobante'])
+                ->with($resultado['success'] ? 'success' : 'error', $resultado['mensaje']);
         }
+
+        return back()->with('error', $resultado['mensaje']);
+    }
+
+    public function descargarXml(Comprobante $comprobante)
+    {
+        return $this->descargar($comprobante, 'xml_path', $comprobante->numero_completo . '.xml', 'application/xml');
+    }
+
+    public function descargarCdr(Comprobante $comprobante)
+    {
+        return $this->descargar($comprobante, 'cdr_path', 'R-' . $comprobante->numero_completo . '.zip', 'application/zip');
+    }
+
+    public function descargarPdf(Comprobante $comprobante)
+    {
+        return $this->descargar($comprobante, 'pdf_path', $comprobante->numero_completo . '.pdf', 'application/pdf');
+    }
+
+    public function verPdf(Comprobante $comprobante)
+    {
+        $this->autorizar($comprobante);
+
+        $ruta = $comprobante->rutaArchivo('pdf_path');
+
+        return $ruta
+            ? response()->file($ruta, ['Content-Type' => 'application/pdf'])
+            : back()->with('error', 'PDF no disponible.');
+    }
+
+    /**
+     * Consulta/actualiza el estado:
+     * - Baja en proceso: consulta el ticket en SUNAT.
+     * - Pendiente (sin respuesta): reenvía el XML.
+     * - Otros: devuelve el estado guardado.
+     */
+    public function consultarEstado(Request $request, Comprobante $comprobante)
+    {
+        $this->autorizar($comprobante);
 
         try {
-            // Aquí implementaremos la consulta de estado
-            // Por ahora retornamos el estado actual
-            
-            return response()->json([
-                'success' => true,
-                'estado' => $comprobante->estado_sunat,
-                'mensaje' => $comprobante->mensaje_sunat,
-            ]);
+            if ($comprobante->ticket_baja && $comprobante->estado_sunat === 'baja_pendiente') {
+                $resultado = $this->facturacionService->consultarBaja($comprobante);
+            } elseif ($comprobante->estado_sunat === 'pendiente') {
+                $resultado = $this->facturacionService->reenviarPendiente($comprobante);
+            } else {
+                $resultado = ['success' => true, 'mensaje' => $comprobante->mensaje_sunat ?? 'Sin cambios.'];
+            }
 
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'mensaje' => $e->getMessage(),
-            ], 500);
+            $comprobante->refresh();
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => $resultado['success'],
+                    'estado' => $comprobante->estado_sunat,
+                    'mensaje' => $resultado['mensaje'],
+                ]);
+            }
+
+            return back()->with($resultado['success'] ? 'success' : 'error', $resultado['mensaje']);
+        } catch (\Throwable $e) {
+            Log::error('Error al consultar estado', ['comprobante_id' => $comprobante->id, 'error' => $e->getMessage()]);
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'mensaje' => $e->getMessage()], 500);
+            }
+
+            return back()->with('error', 'Error al consultar: ' . $e->getMessage());
         }
     }
 
     /**
-     * Anular comprobante
+     * Anula el comprobante enviando la Comunicación de Baja (facturas)
+     * o el Resumen Diario de anulación (boletas) a SUNAT.
      */
     public function anular(Request $request, Comprobante $comprobante)
     {
-        // Verificar permisos
-        if ($comprobante->empresa_id !== auth()->user()->empresa_id) {
-            abort(403);
-        }
+        $this->autorizar($comprobante);
 
-        // Validar
         $request->validate([
-            'motivo_anulacion' => 'required|string|min:10|max:500',
+            'motivo_anulacion' => 'required|string|min:10|max:100',
         ], [
             'motivo_anulacion.required' => 'Debes indicar el motivo de anulación',
             'motivo_anulacion.min' => 'El motivo debe tener al menos 10 caracteres',
+            'motivo_anulacion.max' => 'El motivo no puede superar los 100 caracteres',
         ]);
 
         try {
-            // Verificar que puede ser anulado
-            if (!$comprobante->puedeSerAnulado()) {
-                return back()->with('error', 'Este comprobante no puede ser anulado. Solo se pueden anular comprobantes del mismo día y sin notas asociadas.');
-            }
+            $resultado = $this->facturacionService->anularComprobante($comprobante, $request->motivo_anulacion, auth()->id());
 
-            // Marcar como anulado
-            $comprobante->update([
-                'anulado' => true,
-                'fecha_anulacion' => now(),
-                'motivo_anulacion' => $request->motivo_anulacion,
-                'usuario_anulacion_id' => auth()->id(),
-                'estado_sunat' => 'anulado',
-            ]);
-
-            Log::info('Comprobante anulado', [
+            Log::info('Anulación de comprobante enviada', [
                 'comprobante_id' => $comprobante->id,
                 'usuario_id' => auth()->id(),
-                'motivo' => $request->motivo_anulacion,
             ]);
 
-            return back()->with('success', 'Comprobante anulado correctamente. Se enviará la comunicación de baja a SUNAT.');
-
-        } catch (\Exception $e) {
-            Log::error('Error al anular comprobante', [
-                'comprobante_id' => $comprobante->id,
-                'error' => $e->getMessage()
-            ]);
+            return back()->with($resultado['success'] ? 'success' : 'error', $resultado['mensaje']);
+        } catch (\Throwable $e) {
+            Log::error('Error al anular comprobante', ['comprobante_id' => $comprobante->id, 'error' => $e->getMessage()]);
 
             return back()->with('error', 'Error al anular: ' . $e->getMessage());
         }
     }
 
-    /**
-     * Ver PDF en navegador
-     */
-    public function verPdf(Comprobante $comprobante)
+    private function autorizar(Comprobante $comprobante): void
     {
-        // Verificar permisos
-        if ($comprobante->empresa_id !== auth()->user()->empresa_id) {
-            abort(403);
+        abort_unless((int) $comprobante->empresa_id === (int) auth()->user()->empresa_id, 403);
+    }
+
+    private function descargar(Comprobante $comprobante, string $campo, string $nombre, string $mime)
+    {
+        $this->autorizar($comprobante);
+
+        $ruta = $comprobante->rutaArchivo($campo);
+
+        if (! $ruta) {
+            return back()->with('error', 'El archivo no está disponible en el servidor.');
         }
 
-        if ($comprobante->pdf_path && \Storage::exists($comprobante->pdf_path)) {
-            return response()->file(storage_path('app/' . $comprobante->pdf_path));
-        }
-
-        return back()->with('error', 'PDF no disponible');
+        return response()->download($ruta, $nombre, ['Content-Type' => $mime]);
     }
 }

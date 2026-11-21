@@ -4,12 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
-use Spatie\Multitenancy\Models\Tenant;
+use App\Models\Concerns\BelongsToEmpresa;
 
 class DetalleVenta extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToEmpresa;
 
     protected $table = 'detalle_ventas';
 
@@ -20,32 +19,16 @@ class DetalleVenta extends Model
         'cantidad',
         'precio_unitario',
         'subtotal',
+        'costo_unitario',
+        'unidad_medida',
+        'afectacion_igv',
     ];
      protected $casts = [
-        'cantidad' => 'integer',
+        'cantidad' => 'float',
         'precio_unitario' => 'decimal:2',
         'subtotal' => 'decimal:2',
+        'costo_unitario' => 'decimal:2',
     ];
-
-    protected static function booted()
-    {
-        static::addGlobalScope('tenant', function (Builder $builder) {
-            if ($tenant = Tenant::current()) {
-                $builder->where('empresa_id', $tenant->id);
-            }
-        });
-
-        static::creating(function ($model) {
-            if ($tenant = Tenant::current()) {
-                $model->empresa_id = $tenant->id;
-            }
-        });
-    }
-
-    public function empresa()
-    {
-        return $this->belongsTo(Empresa::class, 'empresa_id');
-    }
 
     public function venta()
     {
@@ -66,21 +49,33 @@ class DetalleVenta extends Model
         return $this->subtotal;
     }
 
-    // Accesor para precio sin IGV (para comprobantes SUNAT)
+    /** ¿La línea está gravada con IGV? (exonerado/inafecto no lo incluyen) */
+    public function esGravado(): bool
+    {
+        return ($this->afectacion_igv ?? '10') === '10';
+    }
+
+    // Precio unitario sin IGV (para comprobantes SUNAT)
     public function getPrecioUnitarioSinIgvAttribute()
     {
-        return round($this->precio_unitario / 1.18, 2);
+        return $this->esGravado() ? round($this->precio_unitario / 1.18, 2) : round((float) $this->precio_unitario, 2);
     }
 
-    // Accesor para subtotal sin IGV
+    // Subtotal sin IGV
     public function getSubtotalSinIgvAttribute()
     {
-        return round($this->subtotal / 1.18, 2);
+        return $this->esGravado() ? round($this->subtotal / 1.18, 2) : round((float) $this->subtotal, 2);
     }
 
-    // Calcular IGV del detalle
+    // IGV de la línea
     public function getIgvAttribute()
     {
         return round($this->subtotal - $this->subtotal_sin_igv, 2);
+    }
+
+    // Cantidad legible (sin ceros sobrantes)
+    public function getCantidadFormateadaAttribute(): string
+    {
+        return \App\Support\Catalogos::cantidad($this->cantidad);
     }
 }

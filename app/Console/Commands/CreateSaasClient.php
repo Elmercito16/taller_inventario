@@ -33,7 +33,7 @@ class CreateSaasClient extends Command
 
         // --- 1. Pedir datos de la Empresa ---
         $this->info('🏢 Datos de la Empresa');
-        $nombreEmpresa = $this->ask('Nombre de la Empresa (Ej: Taller Juan)');
+        $nombreEmpresa = $this->ask('Nombre de la Empresa (Ej: Bodega Don Juan)');
         $ruc = $this->ask('RUC (Opcional)');
         $direccion = $this->ask('Dirección (Opcional)');
         $telefono = $this->ask('Teléfono de la Empresa (Opcional)');

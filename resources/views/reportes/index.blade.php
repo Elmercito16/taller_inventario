@@ -258,18 +258,40 @@
                         </svg>
                     </div>
                     <div class="px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg">
-                        <span class="text-xs font-bold">30% Margen</span>
+                        <span class="text-xs font-bold">{{ number_format($margenPorcentaje, 1) }}% Margen</span>
                     </div>
                 </div>
-                <p class="text-xs font-semibold text-white/80 uppercase tracking-wide">Ganancia Estimada</p>
+                <p class="text-xs font-semibold text-white/80 uppercase tracking-wide">Ganancia del periodo</p>
                 <h3 class="text-5xl font-bold mt-2">S/ {{ number_format($gananciaEstimada, 2) }}</h3>
                 <p class="text-xs text-white/80 mt-3 flex items-center">
                     <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
                     </svg>
-                    Margen base aplicado del periodo
+                    @if($itemsSinCosto > 0)
+                        {{ $itemsSinCosto }} producto(s) vendidos sin precio de compra (no suman ganancia)
+                    @else
+                        Calculada con el precio de compra de cada producto
+                    @endif
                 </p>
             </div>
+        </div>
+    </div>
+
+    <!-- Métodos de pago -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+        <h3 class="text-lg font-bold text-gray-900 mb-4">Ingresos por método de pago</h3>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            @foreach($metodosPago as $metodo => $monto)
+                @php $pct = $totalIngresos > 0 ? ($monto / $totalIngresos) * 100 : 0; @endphp
+                <div class="rounded-xl border border-gray-100 bg-gray-50 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">{{ $metodo }}</p>
+                    <p class="text-xl font-bold text-gray-900 mt-1">S/ {{ number_format($monto, 2) }}</p>
+                    <div class="mt-3 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+                        <div class="h-full rounded-full bg-[#218786]" style="width: {{ number_format($pct, 1, '.', '') }}%"></div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">{{ number_format($pct, 1) }}%</p>
+                </div>
+            @endforeach
         </div>
     </div>
 

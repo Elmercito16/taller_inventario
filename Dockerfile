@@ -1,6 +1,8 @@
 FROM php:8.2-fpm-alpine
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
+# Varios procesos para atender requests en paralelo con `artisan serve`
+ENV PHP_CLI_SERVER_WORKERS=4
 
 # Instalar dependencias
 RUN apk add --no-cache \
@@ -39,7 +41,9 @@ RUN if [ -f "package.json" ]; then \
     fi
 
 # Crear directorios y permisos
-RUN mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache && \
+# IMPORTANTE: monta un volumen persistente en /var/www/html/storage/app
+# para no perder XML/CDR/PDF/certificados de SUNAT en cada redeploy.
+RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache storage/app/sunat/certificados && \
     chmod -R 777 storage bootstrap/cache
 
 EXPOSE 8000

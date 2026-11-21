@@ -197,13 +197,20 @@
     <!-- TOTALES (Alineados a la derecha) -->
     <table class="totales-table">
         @php
-            $op_gravada = $venta->total / 1.18;
-            $igv = $venta->total - $op_gravada;
+            $op_gravada = $venta->calcularBaseImponible();
+            $no_gravado = $venta->calcularNoGravado();
+            $igv = $venta->calcularIgv();
         @endphp
         <tr>
             <td class="total-label">OP. GRAVADA:</td>
             <td class="total-value">S/ {{ number_format($op_gravada, 2) }}</td>
         </tr>
+        @if($no_gravado > 0)
+        <tr>
+            <td class="total-label">OP. EXON./INAF.:</td>
+            <td class="total-value">S/ {{ number_format($no_gravado, 2) }}</td>
+        </tr>
+        @endif
         <tr>
             <td class="total-label">I.G.V. (18%):</td>
             <td class="total-value">S/ {{ number_format($igv, 2) }}</td>

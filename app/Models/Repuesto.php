@@ -2,24 +2,33 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\BelongsToEmpresa;
+use App\Support\Catalogos;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
-use Spatie\Multitenancy\Models\Tenant;
 
+/**
+ * Producto o servicio del inventario.
+ * (La tabla conserva el nombre "repuestos" por compatibilidad con los datos existentes.)
+ */
 class Repuesto extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToEmpresa;
 
     protected $fillable = [
-        'empresa_id', // 👈 IMPORTANTE: debe estar aquí
+        'empresa_id',
         'codigo',
         'nombre',
         'marca',
         'descripcion',
         'cantidad',
         'minimo_stock',
-        'precio_unitario',
+        'precio_unitario', // Precio de venta (IGV incluido)
+        'precio_compra',   // Costo de adquisición
+        'tipo',            // producto | servicio
+        'unidad_medida',   // Catálogo 03 SUNAT (NIU, KGM, LTR...)
+        'codigo_barras',
+        'afectacion_igv',  // 10 gravado | 20 exonerado | 30 inafecto
         'proveedor_id',
         'categoria_id',
         'fecha_ingreso',
@@ -28,107 +37,191 @@ class Repuesto extends Model
 
     protected $attributes = [
         'minimo_stock' => 0,
+        'tipo' => 'producto',
+        'unidad_medida' => 'NIU',
+        'afectacion_igv' => '10',
     ];
 
-    /**
-     * Boot del modelo - aplica scope automático
-     */
-    protected static function booted()
-{
-    static::addGlobalScope('tenant', function (Builder $builder) {
-        if ($tenant = Tenant::current()) {
-            $builder->where('empresa_id', $tenant->id);
-        }
-    });
+    protected $casts = [
+        'cantidad'        => 'float',
+        'minimo_stock'    => 'float',
+        'precio_unitario' => 'decimal:2',
+        'precio_compra'   => 'decimal:2',
+        'fecha_ingreso'   => 'date',
+    ];
 
-    static::creating(function ($model) {
-        if ($tenant = Tenant::current()) {
-            $model->empresa_id = $tenant->id;
-        }
-
-        // Genera código secuencial si no se proporciona
-        if (empty($model->codigo)) {
-            $lastRepuesto = static::withoutGlobalScope('tenant')
-                ->where('empresa_id', $model->empresa_id)
-                ->orderBy('id', 'desc')
-                ->first();
-            
-            $nextNumber = $lastRepuesto ? (int)substr($lastRepuesto->codigo, 4) + 1 : 1;
-            $model->codigo = 'REP-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
-        }
-    });
-}
-
-    /**
-     * Relación: Un repuesto pertenece a UNA empresa (Tenant).
-     */
-    public function empresa()
+    protected static function booted(): void
     {
-        return $this->belongsTo(Empresa::class, 'empresa_id');
+        static::creating(function (Repuesto $model) {
+            if (empty($model->codigo)) {
+                $model->codigo = static::siguienteCodigo($model->empresa_id);
+            }
+        });
+
+        // Los servicios no manejan inventario
+        static::saving(function (Repuesto $model) {
+            if ($model->esServicio()) {
+                $model->cantidad = 0;
+                $model->minimo_stock = 0;
+            }
+        });
     }
 
     /**
-     * Relación con categoría
+     * Genera el siguiente código REP#### de la empresa.
+     * Se calcula en PHP para que funcione igual en MySQL y PostgreSQL,
+     * y acepta códigos antiguos con o sin guion (REP0007 / REP-0007).
      */
+    public static function siguienteCodigo(?int $empresaId = null): string
+    {
+        $empresaId ??= static::empresaIdActual();
+
+        $max = static::withoutGlobalScope('tenant')
+            ->when($empresaId, fn ($q) => $q->where('empresa_id', $empresaId))
+            ->where('codigo', 'like', 'REP%')
+            ->pluck('codigo')
+            ->map(fn ($codigo) => preg_match('/(\d+)\s*$/', $codigo, $m) ? (int) $m[1] : 0)
+            ->max() ?? 0;
+
+        return 'REP' . str_pad($max + 1, 4, '0', STR_PAD_LEFT);
+    }
+
+    // ==========================================
+    // RELACIONES
+    // ==========================================
+
     public function categoria()
     {
         return $this->belongsTo(Categoria::class, 'categoria_id');
     }
 
-    /**
-     * Relación con proveedor
-     */
     public function proveedor()
     {
         return $this->belongsTo(Proveedor::class, 'proveedor_id');
     }
-
-    // ==========================================
-    // 👇 MÉTODOS NUEVOS PARA GREENTER
-    // ==========================================
 
     public function detallesVenta()
     {
         return $this->hasMany(DetalleVenta::class);
     }
 
-    // Scopes adicionales
+    public function detallesCompra()
+    {
+        return $this->hasMany(DetalleCompra::class);
+    }
+
+    /** Kardex del producto. */
+    public function movimientos()
+    {
+        return $this->hasMany(MovimientoInventario::class);
+    }
+
+    // ==========================================
+    // SCOPES
+    // ==========================================
+
+    /** Solo ítems que controlan stock (excluye servicios). */
+    public function scopeProductos($query)
+    {
+        return $query->where(fn ($q) => $q->where('tipo', 'producto')->orWhereNull('tipo'));
+    }
+
+    public function scopeServicios($query)
+    {
+        return $query->where('tipo', 'servicio');
+    }
+
     public function scopeConStockBajo($query)
     {
-        return $query->whereColumn('cantidad', '<=', 'minimo_stock');
+        return $query->productos()->whereColumn('cantidad', '<=', 'minimo_stock');
     }
 
+    /** Vendibles: productos con stock o servicios. */
     public function scopeDisponibles($query)
     {
-        return $query->where('cantidad', '>', 0);
+        return $query->where(fn ($q) => $q->where('cantidad', '>', 0)->orWhere('tipo', 'servicio'));
     }
 
-    // Métodos auxiliares
-    public function tieneStockBajo()
+    // ==========================================
+    // AUXILIARES
+    // ==========================================
+
+    public function esServicio(): bool
     {
-        return $this->cantidad <= $this->minimo_stock;
+        return $this->tipo === 'servicio';
     }
 
-    public function tieneStock($cantidadRequerida = 1)
+    public function controlaStock(): bool
     {
-        return $this->cantidad >= $cantidadRequerida;
+        return ! $this->esServicio();
     }
 
-    // Para stock (alias)
+    public function permiteDecimales(): bool
+    {
+        return Catalogos::unidadPermiteDecimales($this->unidad_medida);
+    }
+
+    public function tieneStockBajo(): bool
+    {
+        return $this->controlaStock() && $this->cantidad <= $this->minimo_stock;
+    }
+
+    public function tieneStock(float $cantidadRequerida = 1): bool
+    {
+        return $this->esServicio() || $this->cantidad >= $cantidadRequerida;
+    }
+
+    public function getUnidadNombreAttribute(): string
+    {
+        return Catalogos::nombreUnidad($this->unidad_medida);
+    }
+
+    public function getUnidadAbreviaturaAttribute(): string
+    {
+        return Catalogos::abreviaturaUnidad($this->unidad_medida);
+    }
+
+    /** Stock legible: "12 und", "2.5 kg" o "Servicio". */
+    public function getStockFormateadoAttribute(): string
+    {
+        return $this->esServicio()
+            ? 'Servicio'
+            : Catalogos::cantidad($this->cantidad) . ' ' . $this->unidad_abreviatura;
+    }
+
     public function getStockAttribute()
     {
         return $this->cantidad;
     }
 
-    // Precio con IGV (para mostrar)
-    public function getPrecioVentaConIgvAttribute()
+    /**
+     * El precio de venta YA incluye IGV (es el precio que paga el cliente).
+     */
+    public function getPrecioVentaConIgvAttribute(): float
     {
-        return round($this->precio_unitario * 1.18, 2);
+        return round((float) $this->precio_unitario, 2);
     }
 
-    // Precio sin IGV (para SUNAT)
-    public function getPrecioVentaSinIgvAttribute()
+    /**
+     * Valor unitario sin IGV (el que se informa a SUNAT).
+     * Solo los ítems gravados incluyen IGV en su precio.
+     */
+    public function getPrecioVentaSinIgvAttribute(): float
     {
-        return $this->precio_unitario;
+        return $this->afectacion_igv === '10'
+            ? round((float) $this->precio_unitario / 1.18, 2)
+            : round((float) $this->precio_unitario, 2);
+    }
+
+    /**
+     * Margen unitario (precio de venta - costo). Null si no hay costo registrado.
+     */
+    public function getMargenUnitarioAttribute(): ?float
+    {
+        if ($this->precio_compra === null) {
+            return null;
+        }
+
+        return round((float) $this->precio_unitario - (float) $this->precio_compra, 2);
     }
 }

@@ -2,399 +2,333 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Venta;
+use App\Models\Categoria;
+use App\Models\Cliente;
 use App\Models\DetalleVenta;
 use App\Models\Repuesto;
-use App\Models\Cliente;
+use App\Models\Venta;
+use App\Services\InventarioService;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
-use App\Models\Categoria;  // 👈 AGREGAR ESTA LÍNEA
-use Barryvdh\DomPDF\Facade\Pdf;
-use Illuminate\Validation\Rule; // 1. ¡IMPORTAR LA CLASE RULE!
+use Illuminate\Validation\Rule;
 
 class VentaController extends Controller
 {
-    /**
-     * ¡MAGIA! Esta función ya es multi-tenant.
-     * Venta::with() es filtrado automáticamente por el Trait.
-     */
-     public function index()
+    public function index()
     {
-        $ventas = Venta::with('cliente', 'detalles')
-        ->orderBy('fecha', 'desc')
-        ->paginate(5); // 👈 10 ventas por página
-    
+        $ventas = Venta::with(['cliente', 'detalles', 'comprobante'])
+            ->orderBy('fecha', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate(10);
+
         return view('ventas.index', compact('ventas'));
     }
 
-    /**
-     * ¡MAGIA! Esta función ya es multi-tenant.
-     * Repuesto::...get() y Cliente::all() son filtrados automáticamente.
-     */
-   public function create()
+    public function create()
     {
+        // Productos con stock + servicios (que no manejan stock)
         $repuestos = Repuesto::with('categoria')
-            ->where('cantidad', '>', 0)
+            ->disponibles()
             ->orderBy('nombre')
             ->get();
-        
+
         $categorias = Categoria::orderBy('nombre')->get();
-        
+
         return view('ventas.create', compact('repuestos', 'categorias'));
     }
 
     public function store(Request $request)
     {
-        // 2. ¡VALIDACIÓN DE SEGURIDAD MULTI-TENANT AÑADIDA!
-        // Esto se ejecuta ANTES de que comience la transacción.
+        $empresaId = auth()->user()->empresa_id;
+
+        $request->validate([
+            'cliente_id' => [
+                'nullable',
+                Rule::exists('clientes', 'id')->where(fn ($q) => $q->where('empresa_id', $empresaId)),
+            ],
+            'metodo_pago' => ['nullable', Rule::in(array_keys(Venta::METODOS_PAGO))],
+            'repuestos' => 'required|array|min:1',
+            'repuestos.*.id' => [
+                'required',
+                Rule::exists('repuestos', 'id')->where(fn ($q) => $q->where('empresa_id', $empresaId)),
+            ],
+            'repuestos.*.cantidad' => 'required|numeric|gt:0',
+            'repuestos.*.precio' => 'required|numeric|min:0',
+        ], [
+            'repuestos.required' => 'Agrega al menos un producto a la venta.',
+        ]);
+
+        // Agrupar líneas repetidas del mismo repuesto
+        $items = collect($request->repuestos)
+            ->groupBy('id')
+            ->map(fn ($lineas, $id) => [
+                'id' => (int) $id,
+                'cantidad' => round((float) $lineas->sum('cantidad'), 3),
+                'precio' => round((float) $lineas->first()['precio'], 2),
+            ])
+            ->values();
+
         try {
-            $validated = $request->validate([
-                'total' => 'required|numeric|min:0',
+            $venta = DB::transaction(function () use ($request, $items) {
+                // El total SIEMPRE se calcula en el servidor
+                $total = $items->sum(fn ($i) => round($i['cantidad'] * $i['precio'], 2));
 
-                // Valida que el cliente_id exista Y pertenezca a la empresa del usuario
-                'cliente_id' => [
-                    'nullable', // 'nullable' ya que tu código lo permite
-                    Rule::exists('clientes', 'id')->where(function ($query) {
-                        return $query->where('empresa_id', auth()->user()->empresa_id);
-                    })
-                ],
-
-                // Valida que el array de repuestos exista
-                'repuestos' => 'required|array|min:1',
-
-                // Valida CADA item dentro del array de repuestos
-                'repuestos.*.id' => [
-                    'required',
-                    // Valida que el repuesto_id exista Y pertenezca a la empresa del usuario
-                    Rule::exists('repuestos', 'id')->where(function ($query) {
-                        return $query->where('empresa_id', auth()->user()->empresa_id);
-                    })
-                ],
-                'repuestos.*.cantidad' => 'required|integer|min:1',
-                'repuestos.*.precio' => 'required|numeric|min:0',
-            ]);
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            // Si la validación falla, regresa con el error.
-            return redirect()->back()
-                ->withErrors($e->errors())
-                ->withInput();
-        }
-
-        // --- TU LÓGICA DE TRANSACCIÓN (SIN CAMBIOS) ---
-        try {
-            DB::transaction(function () use ($request) {
-                // Crear la venta
-                // ¡MAGIA! 'Venta::create' añadirá 'empresa_id' automáticamente.
                 $venta = Venta::create([
-                    'cliente_id' => $request->cliente_id ?? null,
-                    'fecha'      => now(),
-                    'total'      => $request->total,
-                    'estado'     => 'pagado'
+                    'cliente_id'  => $request->cliente_id ?: null,
+                    'usuario_id'  => auth()->id(),
+                    'fecha'       => now(),
+                    'total'       => $total,
+                    'estado'      => 'pagado',
+                    'metodo_pago' => $request->metodo_pago ?: 'efectivo',
                 ]);
 
-                // Verificar que lleguen repuestos
-                if (!$request->has('repuestos') || empty($request->repuestos)) {
-                    throw new \Exception("No se seleccionó ningún repuesto para la venta.");
-                }
+                foreach ($items as $item) {
+                    // Bloqueo de fila: evita vender el mismo stock dos veces
+                    $repuesto = Repuesto::whereKey($item['id'])->lockForUpdate()->firstOrFail();
 
-                foreach ($request->repuestos as $rep) {
-                    // Ahora esta línea es segura, porque el ID ya fue validado.
-                    $repuesto = Repuesto::findOrFail($rep['id']);
-
-                    // Validar stock
-                    if ($rep['cantidad'] > $repuesto->cantidad) {
-                        throw new \Exception("No hay suficiente stock de {$repuesto->nombre}");
+                    if (! $repuesto->permiteDecimales() && floor($item['cantidad']) != $item['cantidad']) {
+                        throw new \RuntimeException("{$repuesto->nombre} se vende por {$repuesto->unidad_nombre}: la cantidad debe ser entera.");
                     }
 
-                    // Crear detalle de venta
-                    // ¡MAGIA! 'DetalleVenta::create' añadirá 'empresa_id' automáticamente.
+                    if ($repuesto->controlaStock() && $item['cantidad'] > $repuesto->cantidad) {
+                        throw new \RuntimeException("No hay suficiente stock de {$repuesto->nombre} (disponible: {$repuesto->stock_formateado}).");
+                    }
+
                     DetalleVenta::create([
                         'venta_id'        => $venta->id,
                         'repuesto_id'     => $repuesto->id,
-                        'cantidad'        => $rep['cantidad'],
-                        'precio_unitario' => $rep['precio'],
-                        'subtotal'        => $rep['cantidad'] * $rep['precio'],
+                        'cantidad'        => $item['cantidad'],
+                        'precio_unitario' => $item['precio'],
+                        'subtotal'        => round($item['cantidad'] * $item['precio'], 2),
+                        'costo_unitario'  => $repuesto->precio_compra,
+                        'unidad_medida'   => $repuesto->unidad_medida ?: 'NIU',
+                        'afectacion_igv'  => $repuesto->afectacion_igv ?: '10',
                     ]);
 
-                    // Descontar stock
-                    $repuesto->decrement('cantidad', $rep['cantidad']);
+                    // Descuenta stock y registra la salida en el kardex
+                    app(InventarioService::class)->salida($repuesto, $item['cantidad'], 'venta', [
+                        'referencia' => $venta,
+                        'costo' => $repuesto->precio_compra,
+                        'descripcion' => 'Venta #' . str_pad($venta->id, 6, '0', STR_PAD_LEFT),
+                    ]);
                 }
+
+                return $venta;
             });
 
-            return redirect()->route('ventas.index')
-                ->with('success', '✅ Venta confirmada correctamente');
+            return redirect()->route('ventas.show', $venta)
+                ->with('success', 'Venta #' . str_pad($venta->id, 6, '0', STR_PAD_LEFT) . ' registrada correctamente.');
+        } catch (\RuntimeException $e) {
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
+        } catch (\Throwable $e) {
+            report($e);
 
-        } catch (\Exception $e) {
-            return redirect()->route('ventas.index')
-                ->with('error', '❌ Error al registrar la venta: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'No se pudo registrar la venta. Intenta nuevamente.');
         }
     }
 
-    public function success()
+    public function show(Venta $venta)
     {
-        return view('ventas.success');
+        // El binding ya filtra por empresa; doble verificación por seguridad.
+        abort_unless((int) $venta->empresa_id === (int) auth()->user()->empresa_id, 403);
+
+        $venta->load(['cliente', 'detalles.repuesto', 'comprobante', 'usuario']);
+
+        return view('ventas.show', compact('venta'));
     }
-
-    // ¡MAGIA! Esta función ya es multi-tenant.
-    public function buscarRepuesto(Request $request)
-    {
-        $query = $request->input('query');
-        
-        // Repuesto::where() es filtrado automáticamente por 'empresa_id'
-        $repuestos = Repuesto::where('nombre', 'like', "%$query%")
-            ->orWhereHas('categoria', function($q) use ($query) {
-                $q->where('nombre', 'like', "%$query%");
-            })
-            ->take(10)
-            ->get();
-
-        return response()->json($repuestos);
-    }
-
-    // ¡MAGIA! Esta función ya es multi-tenant.
-    // Venta::...findOrFail() solo encontrará ventas de esta empresa.
-    public function anular($id)
-{
-    try {
-        DB::transaction(function () use ($id) {
-            // Cargar la venta con sus detalles
-            $venta = Venta::with(['detalles.repuesto'])->findOrFail($id);
-
-            // Verificar estado
-            if ($venta->estado === 'anulado') {
-                throw new \Exception("La venta ya está anulada.");
-            }
-
-            // Verificar que tenga detalles
-            if ($venta->detalles->isEmpty()) {
-                throw new \Exception("La venta no tiene productos para devolver al stock.");
-            }
-
-            // Devolver stock de cada repuesto
-            foreach ($venta->detalles as $detalle) {
-                $repuesto = Repuesto::findOrFail($detalle->repuesto_id);
-                $repuesto->increment('cantidad', $detalle->cantidad);
-            }
-
-            // Cambiar estado de la venta
-            $venta->update(['estado' => 'anulado']);
-        });
-
-        // 👇 RETORNAR JSON EN LUGAR DE REDIRECT
-        return response()->json([
-            'success' => true,
-            'message' => 'Venta anulada y stock devuelto correctamente.'
-        ]);
-        
-    } catch (\Exception $e) {
-        // 👇 RETORNAR JSON DE ERROR
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage()
-        ], 500);
-    }
-}
-
 
     /**
-     * Mostrar detalles de una venta
+     * Anular venta (AJAX): devuelve el stock.
      */
-   public function show(Venta $venta)
-{
-    // Verificar que la venta pertenece a la empresa del usuario
-    if ($venta->empresa_id !== auth()->user()->empresa_id) {
-        abort(403, 'No autorizado');
+    public function anular($id)
+    {
+        try {
+            $venta = Venta::findOrFail($id);
+            $this->aplicarCambioEstado($venta, 'anulado');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Venta anulada y stock devuelto correctamente.',
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return response()->json(['success' => false, 'message' => 'No se pudo anular la venta.'], 500);
+        }
     }
 
-    // Cargar relaciones necesarias
-    $venta->load([
-        'cliente', 
-        'detalles.repuesto',
-        'comprobante' // 👈 Añadir esta relación
-    ]);
-    
-    return view('ventas.show', compact('venta'));
-}
-
-    // ¡MAGIA! Esta función ya es multi-tenant.
-    public function historialCliente(Request $request, $id)
+    /**
+     * Cambiar estado (AJAX). Mantiene el stock consistente en ambas direcciones.
+     */
+    public function cambiarEstado(Request $request, $id)
     {
-        // Cliente::findOrFail() solo encontrará clientes de esta empresa.
-        $cliente = Cliente::findOrFail($id);
+        $request->validate([
+            'estado' => 'required|in:pendiente,pagado,anulado',
+        ]);
 
-        // Venta::where() es filtrado automáticamente por 'empresa_id'
-        $ventas = Venta::with('detalles.repuesto')->where('cliente_id', $id);
+        try {
+            $venta = Venta::findOrFail($id);
+            $this->aplicarCambioEstado($venta, $request->estado);
 
-        // ... (El resto de tu lógica de filtros de fecha)
-        if ($request->has('filter') && $request->filter != 'all') {
-            $filter = $request->filter;
+            return response()->json([
+                'success' => true,
+                'message' => 'Estado actualizado correctamente',
+            ]);
+        } catch (\RuntimeException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            report($e);
 
-            switch ($filter) {
-                case 'today':
-                    $ventas->whereDate('fecha', Carbon::today());
-                    break;
-                case 'yesterday':
-                    $ventas->whereDate('fecha', Carbon::yesterday());
-                    break;
-                case 'last_7_days':
-                    $ventas->whereBetween('fecha', [Carbon::now()->subDays(7), Carbon::now()]);
-                    break;
-                case 'last_30_days':
-                    $ventas->whereBetween('fecha', [Carbon::now()->subDays(30), Carbon::now()]);
-                    break;
-                case 'this_week':
-                    $ventas->whereBetween('fecha', [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()]);
-                    break;
-                case 'last_week':
-                    $ventas->whereBetween('fecha', [Carbon::now()->subWeek()->startOfWeek(), Carbon::now()->subWeek()->endOfWeek()]);
-                    break;
-                case 'this_month':
-                    $ventas->whereMonth('fecha', Carbon::now()->month);
-                    break;
-                case 'last_month':
-                    $ventas->whereMonth('fecha', Carbon::now()->subMonth()->month);
-                    break;
-                case 'this_year':
-                    $ventas->whereYear('fecha', Carbon::now()->year);
-                    break;
-                case 'last_year':
-                    $ventas->whereYear('fecha', Carbon::now()->subYear()->year);
-                    break;
-                case 'custom':
-                    // Filtro personalizado por fechas
-                    $startDate = $request->start_date;
-                    $endDate = $request->end_date;
-                    if ($startDate && $endDate) {
-                        $ventas->whereBetween('fecha', [$startDate, $endDate]);
-                    }
-                    break;
-            }
+            return response()->json(['success' => false, 'message' => 'No se pudo actualizar el estado.'], 500);
+        }
+    }
+
+    /**
+     * Lógica central de cambio de estado:
+     * - activo -> anulado: devuelve stock.
+     * - anulado -> activo: vuelve a descontar stock (si hay disponible).
+     * - No permite anular si tiene comprobante electrónico vigente (requiere nota de crédito / baja).
+     */
+    private function aplicarCambioEstado(Venta $venta, string $nuevoEstado): void
+    {
+        if ($venta->estado === $nuevoEstado) {
+            throw new \RuntimeException($nuevoEstado === 'anulado' ? 'La venta ya está anulada.' : 'La venta ya tiene ese estado.');
         }
 
-        // Obtener las ventas filtradas
-        $ventas = $ventas->orderBy('fecha', 'desc')->paginate(10); // 👈 10 ventas por página
-    // 👆 HASTA AQUÍ
+        if ($nuevoEstado === 'anulado' && $venta->comprobanteAceptadoPorSunat()) {
+            throw new \RuntimeException('Esta venta tiene un comprobante electrónico vigente. Primero anúlalo desde el módulo de Comprobantes.');
+        }
+
+        DB::transaction(function () use ($venta, $nuevoEstado) {
+            $venta->load('detalles');
+
+            $inventario = app(InventarioService::class);
+            $numero = 'Venta #' . str_pad($venta->id, 6, '0', STR_PAD_LEFT);
+
+            if ($nuevoEstado === 'anulado') {
+                foreach ($venta->detalles as $detalle) {
+                    if ($repuesto = Repuesto::find($detalle->repuesto_id)) {
+                        $inventario->entrada($repuesto, $detalle->cantidad, 'anulacion_venta', [
+                            'referencia' => $venta,
+                            'costo' => $detalle->costo_unitario,
+                            'descripcion' => "Anulación de {$numero}",
+                        ]);
+                    }
+                }
+            } elseif ($venta->estado === 'anulado') {
+                foreach ($venta->detalles as $detalle) {
+                    $repuesto = Repuesto::find($detalle->repuesto_id);
+
+                    if (! $repuesto) {
+                        throw new \RuntimeException('Un producto de la venta fue eliminado; no se puede reactivar.');
+                    }
+
+                    // Lanza excepción si no hay stock suficiente
+                    $inventario->salida($repuesto, $detalle->cantidad, 'reactivacion_venta', [
+                        'referencia' => $venta,
+                        'costo' => $detalle->costo_unitario,
+                        'descripcion' => "Reactivación de {$numero}",
+                    ]);
+                }
+            }
+
+            $venta->update(['estado' => $nuevoEstado]);
+        });
+    }
+
+    public function historialCliente(Request $request, $id)
+    {
+        $cliente = Cliente::findOrFail($id);
+
+        $ventas = Venta::with('detalles.repuesto')->where('cliente_id', $cliente->id);
+
+        $hoy = Carbon::now();
+        $rango = match ($request->get('filter', 'all')) {
+            'today'        => [$hoy->copy()->startOfDay(), $hoy->copy()->endOfDay()],
+            'yesterday'    => [$hoy->copy()->subDay()->startOfDay(), $hoy->copy()->subDay()->endOfDay()],
+            'last_7_days'  => [$hoy->copy()->subDays(7)->startOfDay(), $hoy->copy()->endOfDay()],
+            'last_30_days' => [$hoy->copy()->subDays(30)->startOfDay(), $hoy->copy()->endOfDay()],
+            'this_week'    => [$hoy->copy()->startOfWeek(), $hoy->copy()->endOfWeek()],
+            'last_week'    => [$hoy->copy()->subWeek()->startOfWeek(), $hoy->copy()->subWeek()->endOfWeek()],
+            'this_month'   => [$hoy->copy()->startOfMonth(), $hoy->copy()->endOfMonth()],
+            'last_month'   => [$hoy->copy()->subMonthNoOverflow()->startOfMonth(), $hoy->copy()->subMonthNoOverflow()->endOfMonth()],
+            'this_year'    => [$hoy->copy()->startOfYear(), $hoy->copy()->endOfYear()],
+            'last_year'    => [$hoy->copy()->subYear()->startOfYear(), $hoy->copy()->subYear()->endOfYear()],
+            'custom'       => $request->filled(['start_date', 'end_date'])
+                ? [Carbon::parse($request->start_date)->startOfDay(), Carbon::parse($request->end_date)->endOfDay()]
+                : null,
+            default        => null,
+        };
+
+        if ($rango) {
+            $ventas->whereBetween('fecha', $rango);
+        }
+
+        $ventas = $ventas->orderBy('fecha', 'desc')->paginate(10)->appends($request->query());
 
         return view('ventas.historial', compact('cliente', 'ventas'));
-    } 
-    
-    // ¡MAGIA! Esta función ya es multi-tenant.
+    }
+
+    /**
+     * Detalle de venta en JSON (modal).
+     */
     public function detalles($id)
     {
         $venta = Venta::with(['cliente', 'detalles.repuesto'])->findOrFail($id);
 
         return response()->json([
             'id' => $venta->id,
-            'fecha' => \Carbon\Carbon::parse($venta->fecha)->format('d/m/Y H:i'),
+            'fecha' => $venta->fecha?->format('d/m/Y H:i'),
             'total' => number_format($venta->total, 2),
             'estado' => ucfirst($venta->estado),
+            'metodo_pago' => $venta->metodo_pago_nombre,
             'cliente' => [
                 'nombre' => $venta->cliente->nombre ?? 'Cliente General',
                 'dni' => $venta->cliente->dni ?? 'No especificado',
                 'telefono' => $venta->cliente->telefono ?? 'No especificado',
             ],
-            'detalles' => $venta->detalles->map(function($detalle) {
-                return [
-                    'repuesto' => [
-                        'nombre' => $detalle->repuesto->nombre,
-                        'codigo' => $detalle->repuesto->codigo ?? 'N/A',
-                    ],
-                    'cantidad' => $detalle->cantidad,
-                    'precio_unitario' => number_format($detalle->precio_unitario, 2),
-                    'subtotal' => number_format($detalle->subtotal, 2),
-                ];
-            })
+            'detalles' => $venta->detalles->map(fn ($detalle) => [
+                'repuesto' => [
+                    'nombre' => $detalle->repuesto->nombre ?? 'Producto eliminado',
+                    'codigo' => $detalle->repuesto->codigo ?? 'N/A',
+                ],
+                'cantidad' => $detalle->cantidad,
+                'precio_unitario' => number_format($detalle->precio_unitario, 2),
+                'subtotal' => number_format($detalle->subtotal, 2),
+            ]),
         ]);
     }
 
     /**
-     * Cambiar estado de la venta
-     * ¡MAGIA! Esta función ya es multi-tenant.
-     */
-    public function cambiarEstado(Request $request, $id)
-    {
-        try {
-            $request->validate([
-                'estado' => 'required|in:pendiente,pagado,anulado'
-            ]);
-            
-            // Venta::findOrFail() solo encontrará la venta si pertenece a esta empresa
-            $venta = Venta::findOrFail($id);
-            
-            // Si se anula, restaurar stock
-            if ($request->estado === 'anulado' && $venta->estado !== 'anulado') {
-                foreach ($venta->detalles as $detalle) {
-                    $repuesto = $detalle->repuesto; // $detalle ya pertenece a la empresa
-                    $repuesto->cantidad += $detalle->cantidad;
-                    $repuesto->save();
-                }
-            }
-            
-            $venta->estado = $request->estado;
-            $venta->save();
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Estado actualizado correctamente'
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Generar boleta térmica en PDF
-     * ¡MAGIA! Esta función ya es multi-tenant.
+     * Boleta térmica (80mm) en PDF.
      */
     public function generarBoleta($id)
     {
         try {
-            // Cargar la venta con sus relaciones
-            // Venta::findOrFail() solo encontrará la venta si pertenece a esta empresa
-            $venta = Venta::with(['cliente', 'detalles.repuesto'])
-                ->findOrFail($id);
-            
-            // Configurar PDF para impresora térmica (80mm)
-            $pdf = Pdf::loadView('ventas.boleta', [
-                'venta' => $venta,
-            ]);
-            
-            // Configuración del papel (80mm de ancho, altura automática)
-            $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait'); // 80mm x 297mm en puntos
-            
-            // Nombre del archivo
-            $filename = 'Boleta_' . str_pad($venta->id, 8, '0', STR_PAD_LEFT) . '.pdf';
-            
-            // Retornar PDF para mostrar en navegador
-            return $pdf->stream($filename);
-            
-        } catch (\Exception $e) {
-            return redirect()->route('ventas.index')
-                ->with('error', 'Error al generar la boleta: ' . $e->getMessage());
+            $venta = Venta::with(['cliente', 'detalles.repuesto', 'empresa'])->findOrFail($id);
+
+            $pdf = Pdf::loadView('ventas.boleta', ['venta' => $venta]);
+            $pdf->setPaper([0, 0, 226.77, 841.89], 'portrait');
+
+            return $pdf->stream('Boleta_' . str_pad($venta->id, 8, '0', STR_PAD_LEFT) . '.pdf');
+        } catch (\Throwable $e) {
+            report($e);
+
+            return redirect()->route('ventas.index')->with('error', 'Error al generar la boleta.');
         }
     }
-    
+
     /**
-     * Generar ticket simplificado (aún más compacto)
-     * ¡MAGIA! Esta función ya es multi-tenant.
+     * Ticket simple imprimible desde el navegador.
      */
     public function generarTicket($id)
     {
-        try {
-            // Venta::findOrFail() solo encontrará la venta si pertenece a esta empresa
-            $venta = Venta::with(['cliente', 'detalles.repuesto'])
-                ->findOrFail($id);
-            
-            // Vista simple para tickets
-            return view('ventas.ticket', compact('venta'));
-            
-        } catch (\Exception $e) {
-            return redirect()->route('ventas.index')
-                ->with('error', 'Error al generar el ticket: ' . $e->getMessage());
-        }
+        $venta = Venta::with(['cliente', 'detalles.repuesto', 'empresa', 'usuario'])->findOrFail($id);
+
+        return view('ventas.ticket', compact('venta'));
     }
 }

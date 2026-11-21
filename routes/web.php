@@ -1,231 +1,155 @@
 <?php
 
-use App\Http\Controllers\UsuarioController;
-use App\Http\Controllers\ProveedorController;
-use App\Http\Controllers\RepuestoController;
 use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ClienteController;
-use App\Http\Controllers\VentaController;
-use App\Http\Controllers\LoginController;
-use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\DB; // Necesario para la ruta /test
-use App\Http\Controllers\FinanzasController; //
-use App\Http\Controllers\ReporteController;
-use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\CompraController;
 use App\Http\Controllers\ComprobanteController;
+use App\Http\Controllers\KardexController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EmpresaController;
+use App\Http\Controllers\FinanzasController;
+use App\Http\Controllers\LoginController;
+use App\Http\Controllers\ProveedorController;
+use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\RepuestoController;
+use App\Http\Controllers\UsuarioController;
+use App\Http\Controllers\VentaController;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 
 // ==============================
-// RUTAS PÚBLICAS (sin autenticación)
+// RUTAS PÚBLICAS
 // ==============================
 
-// Página inicial -> login
-Route::get('/', function () {
-    return redirect()->route('login.form');
-});
+Route::get('/', fn () => redirect()->route('login.form'));
 
-// Registro
-Route::get('/register', [UsuarioController::class, 'create'])->name('register');
-Route::post('/register', [UsuarioController::class, 'store'])->name('register.store');
-
-// Login
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login.form');
-Route::post('/login', [LoginController::class, 'login'])->name('login');
+Route::post('/login', [LoginController::class, 'login'])->name('login')->middleware('throttle:10,1');
 
-// ==============================
-// RUTAS DE DEBUGGING (temporales)
-// ==============================
+// Healthcheck para el balanceador (no expone información)
 Route::get('/healthz', fn () => response()->json(['ok' => true]));
 
-Route::get('/test', function () {
-    try {
-        return response()->json([
-            'status' => 'OK',
-            'database' => DB::connection()->getPdo() ? 'Connected' : 'Failed',
-            'cache' => config('cache.default'),
-            'session' => config('session.driver'),
-        ]);
-    } catch (Exception $e) {
-        return response()->json([
-            'status' => 'ERROR',
-            'message' => $e->getMessage()
-        ], 500);
-    }
-});
+// Diagnóstico SOLO en entorno local
+if (app()->environment('local')) {
+    Route::get('/test', function () {
+        try {
+            DB::connection()->getPdo();
 
-Route::get('/debug-log', function () {
-    $logPath = storage_path('logs/laravel.log');
-    if (file_exists($logPath)) {
-        return nl2br(file_get_contents($logPath));
-    }
-    return 'No log file found';
-});
+            return response()->json(['status' => 'OK', 'database' => 'Connected']);
+        } catch (\Throwable $e) {
+            return response()->json(['status' => 'ERROR', 'message' => $e->getMessage()], 500);
+        }
+    });
+}
 
 // ==============================
-// RUTAS PROTEGIDAS (requieren autenticación)
+// RUTAS PROTEGIDAS
 // ==============================
-// Todo lo que esté aquí dentro forzará el login y activará el Multi-Tenant
 Route::middleware(['auth'])->group(function () {
 
-    // Logout
     Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-    // ==============================
-    // RESOURCES (CRUD)
-    // ==============================
+    // Panel principal
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // Usuarios
-    Route::resource('usuarios', UsuarioController::class);
+    // ------------------------------
+    // Productos y servicios (URL /productos; los nombres internos "repuestos.*"
+    // se mantienen por compatibilidad). Rutas personalizadas ANTES del resource.
+    // ------------------------------
+    Route::get('/productos/{id}/cantidad', [RepuestoController::class, 'cantidad'])->name('repuestos.cantidad');
+    Route::post('/productos/{id}/cantidad', [RepuestoController::class, 'updateCantidad'])->name('repuestos.updateCantidad');
+    Route::post('/productos/quick', [RepuestoController::class, 'storeQuick'])->name('repuestos.storeQuick');
+    Route::resource('productos', RepuestoController::class)
+        ->names('repuestos')
+        ->parameters(['productos' => 'repuesto'])
+        ->except(['show']);
 
-    // Proveedores
-    Route::resource('proveedores', ProveedorController::class)->parameters([
-        'proveedores' => 'proveedor'
-    ]);
+    // Enlaces antiguos /repuestos/... siguen funcionando
+    Route::get('/repuestos/{ruta?}', fn (?string $ruta = null) => redirect('/productos' . ($ruta ? '/' . $ruta : ''), 301))
+        ->where('ruta', '.*');
 
-    // Categorías
-    Route::resource('categorias', CategoriaController::class);
+    // ------------------------------
+    // Compras y kardex (registrar compras y ajustar stock: admin y encargado)
+    // ------------------------------
+    Route::middleware('rol:admin,encargado')->group(function () {
+        Route::get('/compras', [CompraController::class, 'index'])->name('compras.index');
+        Route::get('/compras/create', [CompraController::class, 'create'])->name('compras.create');
+        Route::post('/compras', [CompraController::class, 'store'])->name('compras.store');
+        Route::get('/compras/{compra}', [CompraController::class, 'show'])->name('compras.show');
+        Route::post('/compras/{compra}/anular', [CompraController::class, 'anular'])->name('compras.anular');
 
-    // Clientes ------------------------------
+        Route::post('/kardex/{repuesto}/ajuste', [KardexController::class, 'ajustar'])->name('kardex.ajustar');
+    });
+    Route::get('/kardex', [KardexController::class, 'index'])->name('kardex.index');
+    Route::get('/kardex/{repuesto}', [KardexController::class, 'show'])->name('kardex.show');
+
+    // ------------------------------
+    // Categorías y proveedores
+    // ------------------------------
+    Route::resource('categorias', CategoriaController::class)->except(['show']);
+    Route::resource('proveedores', ProveedorController::class)
+        ->parameters(['proveedores' => 'proveedor'])
+        ->except(['show']);
+
+    // ------------------------------
+    // Clientes
+    // ------------------------------
     Route::get('/clientes/search', [ClienteController::class, 'search'])->name('clientes.search');
-Route::post('/clientes/storeQuick', [ClienteController::class, 'storeQuick'])->name('clientes.storeQuick');
-    Route::resource('clientes', ClienteController::class);
-
-    
-
-// ==============================
-    // COMPROBANTES ELECTRÓNICOS
-    // ==============================
-    Route::prefix('comprobantes')->name('comprobantes.')->group(function () {
-    
-    // Listar comprobantes
-    Route::get('/', [ComprobanteController::class, 'index'])->name('index');
-    
-    // Ver detalle
-    Route::get('/{comprobante}', [ComprobanteController::class, 'show'])->name('show');
-    
-    // Emitir comprobante desde venta
-    Route::post('/emitir/{venta}', [ComprobanteController::class, 'emitir'])->name('emitir');
-    
-    // Descargas (SIN /comprobantes/ porque ya está en el prefix)
-    Route::get('/{comprobante}/xml', [ComprobanteController::class, 'descargarXml'])
-        ->name('descargar-xml');
-    
-    Route::get('/{comprobante}/cdr', [ComprobanteController::class, 'descargarCdr'])
-        ->name('descargar-cdr');
-    
-    Route::get('/{comprobante}/pdf', [ComprobanteController::class, 'descargarPdf'])
-        ->name('descargar-pdf');
-    
-    // Ver PDF
-    Route::get('/{comprobante}/ver-pdf', [ComprobanteController::class, 'verPdf'])->name('ver-pdf');
-    
-    // Consultar estado en SUNAT
-    Route::get('/{comprobante}/consultar-estado', [ComprobanteController::class, 'consultarEstado'])->name('consultar-estado');
-    
-    // Anular
-    Route::post('/{comprobante}/anular', [ComprobanteController::class, 'anular'])->name('anular');
-});
-
-
-    // ==============================
-    // CONFIGURACIÓN DE EMPRESA
-    // ==============================
-    Route::get('/empresa', [EmpresaController::class, 'index'])->name('empresa.index');
-    Route::put('/empresa', [EmpresaController::class, 'update'])->name('empresa.update');
-
-
-
-
-
- //-------------------------------------------------------------------------
-    // Repuestos
-    Route::resource('repuestos', RepuestoController::class);
-
-    // Ventas
-    Route::resource('ventas', VentaController::class);
-
-    // ==============================
-    // RUTAS PERSONALIZADAS
-    // ==============================
-
-    // Repuestos - Gestión de cantidad
-    Route::get('/repuestos/{id}/cantidad', [RepuestoController::class, 'cantidad'])
-        ->name('repuestos.cantidad');
-    Route::post('/repuestos/{id}/cantidad', [RepuestoController::class, 'updateCantidad'])
-        ->name('repuestos.updateCantidad');
-
-    // Repuestos - Búsqueda
-    Route::get('/repuestos/search', [RepuestoController::class, 'search'])
-        ->name('repuestos.search');
-
-    Route::post('/repuestos/quick', [RepuestoController::class, 'storeQuick'])->name('repuestos.storeQuick');
-
-    // Clientes - API RENIEC
+    Route::post('/clientes/quick', [ClienteController::class, 'storeQuick'])->name('clientes.storeQuick');
     Route::get('/clientes/buscar-dni/{dni}', [ClienteController::class, 'buscarDni'])
+        ->where('dni', '[0-9]{8}')
         ->name('clientes.buscarDni');
+    Route::get('/clientes/{id}/historial', [VentaController::class, 'historialCliente'])->name('clientes.historial');
+    Route::resource('clientes', ClienteController::class)->except(['show']);
 
-    // Clientes - Búsqueda
-    Route::get('/clientes/search', [ClienteController::class, 'search']);
-    Route::get('/clientes/search', [ClienteController::class, 'search'])->name('clientes.search');
-    Route::post('/clientes/storeQuick', [ClienteController::class, 'storeQuick'])->name('clientes.storeQuick');
-
-    // Clientes - Historial
-    Route::get('/clientes/{id}/historial', [VentaController::class, 'historialCliente'])
-        ->name('clientes.historial');
-
-    // Ventas - Funciones especiales
-    Route::get('/ventas/success', [VentaController::class, 'success'])->name('ventas.success');
-    Route::post('ventas/{id}/anular', [VentaController::class, 'anular'])->name('ventas.anular');
-
-    Route::get('ventas/{id}/historial', [VentaController::class, 'historialCliente'])->name('ventas.historial');
-    Route::get('ventas/{id}/detalles', [VentaController::class, 'detalles']);
-
-    // Rutas específicas de ventas con nombres personalizados
+    // ------------------------------
+    // Ventas
+    // ------------------------------
     Route::prefix('ventas')->name('ventas.')->group(function () {
-        // Boleta y Ticket PDF
         Route::get('/{id}/boleta', [VentaController::class, 'generarBoleta'])->name('boleta');
         Route::get('/{id}/ticket', [VentaController::class, 'generarTicket'])->name('ticket');
-        
-        // Detalles JSON para modal
         Route::get('/{id}/detalles', [VentaController::class, 'detalles'])->name('detalles');
-        
-        // Cambiar estado
         Route::patch('/{id}/estado', [VentaController::class, 'cambiarEstado'])->name('cambiar-estado');
+        Route::post('/{id}/anular', [VentaController::class, 'anular'])->name('anular');
+    });
+    Route::resource('ventas', VentaController::class)->only(['index', 'create', 'store', 'show']);
+
+    // ------------------------------
+    // Comprobantes electrónicos
+    // ------------------------------
+    Route::prefix('comprobantes')->name('comprobantes.')->group(function () {
+        Route::get('/', [ComprobanteController::class, 'index'])->name('index');
+        Route::post('/emitir/{venta}', [ComprobanteController::class, 'emitir'])->name('emitir');
+        Route::get('/{comprobante}', [ComprobanteController::class, 'show'])->name('show');
+        Route::get('/{comprobante}/xml', [ComprobanteController::class, 'descargarXml'])->name('descargar-xml');
+        Route::get('/{comprobante}/cdr', [ComprobanteController::class, 'descargarCdr'])->name('descargar-cdr');
+        Route::get('/{comprobante}/pdf', [ComprobanteController::class, 'descargarPdf'])->name('descargar-pdf');
+        Route::get('/{comprobante}/ver-pdf', [ComprobanteController::class, 'verPdf'])->name('ver-pdf');
+        Route::get('/{comprobante}/consultar-estado', [ComprobanteController::class, 'consultarEstado'])->name('consultar-estado');
+        Route::post('/{comprobante}/anular', [ComprobanteController::class, 'anular'])->name('anular');
     });
 
-    // Exportar Categorías
-    Route::get('/categorias/export', [CategoriaController::class, 'export'])->name('categorias.export');
-
-    // ==============================
-    // REDIRECCIÓN DESPUÉS DEL LOGIN
-    // ==============================
-
-    // Ruta principal del sistema (después de login)
-    Route::get('/dashboard', function() {
-        return redirect()->route('repuestos.index');
-    })->name('dashboard');
-
-     // ==============================
-    // MÓDULO FINANZAS (NUEVO)
-    // ==============================
+    // ------------------------------
+    // Finanzas y reportes
+    // ------------------------------
     Route::get('/finanzas', [FinanzasController::class, 'index'])->name('finanzas.index');
     Route::post('/finanzas/gasto', [FinanzasController::class, 'storeGasto'])->name('finanzas.storeGasto');
-    // Ruta para registrar otros ingresos
-Route::post('/finanzas/ingreso', [FinanzasController::class, 'storeIngreso'])->name('finanzas.storeIngreso');
+    Route::post('/finanzas/ingreso', [FinanzasController::class, 'storeIngreso'])->name('finanzas.storeIngreso');
+    Route::delete('/finanzas/ingreso/{id}/anular', [FinanzasController::class, 'anularIngreso'])->name('finanzas.anularIngreso');
+    Route::delete('/finanzas/gasto/{id}/anular', [FinanzasController::class, 'anularGasto'])->name('finanzas.anularGasto');
 
-    //Modulo de Reportes
     Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
 
-    //Modulo Empresa, cambios app.blade
-    Route::get('/empresa', [EmpresaController::class, 'index'])->name('empresa.index');
-Route::put('/empresa', [EmpresaController::class, 'update'])->name('empresa.update');
+    // ------------------------------
+    // Solo administradores
+    // ------------------------------
+    Route::middleware('admin')->group(function () {
+        Route::get('/empresa', [EmpresaController::class, 'index'])->name('empresa.index');
+        Route::put('/empresa', [EmpresaController::class, 'update'])->name('empresa.update');
 
-
-// --- RUTAS AJAX PARA EL PUNTO DE VENTA ---
-
-    // 1. Buscar clientes (Autocompletado)
-    Route::get('/clientes/search', [ClienteController::class, 'search'])->name('clientes.search');
-
-    // 2. Guardar cliente rápido (Modal)
-    Route::post('/clientes/quick', [ClienteController::class, 'storeQuick'])->name('clientes.storeQuick');
-
-}); // <-- Fin del grupo 'auth'
+        Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
+        Route::post('/usuarios', [UsuarioController::class, 'store'])->name('usuarios.store');
+        Route::put('/usuarios/{usuario}', [UsuarioController::class, 'update'])->name('usuarios.update');
+        Route::delete('/usuarios/{usuario}', [UsuarioController::class, 'destroy'])->name('usuarios.destroy');
+    });
+});

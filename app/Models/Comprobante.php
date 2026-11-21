@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Concerns\BelongsToEmpresa;
 
 class Comprobante extends Model
 {
-    use HasFactory;
+    use HasFactory, BelongsToEmpresa;
 
     protected $fillable = [
     'empresa_id',
@@ -74,6 +75,7 @@ class Comprobante extends Model
     'usuario_emision_id',
     'estado',
     'numero_comprobante',
+    'ticket_baja',
 ];
 
 
@@ -98,10 +100,6 @@ class Comprobante extends Model
 
 
     // Relaciones
-    public function empresa()
-    {
-        return $this->belongsTo(Empresa::class);
-    }
 
     public function venta()
     {
@@ -160,6 +158,7 @@ public function usuarioAnulacion()
         'aceptado' => '<span class="badge bg-success">Aceptado</span>',
         'rechazado' => '<span class="badge bg-danger">Rechazado</span>',
         'anulado' => '<span class="badge bg-secondary">Anulado</span>',
+        'baja_pendiente' => '<span class="badge bg-warning">Baja en proceso</span>',
         'observado' => '<span class="badge bg-info">Observado</span>',
         default => '<span class="badge bg-light">Desconocido</span>',
     };
@@ -174,12 +173,12 @@ public function usuarioAnulacion()
 
     public function scopeAceptados($query)
     {
-        return $query->where('estado', 'aceptado');
+        return $query->whereIn('estado_sunat', ['aceptado', 'observado']);
     }
 
     public function scopePendientes($query)
     {
-        return $query->where('estado', 'pendiente');
+        return $query->where('estado_sunat', 'pendiente');
     }
     // ==========================================
 // MÉTODOS DE NEGOCIO
@@ -188,29 +187,25 @@ public function usuarioAnulacion()
 /**
  * Verifica si el comprobante puede ser anulado
  */
-public function puedeSerAnulado()
+public function puedeSerAnulado(): bool
 {
-    // No se puede anular si ya está anulado
-    if ($this->anulado) {
+    if ($this->anulado || $this->ticket_baja) {
         return false;
     }
 
-    // No se puede anular si no fue aceptado por SUNAT
-    if ($this->estado_sunat !== 'aceptado') {
+    // Solo comprobantes aceptados (o con observaciones) por SUNAT
+    if (! in_array($this->estado_sunat, ['aceptado', 'observado'])) {
         return false;
     }
 
-    // Solo se pueden anular comprobantes del mismo día
-    if (!$this->fecha_emision->isToday()) {
+    // SUNAT admite la baja dentro del plazo configurado (días calendario)
+    $dias = (int) config('sunat.dias_comunicacion_baja', 7);
+    if (! $this->fecha_emision || $this->fecha_emision->copy()->startOfDay()->diffInDays(now()->startOfDay()) > $dias) {
         return false;
     }
 
     // No se puede anular si tiene notas de crédito/débito asociadas
-    if ($this->notasCredito()->exists()) {
-        return false;
-    }
-
-    return true;
+    return ! $this->notasCredito()->exists();
 }
 
 /**
@@ -234,48 +229,18 @@ public function puedeGenerarNotaDebito()
 }
 
 /**
- * Descarga el XML
+ * Ruta absoluta de un archivo del comprobante (xml_path, cdr_path, pdf_path)
+ * o null si no existe en disco.
  */
-public function descargarXml()
+public function rutaArchivo(string $campo): ?string
 {
-    if (!$this->xml_path || !\Storage::exists($this->xml_path)) {
+    if (empty($this->{$campo})) {
         return null;
     }
 
-    return response()->download(
-        storage_path('app/' . $this->xml_path),
-        $this->numero_completo . '.xml'
-    );
-}
+    $ruta = storage_path('app/' . ltrim($this->{$campo}, '/'));
 
-/**
- * Descarga el PDF
- */
-public function descargarPdf()
-{
-    if (!$this->pdf_path || !\Storage::exists($this->pdf_path)) {
-        return null;
-    }
-
-    return response()->download(
-        storage_path('app/' . $this->pdf_path),
-        $this->numero_completo . '.pdf'
-    );
-}
-
-/**
- * Descarga el CDR (Constancia de Recepción)
- */
-public function descargarCdr()
-{
-    if (!$this->cdr_path || !\Storage::exists($this->cdr_path)) {
-        return null;
-    }
-
-    return response()->download(
-        storage_path('app/' . $this->cdr_path),
-        'R-' . $this->numero_completo . '.zip'
-    );
+    return file_exists($ruta) ? $ruta : null;
 }
 
 }

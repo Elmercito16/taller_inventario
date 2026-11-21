@@ -66,5 +66,14 @@ return [
     |--------------------------------------------------------------------------
     */
     'igv' => 18, // 18%
+
+    /*
+    |--------------------------------------------------------------------------
+    | Plazo para la Comunicación de Baja / Resumen de anulación (días calendario)
+    |--------------------------------------------------------------------------
+    | Verifica el plazo vigente en la normativa SUNAT y ajústalo con
+    | SUNAT_DIAS_BAJA en el .env si cambia.
+    */
+    'dias_comunicacion_baja' => (int) env('SUNAT_DIAS_BAJA', 7),
     
 ];

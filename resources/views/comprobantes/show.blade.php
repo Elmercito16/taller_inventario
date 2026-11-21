@@ -113,9 +113,21 @@
                             </tbody>
                             <tfoot class="bg-gray-50">
                                 <tr>
-                                    <td colspan="3" class="px-6 py-3 text-right font-bold">Subtotal (Base Imponible):</td>
-                                    <td class="px-6 py-3 text-right font-bold">S/ {{ number_format($comprobante->subtotal, 2) }}</td>
+                                    <td colspan="3" class="px-6 py-3 text-right font-bold">Op. Gravada:</td>
+                                    <td class="px-6 py-3 text-right font-bold">S/ {{ number_format($comprobante->total_gravadas ?? $comprobante->subtotal, 2) }}</td>
                                 </tr>
+                                @if((float) $comprobante->total_exoneradas > 0)
+                                <tr>
+                                    <td colspan="3" class="px-6 py-3 text-right font-bold">Op. Exonerada:</td>
+                                    <td class="px-6 py-3 text-right font-bold">S/ {{ number_format($comprobante->total_exoneradas, 2) }}</td>
+                                </tr>
+                                @endif
+                                @if((float) $comprobante->total_inafectas > 0)
+                                <tr>
+                                    <td colspan="3" class="px-6 py-3 text-right font-bold">Op. Inafecta:</td>
+                                    <td class="px-6 py-3 text-right font-bold">S/ {{ number_format($comprobante->total_inafectas, 2) }}</td>
+                                </tr>
+                                @endif
                                 <tr>
                                     <td colspan="3" class="px-6 py-3 text-right font-bold">IGV (18%):</td>
                                     <td class="px-6 py-3 text-right font-bold">S/ {{ number_format($comprobante->igv, 2) }}</td>
@@ -139,27 +151,19 @@
                     <h3 class="text-lg font-bold text-gray-800 mb-4">📡 Estado SUNAT</h3>
                     
                     <div class="text-center mb-4">
-                        @if($comprobante->estado_sunat == 'aceptado' && !$comprobante->anulado)
-                            <div class="text-6xl mb-2">✅</div>
-                            <span class="px-4 py-2 bg-green-100 text-green-800 rounded-full font-bold">
-                                Aceptado por SUNAT
-                            </span>
-                        @elseif($comprobante->estado_sunat == 'pendiente')
-                            <div class="text-6xl mb-2">⏳</div>
-                            <span class="px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full font-bold">
-                                Pendiente de Envío
-                            </span>
-                        @elseif($comprobante->estado_sunat == 'rechazado')
-                            <div class="text-6xl mb-2">❌</div>
-                            <span class="px-4 py-2 bg-red-100 text-red-800 rounded-full font-bold">
-                                Rechazado
-                            </span>
-                        @elseif($comprobante->anulado)
-                            <div class="text-6xl mb-2">🚫</div>
-                            <span class="px-4 py-2 bg-gray-100 text-gray-800 rounded-full font-bold">
-                                Anulado
-                            </span>
-                        @endif
+                        @php
+                            $estados = [
+                                'aceptado' => ['✅', 'bg-green-100 text-green-800', 'Aceptado por SUNAT'],
+                                'observado' => ['✅', 'bg-emerald-100 text-emerald-800', 'Aceptado con observaciones'],
+                                'pendiente' => ['⏳', 'bg-yellow-100 text-yellow-800', 'Pendiente de respuesta'],
+                                'rechazado' => ['❌', 'bg-red-100 text-red-800', 'Rechazado'],
+                                'baja_pendiente' => ['⏳', 'bg-amber-100 text-amber-800', 'Anulación en proceso'],
+                                'anulado' => ['🚫', 'bg-gray-100 text-gray-800', 'Anulado'],
+                            ];
+                            [$icono, $clases, $texto] = $estados[$comprobante->anulado ? 'anulado' : $comprobante->estado_sunat] ?? ['❔', 'bg-gray-100 text-gray-700', ucfirst($comprobante->estado_sunat)];
+                        @endphp
+                        <div class="text-6xl mb-2">{{ $icono }}</div>
+                        <span class="px-4 py-2 {{ $clases }} rounded-full font-bold">{{ $texto }}</span>
                     </div>
                     
                     @if($comprobante->mensaje_sunat)
@@ -169,6 +173,20 @@
                     </div>
                     @endif
                     
+                    @if($comprobante->observaciones_sunat)
+                    <div class="mt-2 p-3 bg-amber-50 rounded-lg">
+                        <p class="text-xs font-bold text-amber-700 mb-1">Observaciones:</p>
+                        <p class="text-sm text-amber-800">{{ $comprobante->observaciones_sunat }}</p>
+                    </div>
+                    @endif
+
+                    @if(in_array($comprobante->estado_sunat, ['pendiente', 'baja_pendiente']))
+                    <a href="{{ route('comprobantes.consultar-estado', $comprobante) }}"
+                       class="mt-4 w-full px-4 py-3 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all flex items-center justify-center gap-2">
+                        🔄 {{ $comprobante->estado_sunat === 'pendiente' ? 'Reenviar a SUNAT' : 'Consultar estado de la baja' }}
+                    </a>
+                    @endif
+
                     @if($comprobante->codigo_sunat)
                     <div class="mt-2 p-3 bg-blue-50 rounded-lg">
                         <p class="text-xs font-bold text-gray-600 mb-1">Código SUNAT:</p>
@@ -206,15 +224,22 @@
         <button disabled
                 class="w-full px-4 py-3 bg-gray-300 text-gray-500 font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
                 title="PDF no disponible aún">
-            📑 PDF (Próximamente)
+            📑 PDF no disponible
         </button>
         @endif
         
         @if($comprobante->puedeSerAnulado())
-        <button onclick="confirmarAnulacion({{ $comprobante->id }})"
+        <button type="button" onclick="confirmarAnulacion()"
                 class="w-full px-4 py-3 bg-gray-600 text-white font-bold rounded-xl hover:bg-gray-700 transition-all flex items-center justify-center gap-2">
             🚫 Anular Comprobante
         </button>
+        <form id="form-anular" action="{{ route('comprobantes.anular', $comprobante) }}" method="POST" class="hidden">
+            @csrf
+            <input type="hidden" name="motivo_anulacion" id="motivo-anulacion">
+        </form>
+        <p class="text-xs text-gray-500 text-center">
+            Se enviará {{ str_starts_with($comprobante->serie, 'B') ? 'el Resumen Diario de anulación' : 'la Comunicación de Baja' }} a SUNAT.
+        </p>
         @endif
     </div>
 </div>
@@ -247,7 +272,7 @@
                         @if($comprobante->anulado)
                         <div class="pt-3 border-t">
                             <span class="font-bold text-red-600">Anulado el:</span>
-                            <span class="ml-2">{{ $comprobante->fecha_anulacion->format('d/m/Y H:i') }}</span>
+                            <span class="ml-2">{{ $comprobante->fecha_anulacion?->format('d/m/Y H:i') }}</span>
                             
                             @if($comprobante->motivo_anulacion)
                             <p class="mt-2 text-xs text-gray-600">
@@ -269,27 +294,26 @@
 {{-- Script para anular --}}
 @if($comprobante->puedeSerAnulado())
 <script>
-function confirmarAnulacion(comprobanteId) {
-    const motivo = prompt('Ingresa el motivo de anulación (mínimo 10 caracteres):');
-    
-    if (motivo && motivo.length >= 10) {
-        if (confirm('¿Estás seguro de anular este comprobante? Esta acción no se puede deshacer.')) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = `/comprobantes/${comprobanteId}/anular`;
-            
-            const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
-            
-            form.innerHTML = `
-                <input type="hidden" name="_token" value="${csrfToken}">
-                <input type="hidden" name="motivo_anulacion" value="${motivo}">
-            `;
-            
-            document.body.appendChild(form);
-            form.submit();
-        }
-    } else if (motivo !== null) {
-        alert('El motivo debe tener al menos 10 caracteres');
+async function confirmarAnulacion() {
+    const { value: motivo } = await Swal.fire({
+        title: 'Anular comprobante',
+        html: '<p class="text-sm text-gray-600">Se enviará la solicitud de baja a SUNAT. Esta acción no se puede deshacer.</p>',
+        input: 'text',
+        inputLabel: 'Motivo de anulación',
+        inputPlaceholder: 'Ej.: Error en los datos del cliente',
+        inputAttributes: { maxlength: 100 },
+        showCancelButton: true,
+        confirmButtonText: 'Anular',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc2626',
+        inputValidator: (valor) => {
+            if (!valor || valor.trim().length < 10) return 'El motivo debe tener al menos 10 caracteres';
+        },
+    });
+
+    if (motivo) {
+        document.getElementById('motivo-anulacion').value = motivo.trim();
+        document.getElementById('form-anular').submit();
     }
 }
 </script>

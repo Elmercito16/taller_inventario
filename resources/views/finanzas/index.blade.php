@@ -301,6 +301,9 @@
                                 Monto
                             </div>
                         </th>
+                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
+                            Acciones
+                        </th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-100">
@@ -351,10 +354,45 @@
                                     {{ $movimiento['tipo'] == 'ingreso' ? '+' : '-' }} S/ {{ number_format($movimiento['monto'], 2) }}
                                 </span>
                             </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                @if($movimiento['modelo'] === 'Ingreso')
+                                    <form action="{{ route('finanzas.anularIngreso', $movimiento['id']) }}" 
+                                          method="POST" 
+                                          class="inline-block form-anular-movimiento">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" 
+                                                class="inline-flex items-center px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
+                                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                            Anular
+                                        </button>
+                                    </form>
+                                @elseif($movimiento['modelo'] === 'Gasto')
+                                    <form action="{{ route('finanzas.anularGasto', $movimiento['id']) }}" 
+                                          method="POST" 
+                                          class="inline-block form-anular-movimiento">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" 
+                                                class="inline-flex items-center px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
+                                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                            </svg>
+                                            Anular
+                                        </button>
+                                    </form>
+                                @elseif($movimiento['modelo'] === 'Compra')
+                                    <a href="{{ route('compras.show', $movimiento['id']) }}" class="text-xs font-semibold text-[#218786] hover:underline">Ver compra</a>
+                                @else
+                                    <span class="text-xs text-gray-400 italic">N/A</span>
+                                @endif
+                            </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="px-6 py-20 text-center">
+                            <td colspan="5" class="px-6 py-20 text-center">
                                 <div class="flex flex-col items-center">
                                     <div class="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-4">
                                         <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -372,11 +410,9 @@
             </table>
         </div>
 
-        <!-- 👇 PAGINACIÓN AGREGADA AQUÍ -->
         @if($cajaFlujo->hasPages())
             <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <!-- Info de resultados -->
                     <div class="text-sm text-gray-600">
                         Mostrando 
                         <span class="font-bold text-[#218786]">{{ $cajaFlujo->firstItem() }}</span>
@@ -387,9 +423,7 @@
                         registros
                     </div>
 
-                    <!-- Links de paginación -->
                     <div class="flex items-center gap-2">
-                        {{-- Botón Anterior --}}
                         @if ($cajaFlujo->onFirstPage())
                             <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
                                 ← Anterior
@@ -401,7 +435,6 @@
                             </a>
                         @endif
 
-                        {{-- Números de página --}}
                         <div class="hidden sm:flex items-center gap-2">
                             @foreach ($cajaFlujo->getUrlRange(1, $cajaFlujo->lastPage()) as $page => $url)
                                 @if ($page == $cajaFlujo->currentPage())
@@ -417,7 +450,6 @@
                             @endforeach
                         </div>
 
-                        {{-- Botón Siguiente --}}
                         @if ($cajaFlujo->hasMorePages())
                             <a href="{{ $cajaFlujo->appends(request()->except('page'))->nextPageUrl() }}" 
                                class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
@@ -453,7 +485,6 @@
             <form action="{{ route('finanzas.storeIngreso') }}" method="POST">
                 @csrf
                 
-                <!-- Header -->
                 <div class="px-6 py-5 bg-gradient-to-r from-green-500 to-green-600 text-white relative overflow-hidden">
                     <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white/10 rounded-full"></div>
                     <div class="relative z-10">
@@ -480,9 +511,7 @@
                     </div>
                 </div>
 
-                <!-- Body -->
                 <div class="px-6 py-6 space-y-5">
-                    <!-- Monto -->
                     <div>
                         <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
                             <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -501,7 +530,6 @@
                         </div>
                     </div>
 
-                    <!-- Descripción -->
                     <div>
                         <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
                             <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -516,7 +544,6 @@
                                placeholder="Ej: Intereses bancarios, alquiler, servicio de instalación...">
                     </div>
                     
-                    <!-- Fecha y Tipo de Ingreso -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
@@ -562,7 +589,6 @@
                     </div>
                 </div>
 
-                <!-- Footer -->
                 <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col-reverse sm:flex-row justify-end gap-3">
                     <button type="button" 
                             @click="showIngresoModal = false" 
@@ -600,7 +626,6 @@
             <form action="{{ route('finanzas.storeGasto') }}" method="POST">
                 @csrf
                 
-                <!-- Header -->
                 <div class="px-6 py-5 bg-gradient-to-r from-red-500 to-red-600 text-white relative overflow-hidden">
                     <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white/10 rounded-full"></div>
                     <div class="relative z-10">
@@ -627,9 +652,7 @@
                     </div>
                 </div>
 
-                <!-- Body -->
                 <div class="px-6 py-6 space-y-5">
-                    <!-- Monto -->
                     <div>
                         <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
                             <svg class="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -648,7 +671,6 @@
                         </div>
                     </div>
 
-                    <!-- Descripción -->
                     <div>
                         <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
                             <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -663,7 +685,6 @@
                                placeholder="Ej: Pago de servicios, compra de materiales...">
                     </div>
                     
-                    <!-- Fecha y Categoría -->
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
@@ -701,7 +722,6 @@
                     </div>
                 </div>
 
-                <!-- Footer -->
                 <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col-reverse sm:flex-row justify-end gap-3">
                     <button type="button" 
                             @click="showGastoModal = false" 
@@ -731,7 +751,29 @@ document.addEventListener('alpine:init', () => {
     }));
 });
 
-// Mensajes de éxito
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.form-anular-movimiento').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            Swal.fire({
+                title: '¿Anular este movimiento?',
+                text: 'Esta acción eliminará el registro permanentemente y afectará tu balance.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Sí, anular',
+                cancelButtonText: 'Cancelar',
+                customClass: { popup: 'rounded-2xl' }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
+            });
+        });
+    });
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     @if(session('success'))
         Swal.fire({

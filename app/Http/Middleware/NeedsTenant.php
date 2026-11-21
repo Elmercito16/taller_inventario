@@ -6,6 +6,7 @@ use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Spatie\Multitenancy\Models\Tenant;
 
 class NeedsTenant
@@ -23,8 +24,13 @@ class NeedsTenant
         $user = Auth::user();
 
         // Validar que el usuario tenga empresa asignada
-        if (!$user->empresa_id) {
-            abort(403, 'Tu usuario no tiene una empresa asignada. Contacta al administrador.');
+        if (!$user->empresa_id || !$user->empresa) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect()->route('login.form')
+                ->withErrors(['correo' => 'Tu usuario no tiene una empresa asignada. Contacta al administrador.']);
         }
 
         // Obtener la empresa (tenant)
@@ -40,7 +46,7 @@ class NeedsTenant
         // 👇 VERIFICACIÓN (DEBUG opcional)
         $current = Tenant::current();
         if (!$current || $current->id !== $empresa->id) {
-            \Log::warning('Tenant no se activó correctamente', [
+            Log::warning('Tenant no se activó correctamente', [
                 'usuario_id' => $user->id,
                 'empresa_esperada' => $empresa->id,
                 'tenant_actual' => $current?->id,

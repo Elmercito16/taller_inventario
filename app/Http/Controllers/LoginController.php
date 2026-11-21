@@ -16,7 +16,7 @@ class LoginController extends Controller
     {
         // Si ya está logueado, mandar al dashboard
         if (Auth::check()) {
-            return redirect()->route('repuestos.index');
+            return redirect()->route('dashboard');
         }
         return view('auth.login');
     }
@@ -32,28 +32,34 @@ class LoginController extends Controller
         ]);
 
         // Buscar usuario por correo
-        $usuario = Usuario::where('correo', $request->correo)->first();
+        $usuario = Usuario::where('correo', trim($request->correo))->first();
 
         // Verificar contraseña
         if ($usuario && Hash::check($request->contraseña, $usuario->contraseña)) {
-            
-            // ✅ ¡AQUÍ ESTÁ LA CORRECCIÓN!
-            // En lugar de session()->put(), usamos Auth::login()
-            // Esto registra al usuario en Laravel, activa el middleware y el multi-tenant.
+
+            // ✅ Verificamos que el usuario tenga empresa ANTES de continuar
+            if (!$usuario->empresa_id) {
+                return back()->withErrors([
+                    'correo' => 'Tu usuario no tiene una empresa asignada. Contacta al administrador.',
+                ])->withInput();
+            }
+
+            // Registramos al usuario en Laravel (activa sesión y middlewares)
             Auth::login($usuario);
 
             // Regenerar sesión por seguridad (evita ataques de fijación de sesión)
             $request->session()->regenerate();
 
-            // Redirigir según el rol
-            if ($usuario->rol === 'admin') {
-                // Usamos intended() para redirigir a donde quería ir el usuario
-                return redirect()->intended(route('clientes.index'))
-                                 ->with('success', 'Bienvenido Administrador: ' . $usuario->nombre);
+            // 👇 ¡LA CORRECCIÓN CLAVE!
+            // Activamos manualmente el tenant (empresa) justo después del login,
+            // sin depender del orden de ejecución de los middlewares globales.
+            $empresa = $usuario->empresa; // Carga la relación empresa()
+            if ($empresa) {
+                $empresa->makeCurrent();
             }
 
-            return redirect()->intended(route('clientes.index'))
-                             ->with('success', 'Bienvenido, ' . $usuario->nombre);
+            return redirect()->intended(route('dashboard'))
+                ->with('success', 'Bienvenido, ' . $usuario->nombre);
         }
 
         // Si falla
@@ -67,6 +73,11 @@ class LoginController extends Controller
      */
     public function logout(Request $request)
     {
+        // Olvidamos el tenant activo antes de cerrar sesión
+        if (\Spatie\Multitenancy\Models\Tenant::checkCurrent()) {
+            \Spatie\Multitenancy\Models\Tenant::current()->forgetCurrent();
+        }
+
         // ✅ Cerrar sesión correctamente en Laravel
         Auth::logout();
 

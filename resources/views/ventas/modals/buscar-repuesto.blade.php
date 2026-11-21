@@ -11,7 +11,7 @@
 
             <!-- Filtros -->
             <div class="p-4 border-b grid grid-cols-1 md:grid-cols-2 gap-2">
-                <input type="text" id="buscarRepuestoInput" placeholder="Buscar por nombre..."
+                <input type="text" id="buscarRepuestoInput" placeholder="Nombre, código o código de barras (Enter para agregar)" autocomplete="off"
                        class="px-3 py-2 border rounded focus:ring-2 focus:ring-[#218786]">
                 <select id="filtroCategoria" class="px-3 py-2 border rounded focus:ring-2 focus:ring-[#218786]">
                     <option value="">Todas las categorías</option>
@@ -25,7 +25,7 @@
             <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
                 <!-- Se ajustó el grid para que sea más responsive (2 col en móvil, 3 en mediano, 4 en grande) -->
                 <div id="listaRepuestosGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4"></div>
-                <div id="sinResultadosRepuestos" class="hidden text-center py-8 text-gray-500">No se encontraron repuestos</div>
+                <div id="sinResultadosRepuestos" class="hidden text-center py-8 text-gray-500">No se encontraron productos</div>
             </div>
         </div>
     </div>
@@ -37,8 +37,13 @@
             'id' => $r->id,
             'nombre' => $r->nombre,
             'categoria_id' => $r->categoria_id ?? 0,
+            'codigo' => (string) $r->codigo,
+            'barras' => (string) ($r->codigo_barras ?? ''),
             'precio_unitario' => (float) $r->precio_unitario,
-            'stock' => (int) $r->cantidad,
+            'stock' => (float) $r->cantidad,
+            'servicio' => $r->esServicio(),
+            'unidad' => $r->unidad_abreviatura,
+            'decimales' => $r->permiteDecimales(),
             // 1. AÑADIDO: Mapeamos la imagen con la ruta correcta
             'imagen' => $r->imagen ? asset('storage/' . $r->imagen) : null,
         ];
@@ -48,10 +53,14 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const repuestos = @json($repuestosJs);
+    const disponible = r => r.servicio || r.stock > 0;
+    // Exponer el catálogo para el lector de código de barras del punto de venta
+    window.catalogoProductos = repuestos;
     
     window.abrirModalRepuestos = function() {
         document.getElementById('modalBuscarRepuesto').classList.remove('hidden');
-        renderRepuestos(repuestos.filter(r => r.stock > 0));
+        renderRepuestos(repuestos.filter(disponible));
+        setTimeout(() => document.getElementById('buscarRepuestoInput').focus(), 50);
     };
     
     document.getElementById('btnCerrarModalRepuesto').onclick = () => {
@@ -66,15 +75,32 @@ document.addEventListener('DOMContentLoaded', function() {
         const query = document.getElementById('buscarRepuestoInput').value.toLowerCase();
         const categoriaId = parseInt(document.getElementById('filtroCategoria').value) || 0;
         
-        let filtrados = repuestos.filter(r => r.stock > 0);
-        
-        if (query) filtrados = filtrados.filter(r => r.nombre.toLowerCase().includes(query));
+                let filtrados = repuestos.filter(disponible);
+
+        if (query) filtrados = filtrados.filter(r =>
+            r.nombre.toLowerCase().includes(query) ||
+            r.codigo.toLowerCase().includes(query) ||
+            (r.barras && r.barras.toLowerCase() === query)
+        );
         if (categoriaId > 0) filtrados = filtrados.filter(r => r.categoria_id === categoriaId);
         
         renderRepuestos(filtrados);
     }
     
     document.getElementById('buscarRepuestoInput').addEventListener('input', filtrarRepuestos);
+
+    // Enter: si coincide exactamente un código / código de barras, se agrega directo (lectores de barras)
+    document.getElementById('buscarRepuestoInput').addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        const texto = e.target.value.trim().toLowerCase();
+        const exacto = repuestos.find(r => disponible(r) && (r.barras.toLowerCase() === texto || r.codigo.toLowerCase() === texto));
+        if (exacto && window.addRepuesto) {
+            window.addRepuesto(exacto);
+            e.target.value = '';
+            filtrarRepuestos();
+        }
+    });
     document.getElementById('filtroCategoria').addEventListener('change', filtrarRepuestos);
     
     function renderRepuestos(lista) {
@@ -115,8 +141,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="relative overflow-hidden border-b border-gray-100">
                     ${imagenHtml}
                     <!-- Badge de Stock Flotante -->
-                    <div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded text-xs font-bold ${repuesto.stock <= 5 ? 'text-red-600' : 'text-green-600'} shadow-sm border border-gray-100">
-                        Stock: ${repuesto.stock}
+                    <div class="absolute top-2 right-2 bg-white/90 backdrop-blur px-2 py-0.5 rounded text-xs font-bold ${repuesto.servicio ? 'text-sky-600' : (repuesto.stock <= 5 ? 'text-red-600' : 'text-green-600')} shadow-sm border border-gray-100">
+                        ${repuesto.servicio ? 'Servicio' : 'Stock: ' + (+repuesto.stock.toFixed(3)) + ' ' + repuesto.unidad}
                     </div>
                 </div>
                 
@@ -126,7 +152,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="mt-auto flex justify-between items-end pt-2 border-t border-gray-50">
                         <div>
                             <p class="text-[10px] text-gray-400 uppercase font-bold">Precio</p>
-                            <p class="text-lg font-bold text-[#218786]">S/ ${repuesto.precio_unitario.toFixed(2)}</p>
+                            <p class="text-lg font-bold text-[#218786]">S/ ${repuesto.precio_unitario.toFixed(2)} <span class="text-xs font-medium text-gray-400">/ ${repuesto.unidad}</span></p>
                         </div>
                         <!-- Botón visual '+' -->
                         <div class="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#218786] group-hover:text-white transition-colors shadow-sm">

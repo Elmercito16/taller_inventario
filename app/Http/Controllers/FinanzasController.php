@@ -2,179 +2,164 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Models\Venta;
+use App\Models\Compra;
 use App\Models\Gasto;
-use App\Models\Ingreso; // 👈 Añadir esta línea
+use App\Models\Ingreso;
+use App\Models\Venta;
 use Carbon\Carbon;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Pagination\LengthAwarePaginator; // 👈 Añadir esta línea
-
 
 class FinanzasController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Filtros de Fecha
-$filtro = $request->get('filtro', 'mes_actual');
+        // 1. Rango de fechas
+        $filtro = $request->get('filtro', 'mes_actual');
+        [$fechaInicio, $fechaFin] = $this->rangoFechas($filtro, $request);
 
-// Por defecto: mes actual
-$fechaInicio = Carbon::now()->startOfMonth();
-$fechaFin = Carbon::now()->endOfMonth();
+        // 2. Totales (agregados en BD; el scope de empresa se aplica solo)
+        $ventasQuery = Venta::where('estado', 'pagado')->whereBetween('fecha', [$fechaInicio, $fechaFin]);
+        $ingresosQuery = Ingreso::whereBetween('fecha', [$fechaInicio->toDateString(), $fechaFin->toDateString()]);
+        $gastosQuery = Gasto::whereBetween('fecha', [$fechaInicio->toDateString(), $fechaFin->toDateString()]);
+        // Las compras de mercadería registradas también son egresos
+        $comprasQuery = Compra::registradas()->whereBetween('fecha', [$fechaInicio->toDateString(), $fechaFin->toDateString()]);
 
-if ($filtro === 'hoy') {
-    $fechaInicio = Carbon::today();
-    $fechaFin = Carbon::today()->endOfDay();
-} elseif ($filtro === 'semana') {
-    $fechaInicio = Carbon::now()->startOfWeek();
-    $fechaFin = Carbon::now()->endOfWeek();
-} elseif ($filtro === 'anio_actual') {
-    $fechaInicio = Carbon::now()->startOfYear();
-    $fechaFin = Carbon::now()->endOfYear();
-} elseif ($filtro === 'personalizado' && $request->fecha_inicio && $request->fecha_fin) {
-    $fechaInicio = Carbon::parse($request->fecha_inicio)->startOfDay();
-    $fechaFin = Carbon::parse($request->fecha_fin)->endOfDay();
-}
-
-
-        // 2. Obtener Datos (El Multi-tenant filtra automáticamente por empresa)
-        
-        // Ingresos por Ventas (Ventas Pagadas)
-        $ventas = Venta::where('estado', 'pagado')
-            ->whereBetween('fecha', [$fechaInicio, $fechaFin])
-            ->with('cliente')
-            ->orderBy('fecha', 'desc')
-            ->get();
-
-        // Otros Ingresos (no por ventas)
-        $ingresos = Ingreso::whereBetween('fecha', [$fechaInicio, $fechaFin])
-            ->orderBy('fecha', 'desc')
-            ->get();
-
-        // Gastos
-        $gastos = Gasto::whereBetween('fecha', [$fechaInicio, $fechaFin])
-            ->orderBy('fecha', 'desc')
-            ->get();
-
-        // 3. Calcular Totales
-        $totalIngresos = $ventas->sum('total') + $ingresos->sum('monto');
-        $totalGastos = $gastos->sum('monto');
+        $totalIngresos = (float) (clone $ventasQuery)->sum('total') + (float) (clone $ingresosQuery)->sum('monto');
+        $totalGastos = (float) (clone $gastosQuery)->sum('monto') + (float) (clone $comprasQuery)->sum('total');
         $balance = $totalIngresos - $totalGastos;
 
-        // 4. Crear Caja de Flujo Unificada (Merge)
-        $flujoVentas = $ventas->map(function ($v) {
+        // 3. Flujo de caja unificado, paginado directamente en la BD (UNION ALL)
+        $tipoMovimiento = $request->get('tipo_movimiento', 'todos');
+
+        $partes = [];
+        if ($tipoMovimiento !== 'gastos') {
+            $partes[] = (clone $ventasQuery)->toBase()
+                ->select('id', DB::raw("'Venta' as modelo"), DB::raw("'ingreso' as tipo"), 'total as monto', 'fecha', DB::raw('NULL as descripcion'), DB::raw('NULL as detalle'), 'cliente_id');
+            $partes[] = (clone $ingresosQuery)->toBase()
+                ->select('id', DB::raw("'Ingreso' as modelo"), DB::raw("'ingreso' as tipo"), 'monto', 'fecha', 'descripcion', 'tipo as detalle', DB::raw('NULL as cliente_id'));
+        }
+        if ($tipoMovimiento !== 'ingresos') {
+            $partes[] = (clone $gastosQuery)->toBase()
+                ->select('id', DB::raw("'Gasto' as modelo"), DB::raw("'gasto' as tipo"), 'monto', 'fecha', 'descripcion', 'categoria as detalle', DB::raw('NULL as cliente_id'));
+            // En compras, la columna "cliente_id" del UNION lleva el proveedor
+            $partes[] = (clone $comprasQuery)->toBase()
+                ->select('id', DB::raw("'Compra' as modelo"), DB::raw("'gasto' as tipo"), 'total as monto', 'fecha', DB::raw('NULL as descripcion'), 'numero_documento as detalle', 'proveedor_id as cliente_id');
+        }
+
+        $union = array_shift($partes);
+        foreach ($partes as $parte) {
+            $union->unionAll($parte);
+        }
+
+        $cajaFlujo = DB::query()
+            ->fromSub($union, 'movimientos')
+            ->orderBy('fecha', 'desc')
+            ->orderBy('id', 'desc')
+            ->paginate(10)
+            ->withQueryString();
+
+        // Nombres de clientes solo para la página actual
+        $clientes = \App\Models\Cliente::whereIn('id', collect($cajaFlujo->items())->where('modelo', 'Venta')->pluck('cliente_id')->filter()->unique())
+            ->pluck('nombre', 'id');
+
+        $proveedores = \App\Models\Proveedor::whereIn('id', collect($cajaFlujo->items())->where('modelo', 'Compra')->pluck('cliente_id')->filter()->unique())
+            ->pluck('nombre', 'id');
+
+        $cajaFlujo->through(function ($m) use ($clientes, $proveedores) {
+            $descripcion = match ($m->modelo) {
+                'Compra' => 'Compra C-' . str_pad($m->id, 6, '0', STR_PAD_LEFT)
+                    . ($m->cliente_id && isset($proveedores[$m->cliente_id]) ? ' - ' . $proveedores[$m->cliente_id] : '')
+                    . ($m->detalle ? ' (' . $m->detalle . ')' : ''),
+                'Venta' => 'Venta #' . str_pad($m->id, 6, '0', STR_PAD_LEFT)
+                    . ($m->cliente_id && isset($clientes[$m->cliente_id]) ? ' - ' . $clientes[$m->cliente_id] : ''),
+                default => $m->descripcion . ($m->detalle ? ' (' . $m->detalle . ')' : ''),
+            };
+
             return [
-                'id' => $v->id,
-                'tipo' => 'ingreso',
-                'descripcion' => 'Venta #' . str_pad($v->id, 6, '0', STR_PAD_LEFT) . ($v->cliente ? ' - ' . $v->cliente->nombre : ''),
-                'monto' => $v->total,
-                'fecha' => $v->fecha,
-                'modelo' => 'Venta'
+                'id' => $m->id,
+                'tipo' => $m->tipo,
+                'descripcion' => $descripcion,
+                'monto' => (float) $m->monto,
+                'fecha' => $m->fecha,
+                'modelo' => $m->modelo,
             ];
         });
-
-        $flujoIngresos = $ingresos->map(function ($i) {
-            return [
-                'id' => $i->id,
-                'tipo' => 'ingreso',
-                'descripcion' => $i->descripcion . ($i->tipo ? ' (' . $i->tipo . ')' : ''),
-                'monto' => $i->monto,
-                'fecha' => $i->fecha,
-                'modelo' => 'Ingreso'
-            ];
-        });
-
-        $flujoGastos = $gastos->map(function ($g) {
-            return [
-                'id' => $g->id,
-                'tipo' => 'gasto',
-                'descripcion' => $g->descripcion . ($g->categoria ? ' (' . $g->categoria . ')' : ''),
-                'monto' => $g->monto,
-                'fecha' => $g->fecha,
-                'modelo' => 'Gasto'
-            ];
-        });
-
-        // Unimos todos los flujos y ordenamos por fecha descendente
-        $cajaFlujo = $flujoVentas->concat($flujoIngresos)->concat($flujoGastos)->sortByDesc('fecha');
-
-        // Unimos y ordenamos por fecha descendente
-$cajaFlujo = $flujoVentas->concat($flujoIngresos)->concat($flujoGastos)->sortByDesc('fecha');
-
-// 👇 AÑADE ESTAS LÍNEAS AQUÍ
-              $tipoMovimiento = $request->get('tipo_movimiento', 'todos');
-
-                if ($tipoMovimiento === 'ingresos') {
-                   $cajaFlujo = $cajaFlujo->filter(function ($item) {
-                    return $item['tipo'] === 'ingreso';
-                 });    
-                 } elseif ($tipoMovimiento === 'gastos') {
-                   $cajaFlujo = $cajaFlujo->filter(function ($item) {
-                    return $item['tipo'] === 'gasto';
-                    });
-            }
-// 👆 HASTA AQUÍ
-// 👇 PAGINACIÓN AÑADIDA AQUÍ
-        // Configuración de paginación
-        $perPage = 5; // Registros por página
-        $currentPage = LengthAwarePaginator::resolveCurrentPage();
-        $currentItems = $cajaFlujo->slice(($currentPage - 1) * $perPage, $perPage)->values();
-        
-        $cajaFlujo = new LengthAwarePaginator(
-            $currentItems,
-            $cajaFlujo->count(),
-            $perPage,
-            $currentPage,
-            [
-                'path' => LengthAwarePaginator::resolveCurrentPath(),
-                'query' => $request->query(),
-            ]
-        );
-        // 👆 HASTA AQUÍ
 
         return view('finanzas.index', compact(
-            'totalIngresos', 
-            'totalGastos', 
-            'balance', 
+            'totalIngresos',
+            'totalGastos',
+            'balance',
             'cajaFlujo',
             'filtro',
-            'fechaInicio',  
+            'fechaInicio',
             'fechaFin'
         ));
     }
 
     public function storeGasto(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'descripcion' => 'required|string|max:255',
-            'monto' => 'required|numeric|min:0',
+            'monto' => 'required|numeric|min:0.01',
             'fecha' => 'required|date',
-            'categoria' => 'nullable|string'
+            'categoria' => 'nullable|string|max:100',
         ]);
 
-        // UsesTenantModel llena empresa_id automático
-        Gasto::create($request->all());
+        Gasto::create($validated);
 
         return redirect()->back()->with('success', 'Gasto registrado correctamente.');
     }
 
     public function storeIngreso(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'monto' => 'required|numeric|min:0.01',
             'descripcion' => 'required|string|max:255',
             'fecha' => 'required|date',
-            'tipo_ingreso' => 'required|string'
+            'tipo_ingreso' => 'required|string|max:100',
         ]);
 
-        // El scope global se encarga de asignar empresa_id automáticamente
         Ingreso::create([
-            'monto' => $request->monto,
-            'descripcion' => $request->descripcion,
-            'fecha' => $request->fecha,
-            'tipo' => $request->tipo_ingreso,
+            'monto' => $validated['monto'],
+            'descripcion' => $validated['descripcion'],
+            'fecha' => $validated['fecha'],
+            'tipo' => $validated['tipo_ingreso'],
         ]);
 
         return redirect()->back()->with('success', 'Ingreso registrado correctamente.');
+    }
+
+    /**
+     * Anular = borrado lógico (soft delete): el registro se conserva para auditoría.
+     */
+    public function anularIngreso($id)
+    {
+        Ingreso::findOrFail($id)->delete();
+
+        return redirect()->back()->with('success', 'Ingreso anulado correctamente.');
+    }
+
+    public function anularGasto($id)
+    {
+        Gasto::findOrFail($id)->delete();
+
+        return redirect()->back()->with('success', 'Gasto anulado correctamente.');
+    }
+
+    /**
+     * @return array{0: Carbon, 1: Carbon}
+     */
+    private function rangoFechas(string $filtro, Request $request): array
+    {
+        return match ($filtro) {
+            'hoy' => [Carbon::today(), Carbon::today()->endOfDay()],
+            'semana' => [Carbon::now()->startOfWeek(), Carbon::now()->endOfWeek()],
+            'anio_actual' => [Carbon::now()->startOfYear(), Carbon::now()->endOfYear()],
+            'personalizado' => $request->filled(['fecha_inicio', 'fecha_fin'])
+                ? [Carbon::parse($request->fecha_inicio)->startOfDay(), Carbon::parse($request->fecha_fin)->endOfDay()]
+                : [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()],
+            default => [Carbon::now()->startOfMonth(), Carbon::now()->endOfMonth()],
+        };
     }
 }

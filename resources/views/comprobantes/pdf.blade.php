@@ -242,9 +242,21 @@
     {{-- Totales --}}
     <table class="totals-table">
         <tr>
-            <td><strong>Subtotal (Base Imponible):</strong></td>
-            <td class="text-right">S/ {{ number_format($comprobante->subtotal, 2) }}</td>
+            <td><strong>Op. Gravada:</strong></td>
+            <td class="text-right">S/ {{ number_format($comprobante->total_gravadas ?? $comprobante->subtotal, 2) }}</td>
         </tr>
+        @if((float) $comprobante->total_exoneradas > 0)
+        <tr>
+            <td><strong>Op. Exonerada:</strong></td>
+            <td class="text-right">S/ {{ number_format($comprobante->total_exoneradas, 2) }}</td>
+        </tr>
+        @endif
+        @if((float) $comprobante->total_inafectas > 0)
+        <tr>
+            <td><strong>Op. Inafecta:</strong></td>
+            <td class="text-right">S/ {{ number_format($comprobante->total_inafectas, 2) }}</td>
+        </tr>
+        @endif
         <tr>
             <td><strong>IGV (18%):</strong></td>
             <td class="text-right">S/ {{ number_format($comprobante->igv, 2) }}</td>

@@ -57,6 +57,8 @@
                     <h1 class="text-2xl font-bold text-gray-900">Venta #{{ $venta->id }}</h1>
                     <p class="text-sm text-gray-600 mt-1">
                         {{ \Carbon\Carbon::parse($venta->fecha)->format('d/m/Y H:i') }} • {{ \Carbon\Carbon::parse($venta->fecha)->diffForHumans() }}
+                        • Pago: <span class="font-semibold">{{ $venta->metodo_pago_nombre }}</span>
+                        @if($venta->usuario) • Atendió: {{ $venta->usuario->nombre }} @endif
                     </p>
                 </div>
             </div>
@@ -70,6 +72,11 @@
     </svg>
     Imprimir Boleta
 </a>
+                <a href="{{ route('ventas.ticket', $venta) }}"
+                   target="_blank"
+                   class="flex-1 md:flex-none inline-flex items-center justify-center px-5 py-3 bg-white border-2 border-[#218786] text-[#218786] font-bold rounded-lg hover:bg-teal-50 transition-all">
+                    Ticket
+                </a>
 
                 
                 <a href="{{ route('ventas.index') }}" 
@@ -311,7 +318,7 @@
     {{-- 👇 AÑADIR AQUÍ LA SECCIÓN DE COMPROBANTE ELECTRÓNICO --}}
     
     {{-- Sección de Comprobante Electrónico --}}
-    @if($venta->estado === 'completada' || $venta->estado === 'pagado')
+    @if($venta->estado === 'pagado')
     <div class="fade-in bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
         <div class="bg-gradient-to-r from-purple-600 to-purple-700 px-8 py-6">
             <h2 class="text-2xl font-bold text-white flex items-center">
@@ -338,7 +345,7 @@
                     </div>
                     
                     <div class="text-right">
-                        @if($comprobante->estado_sunat == 'aceptado' && !$comprobante->anulado)
+                        @if(in_array($comprobante->estado_sunat, ['aceptado', 'observado']) && !$comprobante->anulado)
                             <span class="px-6 py-3 bg-green-100 text-green-800 rounded-full font-bold text-lg inline-flex items-center">
                                 <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
@@ -399,6 +406,15 @@
                 
             @else
                 {{-- No tiene comprobante - Mostrar formulario para emitir --}}
+                @if($venta->comprobante && ($venta->comprobante->estado_sunat === 'rechazado' || $venta->comprobante->anulado))
+                    <div class="mb-6 p-4 rounded-xl bg-red-50 border border-red-100 text-sm text-red-800">
+                        El último comprobante ({{ $venta->comprobante->numero_completo }}) fue
+                        <strong>{{ $venta->comprobante->anulado ? 'anulado' : 'rechazado' }}</strong>.
+                        @if($venta->comprobante->mensaje_sunat) Motivo: {{ $venta->comprobante->mensaje_sunat }}. @endif
+                        Puedes emitir uno nuevo.
+                        <a href="{{ route('comprobantes.show', $venta->comprobante) }}" class="underline font-semibold">Ver detalle</a>
+                    </div>
+                @endif
                 
                 @if(auth()->user()->empresa->tieneFacturacionActiva())
                     <div class="text-center mb-8">

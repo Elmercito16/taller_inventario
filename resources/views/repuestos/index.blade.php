@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Lista de Repuestos')
-@section('page-title', 'Gestión de Repuestos')
-@section('page-description', 'Administra el inventario de repuestos de tu taller')
+@section('title', 'Lista de Productos')
+@section('page-title', 'Gestión de Productos')
+@section('page-description', 'Administra el inventario de productos de tu negocio')
 
 @section('breadcrumbs')
 <nav class="flex items-center space-x-2 text-sm text-gray-500">
@@ -10,7 +10,7 @@
     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
     </svg>
-    <span class="font-medium text-gray-900">Repuestos</span>
+    <span class="font-medium text-gray-900">Productos</span>
 </nav>
 @endsection
 
@@ -106,7 +106,7 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                 <div class="mb-2 sm:mb-0">
-                    <p class="text-xs sm:text-sm font-medium text-gray-600">Total Repuestos</p>
+                    <p class="text-xs sm:text-sm font-medium text-gray-600">Total Productos</p>
                     <p class="text-2xl sm:text-3xl font-bold text-gray-900">{{ $repuestos->total() }}</p>
                 </div>
                 <div class="p-2 sm:p-3 bg-primary-100 rounded-full self-start sm:self-auto">
@@ -167,13 +167,13 @@
                 
                 <!-- Botón Agregar - Responsive -->
                 <div class="flex justify-between items-center">
-                    <h3 class="text-base sm:text-lg font-semibold text-gray-900">Filtrar Repuestos</h3>
+                    <h3 class="text-base sm:text-lg font-semibold text-gray-900">Filtrar Productos</h3>
                     <a href="{{ route('repuestos.create') }}" 
                        class="inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 bg-[#218786] text-white text-sm font-medium rounded-lg hover:bg-[#1a6d6c] transition-all duration-200 shadow-sm hover:shadow-md touch-target">
                         <svg class="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                         </svg>
-                        <span class="hidden sm:inline">Agregar Repuesto</span>
+                        <span class="hidden sm:inline">Agregar Producto</span>
                     </a>
                 </div>
 
@@ -264,7 +264,7 @@
         </div>
     @endif
 
-    <!-- Grid de repuestos - Responsive -->
+    <!-- Grid de productos - Responsive -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         @forelse ($repuestos as $repuesto)
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden card-hover animate-slide-up" 
@@ -286,7 +286,11 @@
                     
                     <!-- Badge de stock -->
                     <div class="absolute top-2 right-2">
-                        @if($repuesto->cantidad <= 0)
+                        @if($repuesto->esServicio())
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-sky-100 text-sky-800 shadow-sm">
+                                Servicio
+                            </span>
+                        @elseif($repuesto->cantidad <= 0)
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 shadow-sm">
                                 Agotado
                             </span>
@@ -310,7 +314,7 @@
                             {{ $repuesto->nombre }}
                         </h3>
                         <p class="text-xs sm:text-sm text-gray-500 truncate">
-                            {{ $repuesto->codigo }} • {{ $repuesto->marca }}
+                            {{ $repuesto->codigo }}@if($repuesto->marca) • {{ $repuesto->marca }}@endif
                         </p>
                     </div>
 
@@ -320,9 +324,9 @@
                             S/ {{ number_format($repuesto->precio_unitario, 2) }}
                         </div>
                         <div class="text-right">
-                            <p class="text-xs text-gray-500">Stock</p>
-                            <p class="text-base sm:text-lg font-semibold {{ $repuesto->cantidad <= $repuesto->minimo_stock ? 'text-red-600' : 'text-gray-900' }}">
-                                {{ $repuesto->cantidad }}
+                            <p class="text-xs text-gray-500">{{ $repuesto->esServicio() ? 'Tipo' : 'Stock' }}</p>
+                            <p class="text-base sm:text-lg font-semibold {{ $repuesto->tieneStockBajo() ? 'text-red-600' : 'text-gray-900' }}">
+                                {{ $repuesto->stock_formateado }}
                             </p>
                         </div>
                     </div>
@@ -348,6 +352,7 @@
                         </button>
                         
                         <div class="flex items-center gap-2">
+@unless($repuesto->esServicio())
                             <button onclick="agregarCantidad({{ $repuesto->id }}, '{{ addslashes($repuesto->nombre) }}')"
                                     class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors duration-200 touch-target"
                                     title="Agregar stock">
@@ -355,7 +360,13 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                                 </svg>
                             </button>
+@endunless
                             
+                            @unless($repuesto->esServicio())
+                            <a href="{{ route('kardex.show', $repuesto->id) }}" class="p-2 text-sky-600 hover:bg-sky-50 rounded-lg transition-colors duration-200 touch-target" title="Kardex (movimientos)">
+                                <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                            </a>
+                            @endunless
                             <a href="{{ route('repuestos.edit', $repuesto->id) }}"
                                class="p-2 text-yellow-600 hover:bg-yellow-50 rounded-lg transition-colors duration-200 touch-target"
                                title="Editar">
@@ -376,7 +387,7 @@
                     
                     <!-- Header del modal - Sticky -->
                     <div class="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between z-10 flex-shrink-0">
-                        <h2 class="text-lg sm:text-xl font-bold text-gray-900">Detalles del Repuesto</h2>
+                        <h2 class="text-lg sm:text-xl font-bold text-gray-900">Detalles del Producto</h2>
                         <button onclick="closeModal({{ $repuesto->id }})" 
                                 class="p-1.5 sm:p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors touch-target">
                             <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -408,8 +419,8 @@
                                 <!-- Cards de Info Rápida - Responsive -->
                                 <div class="grid grid-cols-2 gap-3 sm:gap-4">
                                     <div class="bg-[#218786]/10 rounded-xl p-4 text-center">
-                                        <p class="text-[#218786] text-2xl sm:text-3xl font-bold">{{ $repuesto->cantidad }}</p>
-                                        <p class="text-[#218786] text-xs sm:text-sm font-medium mt-1">En Stock</p>
+                                        <p class="text-[#218786] text-2xl sm:text-3xl font-bold">{{ $repuesto->stock_formateado }}</p>
+                                        <p class="text-[#218786] text-xs sm:text-sm font-medium mt-1">{{ $repuesto->esServicio() ? 'Sin control de stock' : 'En Stock' }}</p>
                                     </div>
                                     <div class="bg-green-50 rounded-xl p-4 text-center">
                                         <p class="text-green-600 text-2xl sm:text-3xl font-bold">S/ {{ number_format($repuesto->precio_unitario, 2) }}</p>
@@ -467,20 +478,30 @@
                                     <dl class="grid grid-cols-1 gap-2 text-xs sm:text-sm">
                                         <div class="flex justify-between py-1.5 border-b border-gray-200">
                                             <dt class="text-gray-500">Stock actual:</dt>
-                                            <dd class="font-medium {{ $repuesto->cantidad <= $repuesto->minimo_stock ? 'text-red-600' : 'text-gray-900' }}">
-                                                {{ $repuesto->cantidad }} unidades
+                                            <dd class="font-medium {{ $repuesto->tieneStockBajo() ? 'text-red-600' : 'text-gray-900' }}">
+                                                {{ $repuesto->stock_formateado }}
                                             </dd>
                                         </div>
                                         <div class="flex justify-between py-1.5 border-b border-gray-200">
                                             <dt class="text-gray-500">Stock mínimo:</dt>
-                                            <dd class="font-medium text-gray-900">{{ $repuesto->minimo_stock }} unidades</dd>
+                                            <dd class="font-medium text-gray-900">{{ \App\Support\Catalogos::cantidad($repuesto->minimo_stock) }} {{ $repuesto->unidad_abreviatura }}</dd>
                                         </div>
                                         <div class="flex justify-between py-1.5 border-b border-gray-200">
                                             <dt class="text-gray-500">Valor total:</dt>
                                             <dd class="font-medium text-gray-900">
-                                                S/ {{ number_format($repuesto->cantidad * $repuesto->precio_unitario, 2) }}
+                                                {{ $repuesto->esServicio() ? '—' : 'S/ ' . number_format($repuesto->cantidad * $repuesto->precio_unitario, 2) }}
                                             </dd>
                                         </div>
+                                        <div class="flex justify-between py-1.5 border-b border-gray-200">
+                                            <dt class="text-gray-500">Unidad / IGV:</dt>
+                                            <dd class="font-medium text-gray-900">{{ $repuesto->unidad_nombre }} · {{ \App\Support\Catalogos::AFECTACIONES_IGV[$repuesto->afectacion_igv] ?? 'Gravado' }}</dd>
+                                        </div>
+                                        @if($repuesto->codigo_barras)
+                                        <div class="flex justify-between py-1.5 border-b border-gray-200">
+                                            <dt class="text-gray-500">Código de barras:</dt>
+                                            <dd class="font-mono text-gray-900">{{ $repuesto->codigo_barras }}</dd>
+                                        </div>
+                                        @endif
                                         @if($repuesto->fecha_ingreso)
                                         <div class="flex justify-between py-1.5">
                                             <dt class="text-gray-500">Fecha ingreso:</dt>
@@ -496,6 +517,7 @@
                     <!-- Footer con Acciones - Sticky -->
                     <div class="sticky bottom-0 bg-white border-t border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0">
                         <div class="flex flex-wrap gap-2 sm:gap-3">
+@unless($repuesto->esServicio())
                             <button onclick="agregarCantidad({{ $repuesto->id }}, '{{ addslashes($repuesto->nombre) }}')"
                                     class="flex-1 sm:flex-none inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white text-sm font-medium rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 shadow-sm hover:shadow-md touch-target">
                                 <svg class="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -503,7 +525,13 @@
                                 </svg>
                                 <span class="hidden sm:inline">Agregar Stock</span>
                             </button>
+@endunless
 
+                            @unless($repuesto->esServicio())
+                            <a href="{{ route('kardex.show', $repuesto->id) }}" class="flex-1 sm:flex-none inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 bg-sky-600 text-white text-sm font-medium rounded-lg hover:bg-sky-700 transition-all duration-200 shadow-sm touch-target">
+                                Kardex
+                            </a>
+                            @endunless
                             <a href="{{ route('repuestos.edit', $repuesto->id) }}" 
                                class="flex-1 sm:flex-none inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 bg-gradient-to-r from-yellow-500 to-yellow-600 text-white text-sm font-medium rounded-lg hover:from-yellow-600 hover:to-yellow-700 transition-all duration-200 shadow-sm hover:shadow-md touch-target">
                                 <svg class="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -539,16 +567,16 @@
                     </div>
                     <h3 class="text-base sm:text-lg font-medium text-gray-900 mb-2">
                         @if(request('q') || request('categoria_id'))
-                            No se encontraron repuestos
+                            No se encontraron productos
                         @else
-                            No hay repuestos registrados
+                            No hay productos registrados
                         @endif
                     </h3>
                     <p class="text-sm text-gray-500 mb-6 max-w-md mx-auto px-4">
                         @if(request('q') || request('categoria_id'))
-                            No se encontraron repuestos que coincidan con tus filtros.
+                            No se encontraron productos que coincidan con tus filtros.
                         @else
-                            Comienza agregando tu primer repuesto al inventario.
+                            Comienza agregando tu primer producto al inventario.
                         @endif
                     </p>
                     <div class="flex flex-col sm:flex-row gap-3 justify-center items-center px-4">
@@ -563,7 +591,7 @@
                             <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
                             </svg>
-                            Agregar repuesto
+                            Agregar producto
                         </a>
                     </div>
                 </div>
@@ -578,7 +606,7 @@
                 <!-- Info de paginación -->
                 <div class="text-xs sm:text-sm text-gray-700 text-center sm:text-left">
                     Mostrando <span class="font-medium">{{ $repuestos->firstItem() }}</span> - <span class="font-medium">{{ $repuestos->lastItem() }}</span> 
-                    de <span class="font-medium">{{ $repuestos->total() }}</span> repuestos
+                    de <span class="font-medium">{{ $repuestos->total() }}</span> productos
                 </div>
                 
                 <!-- Controles de paginación -->
@@ -677,14 +705,14 @@
                 <h3 class="text-base sm:text-lg font-semibold text-yellow-800">Alertas de Inventario</h3>
             </div>
             
-            {{-- Repuestos Agotados --}}
+            {{-- Productos Agotados --}}
             @if($agotados->count() > 0)
                 <div class="mb-4">
                     <h4 class="font-semibold text-red-700 mb-2 flex items-center text-sm sm:text-base">
                         <svg class="w-4 h-4 sm:w-5 sm:h-5 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
                         </svg>
-                        Repuestos Agotados ({{ $agotados->count() }})
+                        Productos Agotados ({{ $agotados->count() }})
                     </h4>
                     <div class="space-y-2">
                         @foreach($agotados as $repuesto)
@@ -702,7 +730,7 @@
                 </div>
             @endif
 
-            {{-- Repuestos con Stock Bajo --}}
+            {{-- Productos con Stock Bajo --}}
             @if($stockBajo->count() > 0)
                 <div>
                     <h4 class="font-semibold text-yellow-700 mb-2 flex items-center text-sm sm:text-base">
@@ -721,8 +749,8 @@
                                     @endif
                                 </div>
                                 <div class="text-right">
-                                    <span class="text-yellow-600 font-bold text-sm block">Stock: {{ $repuesto->cantidad }}</span>
-                                    <span class="text-xs text-gray-500">Mínimo: {{ $repuesto->minimo_stock }}</span>
+                                    <span class="text-yellow-600 font-bold text-sm block">Stock: {{ $repuesto->stock_formateado }}</span>
+                                    <span class="text-xs text-gray-500">Mínimo: {{ \App\Support\Catalogos::cantidad($repuesto->minimo_stock) }}</span>
                                 </div>
                             </div>
                         @endforeach
@@ -748,7 +776,7 @@ function agregarCantidad(id, nombre) {
                 <label for="cantidad-input" class="block text-sm font-medium text-gray-700 mb-2">Cantidad a agregar:</label>
                 <input type="number" id="cantidad-input" 
                        class="w-full px-4 py-3 text-base border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-colors" 
-                       min="1" step="1" placeholder="Ingrese la cantidad" autofocus>
+                       min="0.001" step="any" placeholder="Ingrese la cantidad" autofocus>
             </div>
         `,
         focusConfirm: false,
@@ -768,8 +796,8 @@ function agregarCantidad(id, nombre) {
         },
         preConfirm: () => {
             const cantidad = document.getElementById('cantidad-input').value;
-            if (!cantidad || cantidad < 1) {
-                Swal.showValidationMessage('Por favor ingrese una cantidad válida (mínimo 1)');
+            if (!cantidad || parseFloat(cantidad) <= 0) {
+                Swal.showValidationMessage('Por favor ingrese una cantidad mayor a 0');
                 return false;
             }
             return cantidad;
@@ -788,7 +816,7 @@ function agregarCantidad(id, nombre) {
 
             const form = document.createElement('form');
             form.method = 'POST';
-            form.action = `/repuestos/${id}/cantidad`;
+            form.action = `{{ url('productos') }}/${id}/cantidad`;
 
             const csrf = document.createElement('input');
             csrf.type = 'hidden';
@@ -814,7 +842,7 @@ function confirmarEliminacion(form, nombre) {
         title: '¿Estás seguro?',
         html: `
             <div class="text-left">
-                <p class="mb-2 text-gray-700">Estás a punto de eliminar el repuesto:</p>
+                <p class="mb-2 text-gray-700">Estás a punto de eliminar el producto:</p>
                 <p class="font-semibold text-gray-900 bg-gray-50 p-3 rounded-lg mb-4">${nombre}</p>
                 <div class="flex items-start p-3 bg-red-50 rounded-lg border border-red-200">
                     <svg class="w-5 h-5 text-red-600 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -840,7 +868,7 @@ function confirmarEliminacion(form, nombre) {
         if (result.isConfirmed) {
             Swal.fire({
                 title: 'Eliminando...',
-                html: 'Procesando eliminación del repuesto',
+                html: 'Procesando eliminación del producto',
                 allowOutsideClick: false,
                 allowEscapeKey: false,
                 didOpen: () => {

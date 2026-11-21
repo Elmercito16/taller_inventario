@@ -137,6 +137,25 @@
                     @enderror
                 </div>
 
+                <!-- RUC (opcional, necesario para emitir FACTURAS) -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        RUC <span class="text-xs font-normal text-gray-400">(opcional, para facturas)</span>
+                    </label>
+                    <input type="text"
+                           id="ruc"
+                           name="ruc"
+                           maxlength="11"
+                           inputmode="numeric"
+                           oninput="this.value = this.value.replace(/\D/g, '').slice(0, 11)"
+                           value="{{ old('ruc', $cliente->ruc ?? '') }}"
+                           class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-colors duration-200"
+                           placeholder="11 dígitos (10... / 20...)">
+                    @error('ruc')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
 
                 <!-- Nombre Completo -->
                 <div>

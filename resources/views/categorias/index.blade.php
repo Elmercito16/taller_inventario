@@ -2,7 +2,7 @@
 
 @section('title', 'Categorías')
 @section('page-title', 'Gestión de Categorías')
-@section('page-description', 'Organiza y administra las categorías de tus repuestos')
+@section('page-description', 'Organiza y administra las categorías de tus productos')
 
 @push('styles')
 <style>
@@ -303,7 +303,7 @@
                     </div>
                     <h3 class="text-xl font-bold text-gray-900 mb-2">No hay categorías registradas</h3>
                     <p class="text-gray-500 mb-8 max-w-md mx-auto">
-                        Crea tu primera categoría para organizar tu inventario de repuestos de manera eficiente.
+                        Crea tu primera categoría para organizar tu inventario de productos de manera eficiente.
                     </p>
                     <a href="{{ route('categorias.create') }}" 
                        class="inline-flex items-center px-6 py-3 bg-gradient-to-r from-[#218786] to-[#1a6d6c] text-white font-semibold rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">

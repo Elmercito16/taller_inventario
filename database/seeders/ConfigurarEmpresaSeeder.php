@@ -18,12 +18,12 @@ class ConfigurarEmpresaSeeder extends Seeder
         $empresa = Empresa::updateOrCreate(
             ['ruc' => '20000000001'], // Buscar por RUC
             [
-                'nombre' => 'MI TALLER',
+                'nombre' => 'MI NEGOCIO',
                 'razon_social' => 'EMPRESA DE PRUEBAS S.A.C.',
-                'nombre_comercial' => 'MI TALLER',
+                'nombre_comercial' => 'MI NEGOCIO',
                 'direccion' => 'AV. PRINCIPAL 123',
                 'telefono' => '999888777',
-                'email' => 'pruebas@mitaller.com',
+                'email' => 'pruebas@minegocio.com',
                 'direccion_fiscal' => 'AV. PRINCIPAL 123',
                 'ubigeo' => '150101',
                 'departamento' => 'LIMA',
@@ -31,7 +31,7 @@ class ConfigurarEmpresaSeeder extends Seeder
                 'distrito' => 'LIMA',
                 'urbanizacion' => '-',
                 'codigo_pais' => 'PE',
-                'web' => 'www.mitaller.com',
+                'web' => 'www.minegocio.com',
                 'sol_user' => null,
                 'sol_pass' => null,
                 'certificado_path' => 'certificado-beta.pem',
@@ -58,7 +58,7 @@ class ConfigurarEmpresaSeeder extends Seeder
     private function crearUsuarioAdmin($empresa)
     {
         $usuario = Usuario::updateOrCreate(
-            ['correo' => 'admin@mitaller.com'],
+            ['correo' => 'admin@minegocio.com'],
             [
                 'empresa_id' => $empresa->id,
                 'nombre' => 'Administrador',

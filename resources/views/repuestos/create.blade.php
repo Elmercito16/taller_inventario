@@ -1,8 +1,8 @@
 @extends('layouts.app')
 
-@section('title', 'Agregar Repuesto')
-@section('page-title', 'Nuevo Repuesto')
-@section('page-description', 'Registra un nuevo repuesto en el inventario')
+@section('title', 'Agregar Producto')
+@section('page-title', 'Nuevo Producto')
+@section('page-description', 'Registra un nuevo producto en el inventario')
 
 @section('breadcrumbs')
 <nav class="flex items-center space-x-2 text-sm text-gray-500">
@@ -10,11 +10,11 @@
     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
     </svg>
-    <a href="{{ route('repuestos.index') }}" class="hover:text-primary-600 transition-colors">Repuestos</a>
+    <a href="{{ route('repuestos.index') }}" class="hover:text-primary-600 transition-colors">Productos</a>
     <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
         <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 111.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
     </svg>
-    <span class="font-medium text-gray-900">Nuevo Repuesto</span>
+    <span class="font-medium text-gray-900">Nuevo Producto</span>
 </nav>
 @endsection
 
@@ -91,8 +91,8 @@
     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-2xl font-bold text-gray-900">Agregar Nuevo Repuesto</h1>
-                <p class="text-gray-600 mt-1">Complete la información para registrar el repuesto en el inventario</p>
+                <h1 class="text-2xl font-bold text-gray-900">Agregar Nuevo Producto</h1>
+                <p class="text-gray-600 mt-1">Complete la información para registrar el producto en el inventario</p>
             </div>
             <div class="flex items-center space-x-2">
                 <div class="w-3 h-3 bg-primary-500 rounded-full"></div>
@@ -118,7 +118,7 @@
                     </div>
                     <div>
                         <h2 class="text-lg font-semibold text-gray-900">Información Básica</h2>
-                        <p class="text-sm text-gray-600">Datos principales del repuesto</p>
+                        <p class="text-sm text-gray-600">Datos principales del producto</p>
                     </div>
                 </div>
 
@@ -126,7 +126,7 @@
                     <!-- Nombre -->
                     <div class="input-group">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Nombre del Repuesto <span class="text-red-500">*</span>
+                            Nombre del Producto <span class="text-red-500">*</span>
                         </label>
                         <input type="text" 
                                name="nombre" 
@@ -145,14 +145,13 @@
                     <!-- Marca -->
                     <div class="input-group">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Marca <span class="text-red-500">*</span>
+                            Marca <span class="text-xs font-normal text-gray-400">(opcional)</span>
                         </label>
                         <input type="text" 
                                name="marca" 
                                x-model="form.marca"
                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200 @error('marca') border-red-300 @enderror" 
-                               placeholder="Ej: Toyota, Nissan, Bosch"
-                               required>
+                               placeholder="Ej: Samsung, Gloria, Stanley">
                         <svg class="input-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                         </svg>
@@ -168,13 +167,15 @@
                                   x-model="form.descripcion"
                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200 resize-none @error('descripcion') border-red-300 @enderror" 
                                   rows="4"
-                                  placeholder="Descripción detallada del repuesto, compatibilidades, especificaciones técnicas..."></textarea>
+                                  placeholder="Descripción detallada del producto, presentación, características..."></textarea>
                         @error('descripcion')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
                     </div>
                 </div>
             </div>
+
+            @include('repuestos.partials.datos-comerciales')
 
             <!-- Sección: Inventario y Precios -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 form-section">
@@ -186,13 +187,13 @@
                     </div>
                     <div>
                         <h2 class="text-lg font-semibold text-gray-900">Inventario y Precios</h2>
-                        <p class="text-sm text-gray-600">Stock inicial y precio del repuesto</p>
+                        <p class="text-sm text-gray-600">Stock inicial y precio del producto</p>
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <!-- Cantidad -->
-                    <div class="input-group">
+                    <div class="input-group solo-producto">
                         <label class="block text-sm font-medium text-gray-700 mb-2">
                             Cantidad Inicial <span class="text-red-500">*</span>
                         </label>
@@ -233,10 +234,30 @@
                         @error('precio_unitario')
                             <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
                         @enderror
+                        <p class="mt-1 text-xs text-gray-500">Precio final al cliente (IGV incluido)</p>
+                    </div>
+
+                    <!-- Precio de Compra (costo) -->
+                    <div class="input-group">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Precio de Compra (S/)</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 font-medium">S/</span>
+                            <input type="number"
+                                   name="precio_compra"
+                                   value="{{ old('precio_compra') }}"
+                                   step="0.01"
+                                   min="0"
+                                   class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors duration-200 @error('precio_compra') border-red-300 @enderror"
+                                   placeholder="0.00">
+                        </div>
+                        @error('precio_compra')
+                            <p class="mt-1 text-sm text-red-600">{{ $message }}</p>
+                        @enderror
+                        <p class="mt-1 text-xs text-gray-500">Opcional. Se usa para calcular la ganancia real.</p>
                     </div>
 
                     <!-- Stock Mínimo -->
-                    <div class="input-group">
+                    <div class="input-group solo-producto">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Stock Mínimo</label>
                         <input type="number" 
                                name="minimo_stock" 
@@ -281,7 +302,7 @@
                     </div>
                     <div>
                         <h2 class="text-lg font-semibold text-gray-900">Clasificación y Fechas</h2>
-                        <p class="text-sm text-gray-600">Organización del repuesto en el sistema</p>
+                        <p class="text-sm text-gray-600">Organización del producto en el sistema</p>
                     </div>
                 </div>
 
@@ -354,8 +375,8 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-900">Imagen del Repuesto</h2>
-                        <p class="text-sm text-gray-600">Sube una foto del repuesto (opcional)</p>
+                        <h2 class="text-lg font-semibold text-gray-900">Imagen del Producto</h2>
+                        <p class="text-sm text-gray-600">Sube una foto del producto (opcional)</p>
                     </div>
                 </div>
 
@@ -447,7 +468,7 @@
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span x-text="isSubmitting ? 'Guardando...' : 'Guardar Repuesto'"></span>
+                        <span x-text="isSubmitting ? 'Guardando...' : 'Guardar Producto'"></span>
                     </button>
                 </div>
             </div>
@@ -548,21 +569,18 @@ function repuestoForm() {
             
             // Validaciones básicas
             if (!this.form.nombre.trim()) {
-                this.showError('Por favor ingresa el nombre del repuesto');
+                this.showError('Por favor ingresa el nombre del producto');
                 return;
             }
             
-            if (!this.form.marca.trim()) {
-                this.showError('Por favor ingresa la marca del repuesto');
-                return;
-            }
             
             if (!this.form.categoria_id) {
                 this.showError('Por favor selecciona una categoría');
                 return;
             }
             
-            if (this.form.cantidad === '' || this.form.cantidad < 0) {
+            const esServicio = document.getElementById('campo-tipo')?.value === 'servicio';
+            if (!esServicio && (this.form.cantidad === '' || this.form.cantidad < 0)) {
                 this.showError('Por favor ingresa una cantidad válida');
                 return;
             }
@@ -574,12 +592,12 @@ function repuestoForm() {
             
             // Mostrar confirmación
             const result = await Swal.fire({
-                title: '¿Guardar repuesto?',
+                title: '¿Guardar producto?',
                 html: `
                     <div class="text-left space-y-2">
                         <p><strong>Nombre:</strong> ${this.form.nombre}</p>
-                        <p><strong>Marca:</strong> ${this.form.marca}</p>
-                        <p><strong>Cantidad:</strong> ${this.form.cantidad} unidades</p>
+                        ${this.form.marca ? `<p><strong>Marca:</strong> ${this.form.marca}</p>` : ''}
+                        <p><strong>${esServicio ? 'Tipo:</strong> Servicio' : 'Stock inicial:</strong> ' + this.form.cantidad + ' ' + (document.getElementById('campo-unidad')?.selectedOptions[0]?.text ?? '')}</p>
                         <p><strong>Precio:</strong> S/ ${parseFloat(this.form.precio_unitario).toFixed(2)}</p>
                         <p><strong>Valor total:</strong> S/ ${this.totalValue.toFixed(2)}</p>
                     </div>

@@ -6,8 +6,8 @@
     <meta name="robots" content="noindex, nofollow">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     
-    <title>@yield('title', 'Autenticación - Taller Pro')</title>
-    <meta name="description" content="Sistema de autenticación seguro para Taller Pro - Gestión de inventario profesional">
+    <title>@yield('title', 'Autenticación - MultiSoft')</title>
+    <meta name="description" content="Sistema de autenticación seguro para MultiSoft - Gestión de inventario para negocios">
     
     <!-- Preload y optimizaciones -->
     <link rel="preload" href="https://cdn.tailwindcss.com" as="script">
@@ -222,7 +222,7 @@
                     <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
                 </svg>
             </div>
-            <p class="text-white font-medium">Cargando Taller Pro...</p>
+            <p class="text-white font-medium">Cargando MultiSoft...</p>
         </div>
     </div>
     
@@ -234,7 +234,7 @@
     <!-- Footer informativo -->
     <div class="mt-auto pb-4 z-10">
         <div class="text-center">
-            <p class="text-white/80 text-sm font-medium mb-2">Taller Pro - Sistema de Inventario</p>
+            <p class="text-white/80 text-sm font-medium mb-2">MultiSoft - Inventario y Ventas</p>
             <div class="flex items-center justify-center space-x-4 text-xs text-white/60 footer-badges">
                 <div class="flex items-center mb-1">
                     <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

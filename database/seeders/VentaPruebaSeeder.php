@@ -44,7 +44,7 @@ class VentaPruebaSeeder extends Seeder
         $this->command->info('🎉 ¡Datos de prueba creados exitosamente!');
         $this->command->info('');
         $this->command->info('💡 Ahora puedes:');
-        $this->command->info('   1. Iniciar sesión con: admin@mitaller.com / password');
+        $this->command->info('   1. Iniciar sesión con: admin@minegocio.com / password');
         $this->command->info('   2. Ir a Ventas y ver las ventas de prueba');
         $this->command->info('   3. Emitir comprobantes electrónicos de prueba');
     }

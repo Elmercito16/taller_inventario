@@ -2,7 +2,7 @@
 
 @section('title', 'Nueva Categoría')
 @section('page-title', 'Registrar Nueva Categoría')
-@section('page-description', 'Agrega una nueva categoría para clasificar tus repuestos')
+@section('page-description', 'Agrega una nueva categoría para clasificar tus productos')
 
 @push('styles')
 <style>
