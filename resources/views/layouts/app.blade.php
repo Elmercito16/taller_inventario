@@ -113,14 +113,14 @@
             .stat-card { @apply bg-white rounded-xl border border-gray-200 shadow-soft p-5; }
             .stat-icon { @apply w-9 h-9 rounded-lg flex items-center justify-center mb-3; }
             .stat-label { @apply text-sm text-gray-500; }
-            .stat-value { @apply mt-1 text-xl sm:text-2xl font-semibold text-gray-900 tracking-tight tabular-nums whitespace-nowrap; }
+            .stat-value { @apply mt-1 text-lg sm:text-2xl font-semibold text-gray-900 tracking-tight tabular-nums whitespace-nowrap; }
             .stat-foot { @apply mt-1 text-xs text-gray-500; }
 
             /* ---------- Varios ---------- */
             .toolbar { @apply flex flex-col lg:flex-row lg:items-end gap-3 p-4 border-b border-gray-100; }
             .avatar { @apply inline-flex items-center justify-center shrink-0 rounded-full bg-primary-50 text-primary-700 font-semibold ring-1 ring-primary-600/10; }
             .thumb { @apply shrink-0 rounded-lg border border-gray-200 bg-gray-50 object-cover; }
-            .tabs { @apply flex gap-1 rounded-lg bg-gray-100 p-1; }
+            .tabs { @apply flex flex-wrap sm:flex-nowrap gap-1 rounded-lg bg-gray-100 p-1; }
             .tab { @apply flex-1 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 text-center whitespace-nowrap transition hover:text-gray-900; }
             .tab-active { @apply bg-white text-gray-900 shadow-sm; }
             .empty-state { @apply px-6 py-12 text-center text-sm text-gray-500; }
@@ -141,6 +141,59 @@
         .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(148,163,184,.4); border-radius: 3px; }
         .bg-gradient-teal { background: linear-gradient(135deg, #218786 0%, #1d7874 100%); }
+
+        /* Celular: las tablas se muestran como tarjetas (una fila = una tarjeta).
+           Cada celda toma su etiqueta del encabezado (data-label, lo pone el JS del layout).
+           Para mantener una tabla normal: class="table table-plain". */
+        .celda-valor { display: contents; }
+
+        @media (max-width: 1023px) {
+            /* Filtros: listas y fechas en dos columnas; buscador y botones a lo ancho */
+            .toolbar.toolbar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .toolbar.toolbar > * { grid-column: span 2 / span 2; width: auto; }
+            .toolbar.toolbar > :has(> select), .toolbar.toolbar > :has(> input[type="date"]) { grid-column: span 1 / span 1; }
+        }
+
+        @media (max-width: 639px) {
+            table.table:not(.hidden):not(.table-plain) { display: block; min-width: 0; }
+            table.table:not(.hidden):not(.table-plain) thead { display: none; }
+            table.table:not(.hidden):not(.table-plain) :is(tbody, tfoot) { display: block; }
+            table.table:not(.hidden):not(.table-plain) tbody tr {
+                display: block; padding: .75rem 1.25rem; border-bottom: 1px solid #f3f4f6;
+            }
+            table.table:not(.hidden):not(.table-plain) tbody tr:last-child { border-bottom: 0; }
+            table.table:not(.hidden):not(.table-plain) tbody td:not(.hidden) {
+                display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+                padding: .25rem 0; border: 0; text-align: right; min-width: 0;
+            }
+            table.table:not(.hidden):not(.table-plain) tbody td:not(.hidden)::before {
+                content: attr(data-label); flex-shrink: 0; text-align: left;
+                font-size: .75rem; font-weight: 400; color: #6b7280;
+            }
+            table.table:not(.hidden):not(.table-plain) tbody td .celda-valor { display: block; min-width: 0; text-align: right; }
+            table.table:not(.hidden):not(.table-plain) tbody td .celda-valor * { text-align: right; }
+            table.table:not(.hidden):not(.table-plain) tbody td .celda-valor > * { margin-left: auto; }
+            /* En tarjeta hay espacio: los textos recortados con "…" se muestran completos */
+            table.table:not(.hidden):not(.table-plain) tbody td .truncate { white-space: normal; overflow: visible; text-overflow: clip; }
+            table.table:not(.hidden):not(.table-plain) tbody td [class*="max-w-"] { max-width: none; }
+            table.table:not(.hidden):not(.table-plain) tbody td[data-label=""] .celda-valor { display: flex; justify-content: flex-end; gap: .25rem; }
+            /* Primera celda = título de la tarjeta */
+            table.table:not(.hidden):not(.table-plain) tbody td:first-child:not(.hidden) {
+                display: block; text-align: left; padding: 0 0 .375rem;
+            }
+            table.table:not(.hidden):not(.table-plain) tbody td:first-child::before,
+            table.table:not(.hidden):not(.table-plain) tbody td[data-label=""]::before,
+            table.table:not(.hidden):not(.table-plain) tbody td[colspan]::before { content: none; }
+            /* Celda de acciones (sin encabezado) y filas vacías */
+            table.table:not(.hidden):not(.table-plain) tbody td[data-label=""]:not(:first-child) { justify-content: flex-end; padding-top: .5rem; }
+            table.table:not(.hidden):not(.table-plain) tbody td[colspan] { display: block; text-align: center; }
+            table.table:not(.hidden):not(.table-plain) tfoot tr {
+                display: flex; justify-content: space-between; align-items: center; gap: .75rem;
+                padding: .75rem 1.25rem; background: #f9fafb; border-top: 1px solid #e5e7eb;
+            }
+            table.table:not(.hidden):not(.table-plain) tfoot td { display: block; padding: 0; border: 0; background: none; }
+            table.table:not(.hidden):not(.table-plain) tfoot td:empty { display: none; }
+        }
     </style>
 
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
@@ -345,6 +398,34 @@
 </div>
 
 <script>
+    // Etiquetas para las tablas en modo tarjeta (celular): copia el texto
+    // del encabezado a cada celda. También cubre filas que Alpine agrega después.
+    (() => {
+        const etiquetar = () => document.querySelectorAll('table.table').forEach((tabla) => {
+            const titulos = [...tabla.querySelectorAll('thead th')].map((th) => th.textContent.trim());
+            tabla.querySelectorAll('tbody tr').forEach((tr) => {
+                let i = 0;
+                [...tr.children].forEach((td, n) => {
+                    if (!td.hasAttribute('data-label')) td.setAttribute('data-label', titulos[i] ?? '');
+                    i += td.colSpan || 1;
+                    // Agrupa el contenido en un solo bloque (en escritorio es "display: contents", no cambia nada)
+                    const envuelto = td.childNodes.length === 1 && td.firstElementChild?.classList.contains('celda-valor');
+                    if (n > 0 && td.colSpan === 1 && td.childNodes.length && !envuelto) {
+                        const caja = document.createElement('div');
+                        caja.className = 'celda-valor';
+                        caja.append(...td.childNodes);
+                        td.append(caja);
+                    }
+                });
+            });
+        });
+        document.addEventListener('DOMContentLoaded', () => {
+            etiquetar();
+            // Solo observa nodos agregados; poner data-label no vuelve a disparar el observador.
+            new MutationObserver(etiquetar).observe(document.body, { childList: true, subtree: true });
+        });
+    })();
+
     document.addEventListener('DOMContentLoaded', () => {
         // Tema común para los diálogos
         window.Dialogo = Swal.mixin({

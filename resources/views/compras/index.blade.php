@@ -16,7 +16,7 @@
 
     {{-- Filtros --}}
     <form method="GET" class="card !p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+        <div class="grid grid-cols-2 lg:grid-cols-5 gap-3 items-end">
             <div>
                 <label class="form-label">Proveedor</label>
                 <select name="proveedor_id" class="form-input">
@@ -42,7 +42,7 @@
                 <label class="form-label">Hasta</label>
                 <input type="date" name="hasta" value="{{ request('hasta') }}" class="form-input">
             </div>
-            <div class="flex gap-2">
+            <div class="flex gap-2 col-span-2 lg:col-span-1">
                 <input type="text" name="q" value="{{ request('q') }}" class="form-input" placeholder="N° documento">
                 <button class="btn-secondary shrink-0" title="Filtrar">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>

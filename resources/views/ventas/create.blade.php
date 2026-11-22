@@ -56,7 +56,7 @@
                 </div>
             </div>
 
-            <div class="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[calc(100vh-300px)] min-h-[300px] overflow-y-auto custom-scrollbar">
+            <div class="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[55vh] xl:max-h-[calc(100vh-300px)] min-h-[300px] overflow-y-auto custom-scrollbar">
                 <template x-for="p in productosFiltrados" :key="p.id">
                     <button type="button" @click="agregar(p)" class="group text-left rounded-lg border border-gray-200 bg-white p-3 transition hover:border-primary-500 hover:shadow-sm flex flex-col"
                             :class="enCarrito(p.id) && 'border-primary-500 ring-1 ring-primary-500'">
@@ -86,7 +86,7 @@
         </div>
 
         {{-- ================= VENTA ACTUAL ================= --}}
-        <div class="xl:col-span-2 xl:sticky xl:top-6 card-flush min-w-0">
+        <div id="venta-actual" class="xl:col-span-2 xl:sticky xl:top-6 card-flush min-w-0 scroll-mt-20">
             {{-- Cliente --}}
             <div class="p-4 border-b border-gray-100">
                 <div class="flex items-center justify-between mb-2">
@@ -167,7 +167,7 @@
 
                 <div>
                     <p class="text-xs font-medium uppercase tracking-wide text-gray-500 mb-2">Método de pago</p>
-                    <div class="grid grid-cols-4 gap-2">
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
                         @foreach(\App\Models\Venta::METODOS_PAGO as $valor => $texto)
                             <label class="cursor-pointer rounded-lg border px-2 py-2 text-center text-xs font-medium transition"
                                    :class="metodo === '{{ $valor }}' ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'">
@@ -200,6 +200,20 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    {{-- Celular/tablet: acceso rápido a la venta (el carrito queda debajo del catálogo) --}}
+    <div x-show="carrito.length" x-cloak x-transition.opacity class="xl:hidden h-20"></div>
+    <div x-show="carrito.length" x-cloak x-transition.opacity
+         class="xl:hidden fixed inset-x-0 bottom-0 z-30 border-t border-gray-200 bg-white/95 backdrop-blur px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+        <button type="button" class="btn-primary btn-lg w-full justify-between"
+                @click="document.getElementById('venta-actual').scrollIntoView({ behavior: 'smooth' })">
+            <span class="flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                Ver venta (<span x-text="carrito.length"></span>)
+            </span>
+            <span class="tabular-nums" x-text="'S/ ' + total().toFixed(2)"></span>
+        </button>
     </div>
 
     {{-- ================= MODAL: NUEVO CLIENTE ================= --}}

@@ -169,12 +169,12 @@
                 </span>
             </label>
 
-            <div class="flex items-center gap-6">
-                <div class="text-right">
+            <div class="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
+                <div class="flex items-baseline justify-between sm:block sm:text-right">
                     <p class="text-sm text-gray-500"><span x-text="items.length"></span> producto(s)</p>
                     <p class="text-2xl font-bold text-gray-900">S/ <span x-text="total().toFixed(2)"></span></p>
                 </div>
-                <div class="flex gap-3">
+                <div class="flex gap-3 [&>*]:flex-1 sm:[&>*]:flex-none">
                     <a href="{{ route('compras.index') }}" class="btn-secondary">Cancelar</a>
                     <button type="submit" class="btn-primary" :disabled="!items.length || enviando">
                         <span x-text="enviando ? 'Guardando...' : 'Registrar compra'"></span>

@@ -8,8 +8,8 @@
 <div class="space-y-6">
 
     <form method="GET" class="card !p-4">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 items-end">
-            <div class="lg:col-span-2">
+        <div class="grid grid-cols-2 lg:grid-cols-6 gap-3 items-end">
+            <div class="col-span-2">
                 <label class="form-label">Producto</label>
                 <select name="repuesto_id" class="form-input">
                     <option value="">Todos los productos</option>
