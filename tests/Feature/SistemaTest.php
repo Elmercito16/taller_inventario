@@ -573,6 +573,12 @@ class SistemaTest extends TestCase
         $pdf = $this->actingAs($this->vendedorA)->get(route('tickets.pdf', $ticket));
         $pdf->assertOk();
         $this->assertSame('application/pdf', $pdf->headers->get('Content-Type'));
+        $this->assertStringStartsWith('inline', $pdf->headers->get('Content-Disposition'));
+
+        // Descargar la boleta (botón "Descargar PDF")
+        $descarga = $this->actingAs($this->vendedorA)->get(route('tickets.pdf', ['ticket' => $ticket, 'descargar' => 1]));
+        $descarga->assertOk()->assertDownload('Boleta_' . $ticket->numero_formateado . '.pdf');
+        $this->actingAs($this->vendedorA)->get(route('tickets.show', $ticket))->assertSee('Descargar PDF');
 
         // El nombre se recuerda por DNI (sin internet)
         $this->actingAs($this->vendedorA)->getJson(route('tickets.buscar-cliente', ['doc' => '45678912']))

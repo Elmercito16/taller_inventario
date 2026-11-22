@@ -111,12 +111,15 @@ class TicketController extends Controller
     }
 
     /** Boleta en PDF (80 mm). */
-    public function pdf(Ticket $ticket)
+    public function pdf(Request $request, Ticket $ticket)
     {
         $pdf = Pdf::loadView('tickets.boleta', ['ticket' => $ticket, 'empresa' => auth()->user()->empresa])
             ->setPaper([0, 0, 226.77, 841.89], 'portrait');
 
-        return $pdf->stream('Boleta_' . $ticket->numero_formateado . '.pdf');
+        $archivo = 'Boleta_' . $ticket->numero_formateado . '.pdf';
+
+        // ?descargar=1 baja el archivo; sin él, se abre en el navegador.
+        return $request->boolean('descargar') ? $pdf->download($archivo) : $pdf->stream($archivo);
     }
 
     public function anular(Ticket $ticket)
