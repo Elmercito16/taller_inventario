@@ -6,7 +6,7 @@ services:
     name: multisoft
     runtime: docker
     plan: free
-    region: virginia            # Elige la misma zona que tu proyecto de Supabase (East US / N. Virginia)
+    region: oregon              # Misma zona que el proyecto de Supabase (us-west-2, Oregón)
     branch: main
     healthCheckPath: /healthz
     autoDeploy: true
