@@ -634,4 +634,13 @@ class SistemaTest extends TestCase
         $this->assertSame('CIENTO SETENTA Y SIETE CON 00/100 SOLES', \App\Support\NumeroALetras::monto(177));
         $this->assertSame('VEINTIÚN MIL CON 50/100 SOLES', \App\Support\NumeroALetras::monto(21000.5));
     }
+
+    public function test_healthz_no_abre_sesion(): void
+    {
+        $respuesta = $this->get('/healthz');
+
+        $respuesta->assertOk()->assertJson(['ok' => true]);
+        $respuesta->assertCookieMissing(config('session.cookie'));
+        $respuesta->assertCookieMissing('XSRF-TOKEN');
+    }
 }

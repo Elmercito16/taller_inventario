@@ -27,8 +27,10 @@ Route::get('/', fn () => redirect()->route('login.form'));
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login.form');
 Route::post('/login', [LoginController::class, 'login'])->name('login')->middleware('throttle:10,1');
 
-// Healthcheck para el balanceador (no expone información)
-Route::get('/healthz', fn () => response()->json(['ok' => true]));
+// Healthcheck para el balanceador (no expone información).
+// Sin el grupo "web": no abre sesión ni crea filas en la tabla sessions.
+Route::get('/healthz', fn () => response()->json(['ok' => true]))
+    ->withoutMiddleware('web');
 
 // Diagnóstico SOLO en entorno local
 if (app()->environment('local')) {
