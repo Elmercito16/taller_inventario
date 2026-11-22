@@ -143,8 +143,8 @@
                             <th>Venta</th>
                             <th>Cliente</th>
                             <th class="hidden sm:table-cell">Fecha</th>
-                            <th class="text-right">Total</th>
-                            <th class="text-center">Estado</th>
+                            <th class="num">Total</th>
+                            <th class="center">Estado</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -154,7 +154,7 @@
                                 <td class="truncate max-w-[160px]">{{ $venta->cliente->nombre ?? 'Cliente general' }}</td>
                                 <td class="hidden sm:table-cell text-gray-500">{{ $venta->fecha?->format('d/m H:i') }}</td>
                                 <td class="text-right font-semibold text-gray-900">S/ {{ number_format($venta->total, 2) }}</td>
-                                <td class="text-center">
+                                <td class="center">
                                     <span class="badge {{ ['pagado' => 'badge-success', 'pendiente' => 'badge-warning', 'anulado' => 'badge-danger'][$venta->estado] ?? 'badge-gray' }}">
                                         {{ ucfirst($venta->estado) }}
                                     </span>

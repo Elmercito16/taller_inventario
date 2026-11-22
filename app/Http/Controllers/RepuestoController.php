@@ -22,7 +22,17 @@ class RepuestoController extends Controller
     {
         $categorias = Categoria::orderBy('nombre')->get();
 
-        $query = Repuesto::with(['proveedor', 'categoria'])->orderBy('id', 'desc');
+        $query = Repuesto::with(['proveedor', 'categoria']);
+
+        // Orden de la lista
+        match ($request->get('orden')) {
+            'nombre' => $query->orderBy('nombre'),
+            'precio_asc' => $query->orderBy('precio_unitario'),
+            'precio_desc' => $query->orderByDesc('precio_unitario'),
+            'stock_asc' => $query->orderByRaw("CASE WHEN tipo = 'servicio' THEN 1 ELSE 0 END")->orderBy('cantidad'),
+            'stock_desc' => $query->orderByDesc('cantidad'),
+            default => $query->orderByDesc('id'),
+        };
 
         if ($request->filled('categoria_id')) {
             $query->where('categoria_id', $request->categoria_id);
@@ -30,6 +40,14 @@ class RepuestoController extends Controller
 
         if ($request->filled('tipo')) {
             $request->tipo === 'servicio' ? $query->servicios() : $query->productos();
+        }
+
+        if ($request->get('stock') === 'bajo') {
+            $query->productos()->whereColumn('cantidad', '<=', 'minimo_stock')->where('cantidad', '>', 0);
+        } elseif ($request->get('stock') === 'agotado') {
+            $query->productos()->where('cantidad', '<=', 0);
+        } elseif ($request->get('stock') === 'disponible') {
+            $query->productos()->whereColumn('cantidad', '>', 'minimo_stock');
         }
 
         if ($request->filled('q')) {

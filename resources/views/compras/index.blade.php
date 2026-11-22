@@ -2,23 +2,17 @@
 
 @section('title', 'Compras')
 @section('page-title', 'Compras')
-@section('page-description', 'Ingreso de mercadería de tus proveedores')
+@section('page-description', 'Ingreso de mercadería de tus proveedores · Total del filtro: S/ ' . number_format($totalPeriodo, 2))
+
+@section('page-actions')
+    <a href="{{ route('compras.create') }}" class="btn-primary">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Registrar compra
+    </a>
+@endsection
 
 @section('content')
 <div class="space-y-6">
-
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div class="flex flex-wrap gap-3">
-            <div class="stat-card !p-4 min-w-[200px]">
-                <p class="stat-label">Total comprado (filtro actual)</p>
-                <p class="text-xl font-bold text-gray-900 mt-0.5">S/ {{ number_format($totalPeriodo, 2) }}</p>
-            </div>
-        </div>
-        <a href="{{ route('compras.create') }}" class="btn-primary">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-            Registrar compra
-        </a>
-    </div>
 
     {{-- Filtros --}}
     <form method="GET" class="card !p-4">
@@ -66,9 +60,9 @@
                         <th>Fecha</th>
                         <th>Proveedor</th>
                         <th class="hidden md:table-cell">Documento</th>
-                        <th class="text-center hidden sm:table-cell">Ítems</th>
-                        <th class="text-right">Total</th>
-                        <th class="text-center">Estado</th>
+                        <th class="center hidden sm:table-cell">Ítems</th>
+                        <th class="num">Total</th>
+                        <th class="center">Estado</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -78,9 +72,9 @@
                             <td>{{ $compra->fecha?->format('d/m/Y') }}</td>
                             <td class="max-w-[200px] truncate">{{ $compra->proveedor->nombre ?? 'Sin proveedor' }}</td>
                             <td class="hidden md:table-cell text-gray-500">{{ $compra->documento_texto }}</td>
-                            <td class="text-center hidden sm:table-cell">{{ $compra->detalles_count }}</td>
+                            <td class="center hidden sm:table-cell">{{ $compra->detalles_count }}</td>
                             <td class="text-right font-semibold text-gray-900">S/ {{ number_format($compra->total, 2) }}</td>
-                            <td class="text-center">
+                            <td class="center">
                                 <span class="badge {{ $compra->estaAnulada() ? 'badge-danger' : 'badge-success' }}">
                                     {{ $compra->estaAnulada() ? 'Anulada' : 'Registrada' }}
                                 </span>

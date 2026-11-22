@@ -12,6 +12,7 @@ use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ProveedorController;
 use App\Http\Controllers\ReporteController;
 use App\Http\Controllers\RepuestoController;
+use App\Http\Controllers\TicketController;
 use App\Http\Controllers\UsuarioController;
 use App\Http\Controllers\VentaController;
 use Illuminate\Support\Facades\DB;
@@ -113,6 +114,20 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/anular', [VentaController::class, 'anular'])->name('anular');
     });
     Route::resource('ventas', VentaController::class)->only(['index', 'create', 'store', 'show']);
+
+    // ------------------------------
+    // Tickets rápidos (venta escrita a mano, sin inventario)
+    // ------------------------------
+    Route::prefix('tickets')->name('tickets.')->group(function () {
+        Route::get('/', [TicketController::class, 'index'])->name('index');
+        Route::get('/nuevo', [TicketController::class, 'create'])->name('create');
+        Route::post('/', [TicketController::class, 'store'])->name('store');
+        Route::get('/buscar-cliente', [TicketController::class, 'buscarCliente'])->name('buscar-cliente');
+        Route::get('/{ticket}', [TicketController::class, 'show'])->name('show');
+        Route::get('/{ticket}/imprimir', [TicketController::class, 'imprimir'])->name('imprimir');
+        Route::get('/{ticket}/pdf', [TicketController::class, 'pdf'])->name('pdf');
+        Route::post('/{ticket}/anular', [TicketController::class, 'anular'])->name('anular')->middleware('rol:admin,encargado');
+    });
 
     // ------------------------------
     // Comprobantes electrónicos

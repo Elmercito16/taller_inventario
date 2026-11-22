@@ -485,6 +485,150 @@ class SistemaTest extends TestCase
         $this->actingAs($this->adminA)->get(route('compras.show', $compraB))->assertNotFound();
     }
 
+    public function test_busqueda_exportacion_y_filtros_de_listados(): void
+    {
+        $datos = $this->datosBase($this->empresaA);
+        $this->comoEmpresa($this->empresaA, fn () => Cliente::create(['nombre' => 'Ana Torres', 'dni' => '87654321', 'telefono' => '911222333']));
+
+        // Búsqueda de clientes en el servidor
+        $this->actingAs($this->adminA)->get(route('clientes.index', ['q' => 'Ana']))
+            ->assertOk()->assertSee('Ana Torres')->assertDontSee('Juan Pérez');
+
+        // Exportación real a CSV
+        $csv = $this->actingAs($this->adminA)->get(route('clientes.index', ['exportar' => 'csv']));
+        $csv->assertOk();
+        $this->assertStringContainsString('Juan Pérez', $csv->streamedContent());
+
+        // Filtros del historial de ventas
+        $this->actingAs($this->adminA)->post(route('ventas.store'), [
+            'cliente_id' => $datos['cliente']->id, 'metodo_pago' => 'tarjeta',
+            'repuestos' => [['id' => $datos['repuesto']->id, 'cantidad' => 1, 'precio' => 59]],
+        ]);
+        $this->actingAs($this->adminA)->get(route('ventas.index', ['metodo_pago' => 'tarjeta', 'q' => 'Juan']))
+            ->assertOk()->assertSee('Juan Pérez');
+        $this->actingAs($this->adminA)->get(route('ventas.index', ['metodo_pago' => 'yape']))
+            ->assertOk()->assertSee('Sin resultados');
+
+        // Filtro por estado de stock en productos
+        $this->actingAs($this->adminA)->get(route('repuestos.index', ['stock' => 'agotado']))->assertOk()->assertDontSee('Pastilla de freno');
+    }
+
+    public function test_mensajes_de_validacion_en_espanol(): void
+    {
+        $this->actingAs($this->adminA)->post(route('categorias.store'), [])
+            ->assertSessionHasErrors(['nombre' => 'El nombre es obligatorio.']);
+    }
+
+    public function test_logo_de_empresa_hasta_2_mb(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        $datos = ['nombre' => 'Taller A', 'ambiente_sunat' => 'beta'];
+
+        // 1.5 MB: se acepta y se guarda
+        $this->actingAs($this->adminA)->put(route('empresa.update'), $datos + [
+            'logo' => \Illuminate\Http\UploadedFile::fake()->image('logo.png', 400, 400)->size(1536),
+        ])->assertSessionHasNoErrors();
+        $logo = $this->empresaA->fresh()->logo;
+        $this->assertNotNull($logo);
+        \Illuminate\Support\Facades\Storage::disk('public')->assertExists($logo);
+
+        // 2.5 MB: se rechaza con mensaje claro
+        $this->actingAs($this->adminA)->put(route('empresa.update'), $datos + [
+            'logo' => \Illuminate\Http\UploadedFile::fake()->image('grande.png', 400, 400)->size(2560),
+        ])->assertSessionHasErrors(['logo' => 'El logo no debe pesar más de 2 MB.']);
+    }
+
+    // =====================================================================
+    // TICKETS RÁPIDOS
+    // =====================================================================
+
+    public function test_ticket_rapido_completo(): void
+    {
+        $this->empresaA->update(['nombre_comercial' => 'TALLER A', 'ruc' => '20123456789', 'direccion' => 'Av. Lima 123', 'telefono' => '999888777']);
+
+        // Las pantallas cargan
+        $this->actingAs($this->vendedorA)->get(route('tickets.create'))->assertOk()->assertSee('Vender');
+        $this->actingAs($this->vendedorA)->get(route('tickets.index'))->assertOk();
+
+        // Registrar: el total se calcula en el servidor
+        $this->actingAs($this->vendedorA)->post(route('tickets.store'), [
+            'cliente_documento' => '45678912',
+            'cliente_nombre' => 'María López',
+            'items' => [
+                ['descripcion' => 'Cambio de aceite', 'cantidad' => 1, 'precio' => 80],
+                ['descripcion' => 'Filtro de aire', 'cantidad' => 2, 'precio' => 25.5],
+            ],
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $ticket = \App\Models\Ticket::withoutGlobalScope('tenant')->latest('id')->first();
+        $this->assertSame(1, (int) $ticket->numero);
+        $this->assertEquals(131.00, (float) $ticket->total);
+        $this->assertSame('T-000001', $ticket->numero_formateado);
+        $this->assertSame((int) $this->empresaA->id, (int) $ticket->empresa_id);
+
+        // Detalle, ticket imprimible y boleta PDF con los datos de la empresa
+        $this->actingAs($this->vendedorA)->get(route('tickets.show', $ticket))->assertOk()->assertSee('Filtro de aire');
+        $this->actingAs($this->vendedorA)->get(route('tickets.imprimir', $ticket))->assertOk()
+            ->assertSee('TALLER A')->assertSee('RUC: 20123456789')->assertSee('María López')->assertSee('131.00');
+        $pdf = $this->actingAs($this->vendedorA)->get(route('tickets.pdf', $ticket));
+        $pdf->assertOk();
+        $this->assertSame('application/pdf', $pdf->headers->get('Content-Type'));
+
+        // El nombre se recuerda por DNI (sin internet)
+        $this->actingAs($this->vendedorA)->getJson(route('tickets.buscar-cliente', ['doc' => '45678912']))
+            ->assertOk()->assertJson(['encontrado' => true, 'nombre' => 'María López', 'origen' => 'tickets']);
+
+        // El correlativo es por empresa
+        $this->actingAs($this->adminB)->post(route('tickets.store'), ['items' => [['descripcion' => 'X', 'cantidad' => 1, 'precio' => 1]]]);
+        $this->assertSame(1, (int) \App\Models\Ticket::withoutGlobalScope('tenant')->where('empresa_id', $this->empresaB->id)->value('numero'));
+        $this->actingAs($this->vendedorA)->post(route('tickets.store'), ['items' => [['descripcion' => 'Y', 'cantidad' => 1, 'precio' => 1]]]);
+        $this->assertSame(2, (int) \App\Models\Ticket::withoutGlobalScope('tenant')->where('empresa_id', $this->empresaA->id)->max('numero'));
+
+        // Otra empresa no puede ver el ticket; el vendedor no puede anular
+        $this->actingAs($this->adminB)->get(route('tickets.show', $ticket))->assertNotFound();
+        $this->actingAs($this->vendedorA)->post(route('tickets.anular', $ticket))->assertRedirect(route('dashboard'));
+        $this->actingAs($this->adminA)->post(route('tickets.anular', $ticket))->assertSessionHas('success');
+        $this->assertSame('anulado', $ticket->fresh()->estado);
+    }
+
+    public function test_tickets_cuentan_como_ingreso_en_finanzas(): void
+    {
+        $this->actingAs($this->adminA)->post(route('tickets.store'), [
+            'cliente_nombre' => 'Pedro Ruiz',
+            'items' => [['descripcion' => 'Servicio', 'cantidad' => 1, 'precio' => 150]],
+        ]);
+        $this->actingAs($this->adminA)->post(route('tickets.store'), [
+            'items' => [['descripcion' => 'Anulado', 'cantidad' => 1, 'precio' => 999]],
+        ]);
+        $anulado = \App\Models\Ticket::withoutGlobalScope('tenant')->latest('id')->first();
+        $this->actingAs($this->adminA)->post(route('tickets.anular', $anulado));
+
+        // Activado (por defecto): suma el ticket emitido, no el anulado
+        $vista = $this->actingAs($this->adminA)->get(route('finanzas.index'))->assertOk();
+        $this->assertEquals(150.0, $vista->viewData('totalIngresos'));
+        $vista->assertSee('Ticket T-000001 - Pedro Ruiz');
+
+        $this->actingAs($this->adminA)->get(route('finanzas.index', ['tipo_movimiento' => 'ingresos']))
+            ->assertOk()->assertSee('Ticket T-000001');
+
+        // Desactivado: deja de contar
+        config(['sistema.tickets_en_finanzas' => false]);
+        $vista = $this->actingAs($this->adminA)->get(route('finanzas.index'))->assertOk();
+        $this->assertEquals(0.0, $vista->viewData('totalIngresos'));
+        $vista->assertDontSee('Ticket T-000001');
+    }
+
+    public function test_ticket_valida_documento_e_items(): void
+    {
+        $this->actingAs($this->adminA)->post(route('tickets.store'), [
+            'cliente_documento' => '1234',
+            'items' => [['descripcion' => '', 'cantidad' => 0, 'precio' => 5]],
+        ])->assertSessionHasErrors(['cliente_documento', 'items.0.descripcion', 'items.0.cantidad']);
+
+        $this->actingAs($this->adminA)->post(route('tickets.store'), [])->assertSessionHasErrors('items');
+        $this->assertSame(0, \App\Models\Ticket::withoutGlobalScope('tenant')->count());
+    }
+
     public function test_numero_a_letras(): void
     {
         $this->assertSame('CIENTO SETENTA Y SIETE CON 00/100 SOLES', \App\Support\NumeroALetras::monto(177));

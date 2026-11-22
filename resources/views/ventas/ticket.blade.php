@@ -9,6 +9,8 @@
         body { font-family: 'Courier New', monospace; font-size: 12px; color: #111; background: #f3f4f6; }
         .ticket { width: 80mm; margin: 16px auto; background: #fff; padding: 12px 10px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
         .center { text-align: center; }
+        .cabecera { display: flex; align-items: flex-start; gap: 8px; text-align: left; }
+        .logo { width: 20mm; max-height: 20mm; object-fit: contain; flex-shrink: 0; }
         .bold { font-weight: 700; }
         .sep { border-top: 1px dashed #555; margin: 8px 0; }
         table { width: 100%; border-collapse: collapse; }
@@ -29,11 +31,17 @@
 </head>
 <body>
     <div class="ticket">
-        <div class="center">
-            <div class="bold" style="font-size:14px">{{ strtoupper($venta->empresa->nombre_comercial ?? $venta->empresa->nombre ?? 'MI EMPRESA') }}</div>
-            @if($venta->empresa?->ruc)<div>RUC: {{ $venta->empresa->ruc }}</div>@endif
-            @if($venta->empresa?->direccion)<div>{{ $venta->empresa->direccion }}</div>@endif
-            @if($venta->empresa?->telefono)<div>Telf: {{ $venta->empresa->telefono }}</div>@endif
+        @php $logo = $venta->empresa?->logoDataUri(); @endphp
+        <div class="{{ $logo ? 'cabecera' : 'center' }}">
+            @if($logo)
+                <img src="{{ $logo }}" alt="Logo" class="logo">
+            @endif
+            <div>
+                <div class="bold" style="font-size:14px">{{ strtoupper($venta->empresa->nombre_comercial ?: ($venta->empresa->nombre ?? 'MI EMPRESA')) }}</div>
+                @if($venta->empresa?->ruc)<div>RUC: {{ $venta->empresa->ruc }}</div>@endif
+                @if($venta->empresa?->direccion)<div>{{ $venta->empresa->direccion }}</div>@endif
+                @if($venta->empresa?->telefono)<div>Telf: {{ $venta->empresa->telefono }}</div>@endif
+            </div>
         </div>
 
         <div class="sep"></div>

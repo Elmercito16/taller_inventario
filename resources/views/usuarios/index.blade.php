@@ -34,7 +34,7 @@
                         <th>Usuario</th>
                         <th>Rol</th>
                         <th class="hidden md:table-cell">Creado</th>
-                        <th class="text-right">Acciones</th>
+                        <th class="num">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>

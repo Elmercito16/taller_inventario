@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Compra;
 use App\Models\Gasto;
+use App\Models\Ticket;
 use App\Models\Ingreso;
 use App\Models\Venta;
 use Carbon\Carbon;
@@ -25,7 +26,12 @@ class FinanzasController extends Controller
         // Las compras de mercadería registradas también son egresos
         $comprasQuery = Compra::registradas()->whereBetween('fecha', [$fechaInicio->toDateString(), $fechaFin->toDateString()]);
 
-        $totalIngresos = (float) (clone $ventasQuery)->sum('total') + (float) (clone $ingresosQuery)->sum('monto');
+        // Tickets rápidos (provisional, ver config/sistema.php)
+        $incluirTickets = config('sistema.tickets_en_finanzas');
+        $ticketsQuery = Ticket::where('estado', 'emitido')->whereBetween('fecha', [$fechaInicio, $fechaFin]);
+
+        $totalIngresos = (float) (clone $ventasQuery)->sum('total') + (float) (clone $ingresosQuery)->sum('monto')
+            + ($incluirTickets ? (float) (clone $ticketsQuery)->sum('total') : 0);
         $totalGastos = (float) (clone $gastosQuery)->sum('monto') + (float) (clone $comprasQuery)->sum('total');
         $balance = $totalIngresos - $totalGastos;
 
@@ -38,6 +44,11 @@ class FinanzasController extends Controller
                 ->select('id', DB::raw("'Venta' as modelo"), DB::raw("'ingreso' as tipo"), 'total as monto', 'fecha', DB::raw('NULL as descripcion'), DB::raw('NULL as detalle'), 'cliente_id');
             $partes[] = (clone $ingresosQuery)->toBase()
                 ->select('id', DB::raw("'Ingreso' as modelo"), DB::raw("'ingreso' as tipo"), 'monto', 'fecha', 'descripcion', 'tipo as detalle', DB::raw('NULL as cliente_id'));
+            if ($incluirTickets) {
+                // En tickets, "descripcion" lleva el cliente y "detalle" el número
+                $partes[] = (clone $ticketsQuery)->toBase()
+                    ->select('id', DB::raw("'Ticket' as modelo"), DB::raw("'ingreso' as tipo"), 'total as monto', 'fecha', 'cliente_nombre as descripcion', DB::raw('CAST(numero AS CHAR(10)) as detalle'), DB::raw('NULL as cliente_id'));
+            }
         }
         if ($tipoMovimiento !== 'ingresos') {
             $partes[] = (clone $gastosQuery)->toBase()
@@ -71,6 +82,8 @@ class FinanzasController extends Controller
                 'Compra' => 'Compra C-' . str_pad($m->id, 6, '0', STR_PAD_LEFT)
                     . ($m->cliente_id && isset($proveedores[$m->cliente_id]) ? ' - ' . $proveedores[$m->cliente_id] : '')
                     . ($m->detalle ? ' (' . $m->detalle . ')' : ''),
+                'Ticket' => 'Ticket T-' . str_pad(trim((string) $m->detalle), 6, '0', STR_PAD_LEFT)
+                    . ' - ' . ($m->descripcion ?: 'Cliente general'),
                 'Venta' => 'Venta #' . str_pad($m->id, 6, '0', STR_PAD_LEFT)
                     . ($m->cliente_id && isset($clientes[$m->cliente_id]) ? ' - ' . $clientes[$m->cliente_id] : ''),
                 default => $m->descripcion . ($m->detalle ? ' (' . $m->detalle . ')' : ''),

@@ -1,26 +1,29 @@
 @extends('layouts.app')
 
-@section('title', 'Kardex · ' . $repuesto->nombre)
-@section('page-title', 'Kardex: ' . $repuesto->nombre)
-@section('page-description', $repuesto->codigo . ($repuesto->categoria ? ' · ' . $repuesto->categoria->nombre : '') . ' · Unidad: ' . $repuesto->unidad_nombre)
-
-@section('content')
 @php
     $puedeAjustar = in_array(auth()->user()->rol, ['admin', 'encargado']);
     $u = $repuesto->unidad_abreviatura;
 @endphp
-<div class="space-y-6" x-data="{ ajuste: {{ $errors->any() ? 'true' : 'false' }} }">
 
-    <div class="flex flex-wrap items-center justify-between gap-3">
-        <a href="{{ route('kardex.index') }}" class="btn-secondary">← Todos los movimientos</a>
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ request()->fullUrlWithQuery(['exportar' => 'csv']) }}" class="btn-secondary">Exportar Excel (CSV)</a>
-            <a href="{{ route('repuestos.edit', $repuesto) }}" class="btn-secondary">Editar producto</a>
-            @if($puedeAjustar)
-                <button type="button" class="btn-primary" @click="ajuste = true">Ajustar inventario</button>
-            @endif
-        </div>
-    </div>
+@section('title', 'Kardex · ' . $repuesto->nombre)
+@section('breadcrumb')
+    <a href="{{ route('kardex.index') }}" class="hover:text-gray-900">Kardex</a>
+    <span class="text-gray-300">/</span>
+    <span class="text-gray-900">{{ $repuesto->codigo }}</span>
+@endsection
+@section('page-title', $repuesto->nombre)
+@section('page-description', $repuesto->codigo . ($repuesto->categoria ? ' · ' . $repuesto->categoria->nombre : '') . ' · Unidad: ' . $repuesto->unidad_nombre)
+
+@section('page-actions')
+    <a href="{{ request()->fullUrlWithQuery(['exportar' => 'csv']) }}" class="btn-secondary">Exportar CSV</a>
+    <a href="{{ route('repuestos.edit', $repuesto) }}" class="btn-secondary">Editar producto</a>
+    @if($puedeAjustar)
+        <button type="button" class="btn-primary" onclick="window.dispatchEvent(new CustomEvent('abrir-ajuste'))">Ajustar inventario</button>
+    @endif
+@endsection
+
+@section('content')
+<div class="space-y-6" x-data="{ ajuste: {{ $errors->any() ? 'true' : 'false' }} }" @abrir-ajuste.window="ajuste = true">
 
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="stat-card">
@@ -82,10 +85,10 @@
                     <tr>
                         <th>Fecha</th>
                         <th>Motivo / detalle</th>
-                        <th class="text-right">Entrada</th>
-                        <th class="text-right">Salida</th>
-                        <th class="text-right">Saldo</th>
-                        <th class="text-right hidden md:table-cell">Costo unit.</th>
+                        <th class="num">Entrada</th>
+                        <th class="num">Salida</th>
+                        <th class="num">Saldo</th>
+                        <th class="num hidden md:table-cell">Costo unit.</th>
                         <th class="hidden lg:table-cell">Usuario</th>
                     </tr>
                 </thead>

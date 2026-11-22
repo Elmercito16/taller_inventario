@@ -121,15 +121,35 @@
 <body>
 
     <!-- HEADER -->
+    @php $logo = $venta->empresa?->logoDataUri(); @endphp
     <div class="header">
-        <div class="negocio-nombre uppercase">{{ $venta->empresa->nombre ?? 'MI EMPRESA' }}</div>
-        
-        <div style="font-size: 9px;">
-            @if($venta->empresa->ruc) RUC: {{ $venta->empresa->ruc }}<br> @endif
-            @if($venta->empresa->direccion) {{ Str::limit($venta->empresa->direccion, 35) }}<br> @endif
-            @if($venta->empresa->telefono) Telf: {{ $venta->empresa->telefono }}<br> @endif
-            @if($venta->empresa->email) {{ $venta->empresa->email }} @endif
-        </div>
+        @if($logo)
+            {{-- Logo arriba a la izquierda y datos del negocio a la derecha --}}
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="width: 22mm; vertical-align: top; padding-right: 2mm;">
+                        <img src="{{ $logo }}" alt="Logo" style="max-width: 20mm; max-height: 20mm;">
+                    </td>
+                    <td style="vertical-align: top; text-align: left;">
+                        <div class="negocio-nombre uppercase">{{ $venta->empresa->nombre_comercial ?: $venta->empresa->nombre }}</div>
+                        <div style="font-size: 9px;">
+                            @if($venta->empresa->ruc) RUC: {{ $venta->empresa->ruc }}<br> @endif
+                            @if($venta->empresa->direccion) {{ Str::limit($venta->empresa->direccion, 35) }}<br> @endif
+                            @if($venta->empresa->telefono) Telf: {{ $venta->empresa->telefono }}<br> @endif
+                            @if($venta->empresa->email) {{ $venta->empresa->email }} @endif
+                        </div>
+                    </td>
+                </tr>
+            </table>
+        @else
+            <div class="negocio-nombre uppercase">{{ $venta->empresa->nombre ?? 'MI EMPRESA' }}</div>
+            <div style="font-size: 9px;">
+                @if($venta->empresa->ruc) RUC: {{ $venta->empresa->ruc }}<br> @endif
+                @if($venta->empresa->direccion) {{ Str::limit($venta->empresa->direccion, 35) }}<br> @endif
+                @if($venta->empresa->telefono) Telf: {{ $venta->empresa->telefono }}<br> @endif
+                @if($venta->empresa->email) {{ $venta->empresa->email }} @endif
+            </div>
+        @endif
 
         <div style="margin-top: 8px; font-weight: bold; font-size: 11px;">
             BOLETA DE VENTA ELECTRÓNICA<br>

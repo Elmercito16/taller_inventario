@@ -86,9 +86,10 @@
                         @if($empresa->logo_url)
                             <img src="{{ $empresa->logo_url }}" alt="Logo" class="w-14 h-14 rounded-xl object-contain border border-gray-200 bg-white">
                         @endif
-                        <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" class="form-file">
+                        <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" class="form-file"
+                               onchange="if (this.files[0] && this.files[0].size > 2 * 1024 * 1024) { aviso('El logo pesa ' + (this.files[0].size / 1048576).toFixed(1) + ' MB. El máximo es 2 MB.', 'error', 6000); this.value = ''; }">
                     </div>
-                    <p class="form-help">PNG, JPG o WEBP, máximo 1 MB.</p>
+                    <p class="form-help">PNG, JPG o WEBP, máximo 2 MB.</p>
                 </div>
             </div>
         </section>

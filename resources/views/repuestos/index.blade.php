@@ -101,168 +101,173 @@
 
 @section('content')
 <div class="space-y-4 sm:space-y-6">
-    <!-- Stats Cards - Responsive -->
+    <!-- Resumen del inventario -->
+    @php
+        $numBajo = $stockBajo->count();
+        $numAgotados = $agotados->count();
+        $hayAlertas = ($numBajo + $numAgotados) > 0;
+    @endphp
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div class="mb-2 sm:mb-0">
-                    <p class="text-xs sm:text-sm font-medium text-gray-600">Total Productos</p>
-                    <p class="text-2xl sm:text-3xl font-bold text-gray-900">{{ $repuestos->total() }}</p>
-                </div>
-                <div class="p-2 sm:p-3 bg-primary-100 rounded-full self-start sm:self-auto">
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                    </svg>
-                </div>
+
+        {{-- Total de productos --}}
+        <a href="{{ route('repuestos.index') }}" class="group rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-soft transition hover:border-gray-300 hover:shadow-md">
+            <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-gray-500">Total productos</p>
+                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-50 text-primary-600 ring-1 ring-inset ring-primary-600/10">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                </span>
             </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div class="mb-2 sm:mb-0">
-                    <p class="text-xs sm:text-sm font-medium text-gray-600">Stock Bajo</p>
-                    <p class="text-2xl sm:text-3xl font-bold text-red-600">{{ $stockBajoCount }}</p>
-                </div>
-                <div class="p-2 sm:p-3 bg-red-100 rounded-full self-start sm:self-auto">
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                    </svg>
-                </div>
+            <p class="mt-3 text-2xl sm:text-[28px] font-semibold tracking-tight text-gray-900 tabular-nums">{{ number_format($repuestos->total()) }}</p>
+            <p class="mt-1 text-xs text-gray-500">Ítems en el catálogo</p>
+        </a>
+
+        {{-- Stock bajo / agotados --}}
+        <a href="{{ route('repuestos.index', ['stock' => $numAgotados && ! $numBajo ? 'agotado' : 'bajo']) }}"
+           class="group rounded-xl border bg-white p-4 sm:p-5 shadow-soft transition hover:shadow-md {{ $hayAlertas ? 'border-amber-200 hover:border-amber-300' : 'border-gray-200 hover:border-gray-300' }}">
+            <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-gray-500">Requieren reposición</p>
+                <span class="flex h-8 w-8 items-center justify-center rounded-lg ring-1 ring-inset {{ $hayAlertas ? 'bg-amber-50 text-amber-600 ring-amber-600/15' : 'bg-gray-50 text-gray-400 ring-gray-500/10' }}">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                </span>
             </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div class="mb-2 sm:mb-0">
-                    <p class="text-xs sm:text-sm font-medium text-gray-600">Valor Total</p>
-                    <p class="text-2xl sm:text-3xl font-bold text-green-600">S/ {{ number_format($valorTotal, 2) }}</p>
-                </div>
-                <div class="p-2 sm:p-3 bg-green-100 rounded-full self-start sm:self-auto">
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
-                    </svg>
-                </div>
+            <p class="mt-3 text-2xl sm:text-[28px] font-semibold tracking-tight text-gray-900 tabular-nums">{{ $numBajo + $numAgotados }}</p>
+            <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                @if($hayAlertas)
+                    <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>{{ $numBajo }} stock bajo</span>
+                    <span class="inline-flex items-center gap-1.5 text-gray-600"><span class="h-1.5 w-1.5 rounded-full bg-red-500"></span>{{ $numAgotados }} {{ $numAgotados === 1 ? 'agotado' : 'agotados' }}</span>
+                @else
+                    <span class="inline-flex items-center gap-1.5 text-emerald-600"><span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Todo con stock suficiente</span>
+                @endif
             </div>
-        </div>
-        
-        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                <div class="mb-2 sm:mb-0">
-                    <p class="text-xs sm:text-sm font-medium text-gray-600">Categorías</p>
-                    <p class="text-2xl sm:text-3xl font-bold text-purple-600">{{ $categoriasCount }}</p>
-                </div>
-                <div class="p-2 sm:p-3 bg-purple-100 rounded-full self-start sm:self-auto">
-                    <svg class="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-                    </svg>
-                </div>
+        </a>
+
+        {{-- Valor del inventario --}}
+        <div class="rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-soft">
+            <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-gray-500">Valor del inventario</p>
+                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 ring-1 ring-inset ring-emerald-600/10">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
             </div>
+            <p class="mt-3 text-2xl sm:text-[28px] font-semibold tracking-tight text-gray-900 tabular-nums whitespace-nowrap">
+                <span class="text-base sm:text-lg font-medium text-gray-400">S/</span> {{ number_format($valorTotal, 2) }}
+            </p>
+            <p class="mt-1 text-xs text-gray-500">Stock valorizado a precio de venta</p>
         </div>
+
+        {{-- Categorías --}}
+        <a href="{{ route('categorias.index') }}" class="group rounded-xl border border-gray-200 bg-white p-4 sm:p-5 shadow-soft transition hover:border-gray-300 hover:shadow-md">
+            <div class="flex items-center justify-between">
+                <p class="text-sm font-medium text-gray-500">Categorías</p>
+                <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 text-sky-600 ring-1 ring-inset ring-sky-600/10">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                </span>
+            </div>
+            <p class="mt-3 text-2xl sm:text-[28px] font-semibold tracking-tight text-gray-900 tabular-nums">{{ $categoriasCount }}</p>
+            <p class="mt-1 text-xs text-gray-500 group-hover:text-primary-700">Con productos asignados · Gestionar →</p>
+        </a>
     </div>
 
-    <!-- Filtros y Acciones - Responsive Mejorado -->
-    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
-        <form action="{{ route('repuestos.index') }}" method="GET">
-            <div class="flex flex-col gap-4">
-                
-                <!-- Botón Agregar - Responsive -->
-                <div class="flex justify-between items-center">
-                    <h3 class="text-base sm:text-lg font-semibold text-gray-900">Filtrar Productos</h3>
-                    <a href="{{ route('repuestos.create') }}" 
-                       class="inline-flex items-center justify-center px-3 sm:px-4 py-2 sm:py-2.5 bg-[#218786] text-white text-sm font-medium rounded-lg hover:bg-[#1a6d6c] transition-all duration-200 shadow-sm hover:shadow-md touch-target">
-                        <svg class="w-4 h-4 sm:w-5 sm:h-5 sm:mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                        </svg>
-                        <span class="hidden sm:inline">Agregar Producto</span>
-                    </a>
-                </div>
-
-                <!-- Filtros Grid Responsive -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    
-                    <!-- Filtro Categorías -->
-                    <div class="relative">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Categoría</label>
-                        <select name="categoria_id" 
-                                class="block w-full px-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] bg-white transition-colors"
-                                onchange="this.form.submit()">
-                            <option value="">Todas las categorías</option>
-                            @foreach($categorias as $categoria)
-                                <option value="{{ $categoria->id }}" {{ request('categoria_id') == $categoria->id ? 'selected' : '' }}>
-                                    {{ $categoria->nombre }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <!-- Buscador con icono -->
-                    <div class="relative sm:col-span-2 lg:col-span-2">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Buscar</label>
-                        <div class="relative">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                                </svg>
-                            </div>
-                            <input 
-                                type="text" 
-                                name="q" 
-                                value="{{ request('q') }}"
-                                placeholder="Buscar por nombre, código o marca..."
-                                class="block w-full pl-10 pr-20 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] bg-white transition-colors"
-                            >
-                            <div class="absolute inset-y-0 right-0 flex items-center gap-1 pr-2">
-                                @if(request('q'))
-                                    <a href="{{ route('repuestos.index', ['categoria_id' => request('categoria_id')]) }}" 
-                                       class="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md transition-colors touch-target">
-                                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                                        </svg>
-                                    </a>
-                                @endif
-                                <button type="submit" 
-                                        class="px-3 py-1.5 bg-[#218786] text-white text-sm rounded-md hover:bg-[#1a6d6c] transition-colors touch-target">
-                                    <span class="hidden sm:inline">Buscar</span>
-                                    <svg class="w-4 h-4 sm:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </form>
-    </div>
-
-    <!-- Resultados de búsqueda - Responsive -->
-    @if(request('q') || request('categoria_id'))
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4 animate-fade-in">
-            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                <div class="flex items-start sm:items-center">
-                    <svg class="w-5 h-5 text-blue-600 mr-2 flex-shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p class="text-sm text-blue-800">
-                        Mostrando <strong>{{ $repuestos->total() }}</strong> {{ Str::plural('resultado', $repuestos->total()) }}
-                        @if(request('q'))
-                            para: <strong>"{{ request('q') }}"</strong>
-                        @endif
-                        @if(request('categoria_id'))
-                            en: <strong>{{ $categorias->find(request('categoria_id'))->nombre ?? '' }}</strong>
-                        @endif
+    <!-- Filtros -->
+    @php
+        $filtrosActivos = collect([
+            'q' => request('q') ? 'Búsqueda: "' . request('q') . '"' : null,
+            'categoria_id' => request('categoria_id') ? 'Categoría: ' . ($categorias->firstWhere('id', (int) request('categoria_id'))->nombre ?? '') : null,
+            'tipo' => ['producto' => 'Solo productos', 'servicio' => 'Solo servicios'][request('tipo')] ?? null,
+            'stock' => ['disponible' => 'Stock disponible', 'bajo' => 'Stock bajo', 'agotado' => 'Agotados'][request('stock')] ?? null,
+        ])->filter();
+        $ordenes = ['' => 'Más recientes', 'nombre' => 'Nombre A-Z', 'precio_asc' => 'Menor precio', 'precio_desc' => 'Mayor precio', 'stock_asc' => 'Menos stock', 'stock_desc' => 'Más stock'];
+    @endphp
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <form action="{{ route('repuestos.index') }}" method="GET" x-data="{ q: @js(request('q', '')) }">
+            {{-- Encabezado --}}
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-5 pt-4 sm:pt-5">
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900">Filtrar productos</h3>
+                    <p class="text-sm text-gray-500">
+                        {{ $repuestos->total() }} {{ $repuestos->total() === 1 ? 'resultado' : 'resultados' }}
+                        @if($filtrosActivos->isNotEmpty()) con los filtros aplicados @endif
                     </p>
                 </div>
-                <a href="{{ route('repuestos.index') }}" 
-                   class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium text-sm transition-colors touch-target">
-                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                    Limpiar filtros
-                </a>
+                <div class="flex flex-wrap gap-2">
+                    @if(in_array(auth()->user()->rol, ['admin', 'encargado']))
+                        <a href="{{ route('compras.create') }}" class="btn-secondary">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                            Registrar compra
+                        </a>
+                    @endif
+                    <a href="{{ route('repuestos.create') }}" class="btn-primary">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        Agregar producto
+                    </a>
+                </div>
             </div>
-        </div>
-    @endif
+
+            {{-- Controles --}}
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 p-4 sm:p-5">
+                <div class="sm:col-span-2 lg:col-span-4">
+                    <label class="form-label !text-xs">Buscar</label>
+                    <div class="relative">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                        <input type="text" name="q" x-model="q" class="form-input pl-9 pr-9" placeholder="Nombre, marca, código o código de barras" autocomplete="off">
+                        <button type="button" x-show="q" x-cloak @click="q = ''; $nextTick(() => $el.form.submit())"
+                                class="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-100" title="Limpiar búsqueda">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="form-label !text-xs">Categoría</label>
+                    <select name="categoria_id" class="form-input" onchange="this.form.submit()">
+                        <option value="">Todas</option>
+                        @foreach($categorias as $categoria)
+                            <option value="{{ $categoria->id }}" @selected(request('categoria_id') == $categoria->id)>{{ $categoria->nombre }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="form-label !text-xs">Tipo</label>
+                    <select name="tipo" class="form-input" onchange="this.form.submit()">
+                        <option value="">Todos</option>
+                        <option value="producto" @selected(request('tipo') === 'producto')>Productos</option>
+                        <option value="servicio" @selected(request('tipo') === 'servicio')>Servicios</option>
+                    </select>
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="form-label !text-xs">Stock</label>
+                    <select name="stock" class="form-input" onchange="this.form.submit()">
+                        <option value="">Todos</option>
+                        <option value="disponible" @selected(request('stock') === 'disponible')>Disponible</option>
+                        <option value="bajo" @selected(request('stock') === 'bajo')>Stock bajo</option>
+                        <option value="agotado" @selected(request('stock') === 'agotado')>Agotados</option>
+                    </select>
+                </div>
+                <div class="lg:col-span-2">
+                    <label class="form-label !text-xs">Ordenar por</label>
+                    <select name="orden" class="form-input" onchange="this.form.submit()">
+                        @foreach($ordenes as $valor => $texto)
+                            <option value="{{ $valor }}" @selected(request('orden', '') === $valor)>{{ $texto }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            {{-- Filtros activos --}}
+            @if($filtrosActivos->isNotEmpty())
+                <div class="flex flex-wrap items-center gap-2 border-t border-gray-100 px-4 sm:px-5 py-3">
+                    <span class="text-xs text-gray-500">Filtros activos:</span>
+                    @foreach($filtrosActivos as $clave => $texto)
+                        <a href="{{ request()->fullUrlWithQuery([$clave => null, 'page' => null]) }}"
+                           class="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1 text-xs font-medium text-primary-700 ring-1 ring-inset ring-primary-600/20 hover:bg-primary-100" title="Quitar filtro">
+                            {{ $texto }}
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </a>
+                    @endforeach
+                    <a href="{{ route('repuestos.index', request()->only('orden')) }}" class="ml-1 text-xs font-medium text-gray-500 hover:text-gray-900 hover:underline">Limpiar todo</a>
+                </div>
+            @endif
+        </form>
+    </div>
 
     <!-- Grid de productos - Responsive -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">

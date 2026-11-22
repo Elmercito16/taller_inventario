@@ -1,6 +1,11 @@
 @extends('layouts.app')
 
 @section('title', 'Registrar compra')
+@section('breadcrumb')
+    <a href="{{ route('compras.index') }}" class="hover:text-gray-900">Compras</a>
+    <span class="text-gray-300">/</span>
+    <span class="text-gray-900">Nueva</span>
+@endsection
 @section('page-title', 'Registrar compra')
 @section('page-description', 'La mercadería ingresa al stock y queda registrada en el kardex')
 
@@ -101,7 +106,7 @@
                         <th>Producto</th>
                         <th class="w-40">Cantidad</th>
                         <th class="w-40">Costo unit. (S/)</th>
-                        <th class="text-right w-32">Subtotal</th>
+                        <th class="num w-32">Subtotal</th>
                         <th class="w-12"></th>
                     </tr>
                 </thead>
@@ -134,7 +139,7 @@
                                 </p>
                             </td>
                             <td class="text-right font-semibold text-gray-900" x-text="'S/ ' + subtotal(item).toFixed(2)"></td>
-                            <td class="text-center">
+                            <td class="center">
                                 <button type="button" @click="quitar(index)" class="btn-icon hover:!text-red-600 hover:!bg-red-50" title="Quitar">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>

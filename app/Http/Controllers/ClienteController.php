@@ -9,13 +9,61 @@ use Illuminate\Validation\Rule;
 
 class ClienteController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $clientes = Cliente::withCount('ventas')
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
+        $query = Cliente::withCount('ventas')
+            ->withSum(['ventas as total_comprado' => fn ($q) => $q->where('estado', 'pagado')], 'total')
+            ->orderBy('created_at', 'desc');
 
-        return view('clientes.index', compact('clientes'));
+        if ($request->filled('q')) {
+            $q = trim($request->q);
+            $query->where(function ($w) use ($q) {
+                $w->where('nombre', 'like', "%{$q}%")
+                  ->orWhere('dni', 'like', "%{$q}%")
+                  ->orWhere('ruc', 'like', "%{$q}%")
+                  ->orWhere('telefono', 'like', "%{$q}%")
+                  ->orWhere('email', 'like', "%{$q}%");
+            });
+        }
+
+        if ($request->get('tipo') === 'empresa') {
+            $query->whereNotNull('ruc')->where('ruc', '<>', '');
+        } elseif ($request->get('tipo') === 'persona') {
+            $query->where(fn ($w) => $w->whereNull('ruc')->orWhere('ruc', ''));
+        }
+
+        if ($request->get('exportar') === 'csv') {
+            return $this->exportarCsv((clone $query)->get());
+        }
+
+        $resumen = [
+            'total' => Cliente::count(),
+            'empresas' => Cliente::whereNotNull('ruc')->where('ruc', '<>', '')->count(),
+            'nuevos_mes' => Cliente::where('created_at', '>=', now()->startOfMonth())->count(),
+        ];
+
+        $clientes = $query->paginate(15)->withQueryString();
+
+        return view('clientes.index', compact('clientes', 'resumen'));
+    }
+
+    /**
+     * Exporta clientes a CSV (se abre en Excel).
+     */
+    private function exportarCsv($clientes)
+    {
+        return response()->streamDownload(function () use ($clientes) {
+            $salida = fopen('php://output', 'w');
+            fwrite($salida, "\xEF\xBB\xBF");
+            fputcsv($salida, ['Nombre', 'DNI', 'RUC', 'Teléfono', 'Email', 'Dirección', 'Compras', 'Total comprado', 'Registrado'], ';');
+            foreach ($clientes as $c) {
+                fputcsv($salida, [
+                    $c->nombre, $c->dni, $c->ruc, $c->telefono, $c->email, $c->direccion,
+                    $c->ventas_count, number_format((float) $c->total_comprado, 2, '.', ''), $c->created_at?->format('d/m/Y'),
+                ], ';');
+            }
+            fclose($salida);
+        }, 'clientes-' . now()->format('Ymd') . '.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     public function create()

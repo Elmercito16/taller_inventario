@@ -1,407 +1,160 @@
 @extends('layouts.app')
 
-@section('title', 'Finanzas')
-@section('page-title', 'Gestión Financiera')
-@section('page-description', 'Control completo de ingresos y gastos')
+@php
+    $periodos = ['hoy' => 'Hoy', 'semana' => 'Esta semana', 'mes_actual' => 'Este mes', 'anio_actual' => 'Este año', 'personalizado' => 'Personalizado'];
+    $tiposIngreso = ['Servicios', 'Instalación', 'Mantenimiento', 'Alquiler de equipo', 'Intereses', 'Alquiler de espacio', 'Recuperación de deudas', 'Venta de activos', 'Aporte de capital', 'Reembolso', 'Otros'];
+    $categoriasGasto = ['Servicios', 'Alquiler', 'Planilla', 'Mantenimiento', 'Mercadería', 'Impuestos', 'Transporte', 'Otros'];
+    $tipoMovimiento = request('tipo_movimiento', 'todos');
+    $margen = $totalIngresos > 0 ? ($balance / $totalIngresos) * 100 : null;
+@endphp
 
-@push('styles')
-<style>
-    .fade-in {
-        animation: fadeIn 0.5s ease-out both;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .fade-in:nth-child(1) { animation-delay: 0s; }
-    .fade-in:nth-child(2) { animation-delay: 0.1s; }
-    .fade-in:nth-child(3) { animation-delay: 0.2s; }
-    .fade-in:nth-child(4) { animation-delay: 0.3s; }
-    
-    [x-cloak] { display: none !important; }
-    
-    .stat-card {
-        transition: all 0.3s ease;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-4px);
-    }
-    
-    .pulse-glow {
-        animation: pulseGlow 2s infinite;
-    }
-    
-    @keyframes pulseGlow {
-        0%, 100% { box-shadow: 0 0 20px rgba(33, 135, 134, 0.3); }
-        50% { box-shadow: 0 0 30px rgba(33, 135, 134, 0.5); }
-    }
-</style>
-@endpush
+@section('title', 'Finanzas')
+@section('page-title', 'Finanzas')
+@section('page-description', 'Ingresos, egresos y flujo de caja · ' . $fechaInicio->format('d/m/Y') . ' al ' . $fechaFin->format('d/m/Y'))
+
+@section('page-actions')
+    <button type="button" class="btn-secondary" onclick="window.dispatchEvent(new CustomEvent('abrir-modal', { detail: 'ingreso' }))">
+        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        Registrar ingreso
+    </button>
+    <button type="button" class="btn-primary" onclick="window.dispatchEvent(new CustomEvent('abrir-modal', { detail: 'gasto' }))">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+        Registrar gasto
+    </button>
+@endsection
 
 @section('content')
-<div class="space-y-6" x-data="finanzasManager()">
+<div class="space-y-6" x-data="{ modal: @js($errors->has('tipo_ingreso') ? 'ingreso' : ($errors->any() ? 'gasto' : null)) }" @abrir-modal.window="modal = $event.detail" @keydown.escape.window="modal = null">
 
-    <!-- Breadcrumbs -->
-    <nav class="flex items-center space-x-2 text-sm text-gray-500">
-        <a href="{{ route('dashboard') }}" class="hover:text-[#218786] transition-colors flex items-center">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-            </svg>
-            Dashboard
-        </a>
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-        </svg>
-        <span class="font-medium text-gray-900">Finanzas</span>
-    </nav>
-
-    <!-- Filtros y Acciones -->
-    <div class="fade-in bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            
-            <!-- Filtros de Fecha -->
-            <form action="{{ route('finanzas.index') }}" method="GET" class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 flex-1">
-                <div class="flex items-center gap-2">
-                    <div class="p-2 bg-[#21878610] rounded-xl">
-                        <svg class="w-5 h-5 text-[#218786]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm font-bold text-gray-900">Periodo:</span>
-                </div>
-                
-                <select name="filtro" 
-                          onchange="this.form.submit()" 
-                          class="px-4 py-2.5 text-sm font-semibold border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-all">
-                   <option value="hoy" {{ $filtro == 'hoy' ? 'selected' : '' }}>📅 Hoy</option>
-                   <option value="semana" {{ $filtro == 'semana' ? 'selected' : '' }}>📊 Esta Semana</option>
-                   <option value="mes_actual" {{ $filtro == 'mes_actual' ? 'selected' : '' }}>📈 Este Mes</option>
-                   <option value="anio_actual" {{ $filtro == 'anio_actual' ? 'selected' : '' }}>📆 Este Año</option>
-                   <option value="personalizado" {{ $filtro == 'personalizado' ? 'selected' : '' }}>🎯 Personalizado</option>
-                </select>
-
-                @if($filtro == 'personalizado')
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200">
-                        <input type="date" 
-                               name="fecha_inicio" 
-                               value="{{ request('fecha_inicio') }}" 
-                               class="px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786]">
-                        <svg class="w-5 h-5 text-gray-400 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-                        </svg>
-                        <input type="date" 
-                               name="fecha_fin" 
-                               value="{{ request('fecha_fin') }}" 
-                               class="px-3 py-2 text-sm border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786]">
-                        <button type="submit" 
-                                class="px-4 py-2 bg-gradient-to-r from-[#218786] to-[#1a6d6c] text-white font-bold rounded-xl hover:shadow-lg transition-all">
-                            Aplicar
-                        </button>
-                    </div>
-                @endif
-            </form>
-
-            <!-- Botones de Acción -->
-            <div class="flex flex-col sm:flex-row gap-3">
-                <button @click="showIngresoModal = true" 
-                        class="inline-flex items-center justify-center px-5 py-2.5 bg-white border-2 border-green-300 text-green-600 font-bold rounded-xl hover:bg-green-50 hover:border-green-400 transition-all shadow-sm hover:shadow-md">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                    Otro Ingreso
-                </button>
-
-                <button @click="showGastoModal = true" 
-                        class="inline-flex items-center justify-center px-5 py-2.5 bg-white border-2 border-red-300 text-red-600 font-bold rounded-xl hover:bg-red-50 hover:border-red-400 transition-all shadow-sm hover:shadow-md">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
-                    </svg>
-                    Registrar Gasto
-                </button>
-
-                <a href="{{ route('ventas.create') }}" 
-                   class="inline-flex items-center justify-center px-5 py-2.5 bg-gradient-to-r from-[#218786] to-[#1a6d6c] text-white font-bold rounded-xl hover:shadow-xl transition-all transform hover:-translate-y-0.5">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                    Nueva Venta
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <!-- KPIs Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <!-- Ingresos -->
-        <div class="fade-in stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl relative overflow-hidden">
-            <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-green-50 rounded-full opacity-50"></div>
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
-                        </svg>
-                    </div>
-                    <div class="flex items-center gap-1 px-3 py-1.5 bg-green-50 rounded-lg border border-green-200">
-                        <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
-                        </svg>
-                        <span class="text-xs font-bold text-green-700">Ingresos</span>
-                    </div>
-                </div>
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Ingresos Totales</p>
-                <h3 class="text-4xl font-bold text-green-600 mt-2">S/ {{ number_format($totalIngresos, 2) }}</h3>
-                <div class="mt-4 flex items-center justify-between text-xs">
-                    <span class="text-gray-500">Del periodo seleccionado</span>
-                    <span class="px-2 py-1 bg-green-100 text-green-700 rounded-lg font-bold">+100%</span>
+    {{-- Periodo --}}
+    <form method="GET" class="card !p-4" x-data="{ filtro: @js($filtro) }">
+        <div class="flex flex-col lg:flex-row lg:items-end gap-3">
+            <div>
+                <p class="form-label">Periodo</p>
+                <div class="tabs">
+                    @foreach($periodos as $valor => $texto)
+                        <label class="tab cursor-pointer" :class="filtro === '{{ $valor }}' && 'tab-active'">
+                            <input type="radio" name="filtro" value="{{ $valor }}" x-model="filtro" class="sr-only" @change="filtro !== 'personalizado' && $el.form.submit()">
+                            {{ $texto }}
+                        </label>
+                    @endforeach
                 </div>
             </div>
-        </div>
-
-        <!-- Gastos -->
-        <div class="fade-in stat-card bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl relative overflow-hidden">
-            <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-red-50 rounded-full opacity-50"></div>
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-gradient-to-br from-red-500 to-red-600 rounded-xl shadow-lg">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"/>
-                        </svg>
-                    </div>
-                    <div class="flex items-center gap-1 px-3 py-1.5 bg-red-50 rounded-lg border border-red-200">
-                        <svg class="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                        </svg>
-                        <span class="text-xs font-bold text-red-700">Egresos</span>
-                    </div>
-                </div>
-                <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Gastos Totales</p>
-                <h3 class="text-4xl font-bold text-red-600 mt-2">S/ {{ number_format($totalGastos, 2) }}</h3>
-                <div class="mt-4 flex items-center justify-between text-xs">
-                    <span class="text-gray-500">Del periodo seleccionado</span>
-                    <span class="px-2 py-1 bg-red-100 text-red-700 rounded-lg font-bold">Egresos</span>
-                </div>
-            </div>
-        </div>
-
-        <!-- Balance -->
-        <div class="fade-in stat-card bg-gradient-to-br from-[#218786] to-[#1a6d6c] rounded-2xl shadow-xl p-6 text-white relative overflow-hidden pulse-glow">
-            <div class="absolute top-0 right-0 -mt-8 -mr-8 w-40 h-40 bg-white opacity-10 rounded-full blur-3xl"></div>
-            <div class="absolute bottom-0 left-0 -mb-8 -ml-8 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
-            <div class="relative z-10">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="p-3 bg-white/20 backdrop-blur-sm rounded-xl ring-2 ring-white/30">
-                        <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
-                        </svg>
-                    </div>
-                    <div class="px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg">
-                        <span class="text-xs font-bold">Balance Neto</span>
-                    </div>
-                </div>
-                <p class="text-xs font-semibold text-white/80 uppercase tracking-wide">Balance Final</p>
-                <h3 class="text-5xl font-bold mt-2">S/ {{ number_format($balance, 2) }}</h3>
-                <div class="mt-4 flex items-center justify-between text-xs text-white/80">
-                    <span>Ingresos - Gastos</span>
-                    <span class="font-bold uppercase">{{ $filtro }}</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Tabla de Movimientos -->
-    <div class="fade-in bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
-        <div class="px-6 py-5 bg-gradient-to-r from-gray-50 via-white to-gray-50 border-b border-gray-200">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-center gap-3">
-                    <div class="w-12 h-12 bg-gradient-to-br from-[#218786] to-[#1a6d6c] rounded-xl flex items-center justify-center shadow-lg">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
-                        </svg>
+            <template x-if="filtro === 'personalizado'">
+                <div class="flex flex-col sm:flex-row gap-3 sm:items-end">
+                    <div>
+                        <label class="form-label">Desde</label>
+                        <input type="date" name="fecha_inicio" value="{{ request('fecha_inicio', $fechaInicio->toDateString()) }}" class="form-input" required>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-gray-900">Flujo de Caja Detallado</h3>
-                        <p class="text-sm text-gray-600">
-                            @if(request('tipo_movimiento') == 'ingresos')
-                                Solo Ingresos
-                            @elseif(request('tipo_movimiento') == 'gastos')
-                                Solo Gastos
-                            @else
-                                Historial completo de movimientos
-                            @endif
-                        </p>
+                        <label class="form-label">Hasta</label>
+                        <input type="date" name="fecha_fin" value="{{ request('fecha_fin', $fechaFin->toDateString()) }}" class="form-input" required>
                     </div>
+                    <button class="btn-secondary">Aplicar</button>
                 </div>
-                
-                <!-- Filtro de Tipo -->
-                <div class="flex items-center gap-3">
-                    <form action="{{ route('finanzas.index') }}" method="GET" class="flex items-center gap-2">
-                        <!-- Mantener filtros existentes -->
-                        <input type="hidden" name="filtro" value="{{ $filtro }}">
-                        @if($filtro == 'personalizado')
-                            <input type="hidden" name="fecha_inicio" value="{{ request('fecha_inicio') }}">
-                            <input type="hidden" name="fecha_fin" value="{{ request('fecha_fin') }}">
-                        @endif
-                        
-                        <select name="tipo_movimiento" 
-                                onchange="this.form.submit()" 
-                                class="px-4 py-2.5 text-sm font-semibold border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-all bg-white">
-                            <option value="todos" {{ request('tipo_movimiento', 'todos') == 'todos' ? 'selected' : '' }}>📋 Todos</option>
-                            <option value="ingresos" {{ request('tipo_movimiento') == 'ingresos' ? 'selected' : '' }}>💰 Solo Ingresos</option>
-                            <option value="gastos" {{ request('tipo_movimiento') == 'gastos' ? 'selected' : '' }}>💸 Solo Gastos</option>
-                        </select>
-                    </form>
-                    
-                    <div class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#21878610] to-[#21878620] rounded-xl border border-[#21878630]">
-                        <svg class="w-4 h-4 text-[#218786]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                        </svg>
-                        <span class="text-sm font-bold text-[#218786]">{{ $cajaFlujo->total() }} registros</span>
-                    </div>
-                </div>
+            </template>
+            <input type="hidden" name="tipo_movimiento" value="{{ $tipoMovimiento }}">
+        </div>
+    </form>
+
+    {{-- Totales --}}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="stat-card">
+            <div class="flex items-center gap-2">
+                <span class="dot bg-emerald-500"></span>
+                <p class="stat-label">Ingresos</p>
+            </div>
+            <p class="stat-value">S/ {{ number_format($totalIngresos, 2) }}</p>
+            <p class="stat-foot">Ventas pagadas y otros ingresos</p>
+        </div>
+        <div class="stat-card">
+            <div class="flex items-center gap-2">
+                <span class="dot bg-red-500"></span>
+                <p class="stat-label">Egresos</p>
+            </div>
+            <p class="stat-value">S/ {{ number_format($totalGastos, 2) }}</p>
+            <p class="stat-foot">Gastos y compras de mercadería</p>
+        </div>
+        <div class="stat-card {{ $balance < 0 ? '!border-red-200 !bg-red-50/40' : '!border-primary-200 !bg-primary-50/40' }}">
+            <p class="stat-label">Balance del periodo</p>
+            <p class="stat-value {{ $balance < 0 ? '!text-red-700' : '!text-primary-700' }}">{{ $balance < 0 ? '−' : '' }}S/ {{ number_format(abs($balance), 2) }}</p>
+            <p class="stat-foot">
+                @if($margen !== null) Margen sobre ingresos: {{ number_format($margen, 1) }}% @else Sin ingresos en el periodo @endif
+            </p>
+        </div>
+    </div>
+
+    {{-- Flujo de caja --}}
+    <div class="card-flush">
+        <div class="card-head">
+            <div>
+                <h2 class="card-title">Flujo de caja</h2>
+                <p class="card-subtitle">{{ $cajaFlujo->total() }} movimientos</p>
+            </div>
+            <div class="tabs">
+                @foreach(['todos' => 'Todos', 'ingresos' => 'Ingresos', 'gastos' => 'Egresos'] as $valor => $texto)
+                    <a href="{{ request()->fullUrlWithQuery(['tipo_movimiento' => $valor, 'page' => null]) }}" class="tab {{ $tipoMovimiento === $valor ? 'tab-active' : '' }}">{{ $texto }}</a>
+                @endforeach
             </div>
         </div>
 
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
+            <table class="table">
+                <thead>
                     <tr>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
-                                Fecha
-                            </div>
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-                                </svg>
-                                Descripción
-                            </div>
-                        </th>
-                        <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
-                            <div class="flex items-center gap-2">
-                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                </svg>
-                                Tipo
-                            </div>
-                        </th>
-                        <th class="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">
-                            <div class="flex items-center justify-end gap-2">
-                                <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                Monto
-                            </div>
-                        </th>
-                        <th class="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">
-                            Acciones
-                        </th>
+                        <th>Fecha</th>
+                        <th>Concepto</th>
+                        <th class="hidden md:table-cell">Origen</th>
+                        <th class="num">Monto</th>
+                        <th class="w-px"></th>
                     </tr>
                 </thead>
-                <tbody class="bg-white divide-y divide-gray-100">
+                <tbody>
                     @forelse($cajaFlujo as $movimiento)
-                        <tr class="hover:bg-gray-50 transition-colors group">
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="flex items-center">
-                                    <div class="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center mr-3 group-hover:bg-[#21878610] transition-colors">
-                                        <svg class="w-5 h-5 text-gray-500 group-hover:text-[#218786] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <div class="text-sm font-bold text-gray-900">
-                                            {{ \Carbon\Carbon::parse($movimiento['fecha'])->format('d/m/Y') }}
-                                        </div>
-                                        <div class="text-xs text-gray-500">
-                                            {{ \Carbon\Carbon::parse($movimiento['fecha'])->format('H:i') }}
-                                        </div>
-                                    </div>
+                        @php $esIngreso = $movimiento['tipo'] === 'ingreso'; @endphp
+                        <tr>
+                            <td class="whitespace-nowrap text-gray-500">{{ \Carbon\Carbon::parse($movimiento['fecha'])->format('d/m/Y') }}</td>
+                            <td>
+                                <div class="flex items-center gap-2.5">
+                                    <span class="dot {{ $esIngreso ? 'bg-emerald-500' : 'bg-red-500' }}"></span>
+                                    <span class="text-gray-900">{{ $movimiento['descripcion'] }}</span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center">
-                                    <div class="w-2 h-2 rounded-full mr-3 {{ $movimiento['tipo'] == 'ingreso' ? 'bg-green-500 shadow-lg shadow-green-500/50' : 'bg-red-500 shadow-lg shadow-red-500/50' }}"></div>
-                                    <span class="text-sm font-semibold text-gray-900">{{ $movimiento['descripcion'] }}</span>
+                            <td class="hidden md:table-cell">
+                                <span class="badge badge-gray">{{ ['Venta' => 'Venta', 'Ticket' => 'Ticket', 'Ingreso' => 'Otro ingreso', 'Gasto' => 'Gasto', 'Compra' => 'Compra'][$movimiento['modelo']] ?? $movimiento['modelo'] }}</span>
+                            </td>
+                            <td class="num font-medium whitespace-nowrap {{ $esIngreso ? 'text-emerald-700' : 'text-red-700' }}">
+                                {{ $esIngreso ? '+' : '−' }} S/ {{ number_format($movimiento['monto'], 2) }}
+                            </td>
+                            <td>
+                                <div class="flex justify-end">
+                                    @if($movimiento['modelo'] === 'Venta')
+                                        <a href="{{ route('ventas.show', $movimiento['id']) }}" class="btn-icon" title="Ver venta"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+                                    @elseif($movimiento['modelo'] === 'Ticket')
+                                        <a href="{{ route('tickets.show', $movimiento['id']) }}" class="btn-icon" title="Ver ticket"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+                                    @elseif($movimiento['modelo'] === 'Compra')
+                                        <a href="{{ route('compras.show', $movimiento['id']) }}" class="btn-icon" title="Ver compra"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg></a>
+                                    @else
+                                        <form action="{{ route($movimiento['modelo'] === 'Ingreso' ? 'finanzas.anularIngreso' : 'finanzas.anularGasto', $movimiento['id']) }}" method="POST"
+                                              data-confirm="¿Anular este {{ $movimiento['modelo'] === 'Ingreso' ? 'ingreso' : 'gasto' }}?" data-confirm-detalle="{{ $movimiento['descripcion'] }} · S/ {{ number_format($movimiento['monto'], 2) }}"
+                                              data-confirm-text="Anular" data-confirm-danger>
+                                            @csrf
+                                            @method('DELETE')
+                                            <button class="btn-icon-danger" title="Anular">
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if($movimiento['tipo'] == 'ingreso')
-                                    <span class="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-green-50 to-green-100 text-green-700 border border-green-200">
-                                        <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 10l7-7m0 0l7 7m-7-7v18"/>
-                                        </svg>
-                                        Ingreso
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center px-3 py-1.5 rounded-xl text-xs font-bold bg-gradient-to-r from-red-50 to-red-100 text-red-700 border border-red-200">
-                                        <svg class="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
-                                        </svg>
-                                        Gasto
-                                    </span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <span class="text-lg font-bold {{ $movimiento['tipo'] == 'ingreso' ? 'text-green-600' : 'text-red-600' }}">
-                                    {{ $movimiento['tipo'] == 'ingreso' ? '+' : '-' }} S/ {{ number_format($movimiento['monto'], 2) }}
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-center">
-                                @if($movimiento['modelo'] === 'Ingreso')
-                                    <form action="{{ route('finanzas.anularIngreso', $movimiento['id']) }}" 
-                                          method="POST" 
-                                          class="inline-block form-anular-movimiento">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" 
-                                                class="inline-flex items-center px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
-                                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                            </svg>
-                                            Anular
-                                        </button>
-                                    </form>
-                                @elseif($movimiento['modelo'] === 'Gasto')
-                                    <form action="{{ route('finanzas.anularGasto', $movimiento['id']) }}" 
-                                          method="POST" 
-                                          class="inline-block form-anular-movimiento">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" 
-                                                class="inline-flex items-center px-3 py-1.5 text-xs font-bold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all">
-                                            <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                            </svg>
-                                            Anular
-                                        </button>
-                                    </form>
-                                @elseif($movimiento['modelo'] === 'Compra')
-                                    <a href="{{ route('compras.show', $movimiento['id']) }}" class="text-xs font-semibold text-[#218786] hover:underline">Ver compra</a>
-                                @else
-                                    <span class="text-xs text-gray-400 italic">N/A</span>
-                                @endif
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="px-6 py-20 text-center">
-                                <div class="flex flex-col items-center">
-                                    <div class="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-4">
-                                        <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                                        </svg>
-                                    </div>
-                                    <h3 class="text-lg font-bold text-gray-900 mb-2">Sin movimientos registrados</h3>
-                                    <p class="text-sm text-gray-500">No hay transacciones en este periodo</p>
-                                    <p class="text-xs text-gray-400 mt-1">Cambia los filtros de fecha para ver más resultados</p>
+                            <td colspan="5">
+                                <div class="empty-state">
+                                    <div class="empty-icon"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></div>
+                                    <p class="font-medium text-gray-900">Sin movimientos en este periodo</p>
+                                    <p class="mt-1">Las ventas, compras, gastos e ingresos aparecerán aquí.</p>
                                 </div>
                             </td>
                         </tr>
@@ -411,396 +164,81 @@
         </div>
 
         @if($cajaFlujo->hasPages())
-            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div class="text-sm text-gray-600">
-                        Mostrando 
-                        <span class="font-bold text-[#218786]">{{ $cajaFlujo->firstItem() }}</span>
-                        a 
-                        <span class="font-bold text-[#218786]">{{ $cajaFlujo->lastItem() }}</span>
-                        de 
-                        <span class="font-bold text-[#218786]">{{ $cajaFlujo->total() }}</span>
-                        registros
-                    </div>
-
-                    <div class="flex items-center gap-2">
-                        @if ($cajaFlujo->onFirstPage())
-                            <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
-                                ← Anterior
-                            </span>
-                        @else
-                            <a href="{{ $cajaFlujo->appends(request()->except('page'))->previousPageUrl() }}" 
-                               class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
-                                ← Anterior
-                            </a>
-                        @endif
-
-                        <div class="hidden sm:flex items-center gap-2">
-                            @foreach ($cajaFlujo->getUrlRange(1, $cajaFlujo->lastPage()) as $page => $url)
-                                @if ($page == $cajaFlujo->currentPage())
-                                    <span class="px-4 py-2 text-sm font-bold text-white bg-gradient-to-r from-[#218786] to-[#1a6d6c] rounded-xl shadow-lg">
-                                        {{ $page }}
-                                    </span>
-                                @else
-                                    <a href="{{ $cajaFlujo->appends(request()->except('page'))->url($page) }}" 
-                                       class="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl hover:border-[#218786] hover:text-[#218786] transition-all">
-                                        {{ $page }}
-                                    </a>
-                                @endif
-                            @endforeach
-                        </div>
-
-                        @if ($cajaFlujo->hasMorePages())
-                            <a href="{{ $cajaFlujo->appends(request()->except('page'))->nextPageUrl() }}" 
-                               class="px-4 py-2 text-sm font-semibold text-[#218786] bg-white border-2 border-[#218786] rounded-xl hover:bg-[#218786] hover:text-white transition-all">
-                                Siguiente →
-                            </a>
-                        @else
-                            <span class="px-4 py-2 text-sm font-semibold text-gray-400 bg-gray-100 rounded-xl cursor-not-allowed">
-                                Siguiente →
-                            </span>
-                        @endif
-                    </div>
-                </div>
-            </div>
+            <div class="card-foot">{{ $cajaFlujo->links() }}</div>
         @endif
     </div>
 
-    <!-- Modal Registrar Otro Ingreso -->
-    <div x-show="showIngresoModal" 
-         x-cloak
-         @click.self="showIngresoModal = false"
-         class="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-        
-        <div @click.stop
-             x-show="showIngresoModal"
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100 scale-100"
-             x-transition:leave-end="opacity-0 scale-95"
-             class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
-            
-            <form action="{{ route('finanzas.storeIngreso') }}" method="POST">
-                @csrf
-                
-                <div class="px-6 py-5 bg-gradient-to-r from-green-500 to-green-600 text-white relative overflow-hidden">
-                    <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white/10 rounded-full"></div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
-                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h3 class="text-xl font-bold">Registrar Ingreso</h3>
-                                    <p class="text-sm text-white/80">Ingreso adicional no relacionado con ventas</p>
-                                </div>
-                            </div>
-                            <button type="button" 
-                                    @click="showIngresoModal = false"
-                                    class="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-lg transition-colors">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+    {{-- Modal: ingreso / gasto --}}
+    <div x-show="modal" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="modal = null"></div>
 
-                <div class="px-6 py-6 space-y-5">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            Monto *
-                        </label>
-                        <div class="relative group">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-green-500 font-bold text-xl">S/</span>
-                            <input type="number" 
-                                   name="monto" 
-                                   step="0.01" 
-                                   required 
-                                   class="w-full pl-14 pr-4 py-4 text-xl font-bold text-green-600 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all hover:border-gray-400" 
-                                   placeholder="0.00">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-                            </svg>
-                            Descripción *
-                        </label>
-                        <input type="text" 
-                               name="descripcion" 
-                               required 
-                               class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-all hover:border-gray-400" 
-                               placeholder="Ej: Intereses bancarios, alquiler, servicio de instalación...">
-                    </div>
-                    
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
-                                Fecha *
-                            </label>
-                            <input type="date" 
-                                   name="fecha" 
-                                   value="{{ date('Y-m-d') }}" 
-                                   required 
-                                   class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-all hover:border-gray-400">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                </svg>
-                                Tipo de Ingreso *
-                            </label>
-                            <select name="tipo_ingreso" 
-                                    required
-                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-all hover:border-gray-400">
-                                <option value="">Selecciona...</option>
-                                <optgroup label="Ingresos Operacionales">
-                                    <option value="Servicios">🔧 Servicios/Reparación</option>
-                                    <option value="Instalación">📦 Instalación</option>
-                                    <option value="Mantenimiento">⚙️ Mantenimiento</option>
-                                    <option value="Alquiler Equipo">🛠️ Alquiler de Equipo</option>
-                                </optgroup>
-                                <optgroup label="Ingresos No Operacionales">
-                                    <option value="Intereses">💵 Intereses Bancarios</option>
-                                    <option value="Alquiler Espacio">🏢 Alquiler de Espacio</option>
-                                    <option value="Recuperación">📊 Recuperación de Deudas</option>
-                                    <option value="Venta Activos">💸 Venta de Activos</option>
-                                    <option value="Aporte Capital">🎁 Aporte de Capital</option>
-                                    <option value="Reembolso">↩️ Reembolso/Devolución</option>
-                                    <option value="Otros">📋 Otros Ingresos</option>
-                                </optgroup>
-                            </select>
-                        </div>
-                    </div>
+        <form x-show="modal === 'ingreso'" method="POST" action="{{ route('finanzas.storeIngreso') }}" class="relative w-full max-w-md card space-y-4" x-transition>
+            @csrf
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Registrar ingreso</h3>
+                <p class="text-sm text-gray-500">Ingresos que no provienen de ventas.</p>
+            </div>
+            <div>
+                <label class="form-label">Concepto <span class="text-red-500">*</span></label>
+                <input type="text" name="descripcion" class="form-input" maxlength="255" required placeholder="Ej.: Alquiler de vitrina" value="{{ old('descripcion') }}">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="form-label">Monto <span class="text-red-500">*</span></label>
+                    <div class="input-addon"><span>S/</span><input type="number" name="monto" step="0.01" min="0.01" class="form-input" required value="{{ old('monto') }}"></div>
                 </div>
-
-                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col-reverse sm:flex-row justify-end gap-3">
-                    <button type="button" 
-                            @click="showIngresoModal = false" 
-                            class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-all">
-                        Cancelar
-                    </button>
-                    <button type="submit" 
-                            class="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                        </svg>
-                        Confirmar Ingreso
-                    </button>
+                <div>
+                    <label class="form-label">Fecha <span class="text-red-500">*</span></label>
+                    <input type="date" name="fecha" class="form-input" required value="{{ old('fecha', now()->toDateString()) }}">
                 </div>
-            </form>
-        </div>
+            </div>
+            <div>
+                <label class="form-label">Tipo <span class="text-red-500">*</span></label>
+                <select name="tipo_ingreso" class="form-input" required>
+                    <option value="">Selecciona…</option>
+                    @foreach($tiposIngreso as $tipo)<option value="{{ $tipo }}" @selected(old('tipo_ingreso') === $tipo)>{{ $tipo }}</option>@endforeach
+                </select>
+            </div>
+            @if($errors->any())<p class="form-error">{{ $errors->first() }}</p>@endif
+            <div class="flex justify-end gap-3">
+                <button type="button" class="btn-secondary" @click="modal = null">Cancelar</button>
+                <button class="btn-primary">Guardar ingreso</button>
+            </div>
+        </form>
+
+        <form x-show="modal === 'gasto'" method="POST" action="{{ route('finanzas.storeGasto') }}" class="relative w-full max-w-md card space-y-4" x-transition>
+            @csrf
+            <div>
+                <h3 class="text-lg font-semibold text-gray-900">Registrar gasto</h3>
+                <p class="text-sm text-gray-500">Las compras de mercadería se registran en Compras.</p>
+            </div>
+            <div>
+                <label class="form-label">Concepto <span class="text-red-500">*</span></label>
+                <input type="text" name="descripcion" class="form-input" maxlength="255" required placeholder="Ej.: Pago de luz" value="{{ old('descripcion') }}">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="form-label">Monto <span class="text-red-500">*</span></label>
+                    <div class="input-addon"><span>S/</span><input type="number" name="monto" step="0.01" min="0.01" class="form-input" required value="{{ old('monto') }}"></div>
+                </div>
+                <div>
+                    <label class="form-label">Fecha <span class="text-red-500">*</span></label>
+                    <input type="date" name="fecha" class="form-input" required value="{{ old('fecha', now()->toDateString()) }}">
+                </div>
+            </div>
+            <div>
+                <label class="form-label">Categoría</label>
+                <select name="categoria" class="form-input">
+                    <option value="">Sin categoría</option>
+                    @foreach($categoriasGasto as $categoria)<option value="{{ $categoria }}" @selected(old('categoria') === $categoria)>{{ $categoria }}</option>@endforeach
+                </select>
+            </div>
+            @if($errors->any())<p class="form-error">{{ $errors->first() }}</p>@endif
+            <div class="flex justify-end gap-3">
+                <button type="button" class="btn-secondary" @click="modal = null">Cancelar</button>
+                <button class="btn-primary">Guardar gasto</button>
+            </div>
+        </form>
     </div>
-
-    <!-- Modal Registrar Gasto -->
-    <div x-show="showGastoModal" 
-         x-cloak
-         @click.self="showGastoModal = false"
-         class="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-        
-        <div @click.stop
-             x-show="showGastoModal"
-             x-transition:enter="transition ease-out duration-300"
-             x-transition:enter-start="opacity-0 scale-95"
-             x-transition:enter-end="opacity-100 scale-100"
-             x-transition:leave="transition ease-in duration-200"
-             x-transition:leave-start="opacity-100 scale-100"
-             x-transition:leave-end="opacity-0 scale-95"
-             class="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
-            
-            <form action="{{ route('finanzas.storeGasto') }}" method="POST">
-                @csrf
-                
-                <div class="px-6 py-5 bg-gradient-to-r from-red-500 to-red-600 text-white relative overflow-hidden">
-                    <div class="absolute top-0 right-0 -mt-8 -mr-8 w-32 h-32 bg-white/10 rounded-full"></div>
-                    <div class="relative z-10">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <div class="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center shadow-lg">
-                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <h3 class="text-xl font-bold">Registrar Gasto</h3>
-                                    <p class="text-sm text-white/80">Ingresa los detalles del egreso</p>
-                                </div>
-                            </div>
-                            <button type="button" 
-                                    @click="showGastoModal = false"
-                                    class="text-white/80 hover:text-white hover:bg-white/20 p-2 rounded-lg transition-colors">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="px-6 py-6 space-y-5">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                            Monto *
-                        </label>
-                        <div class="relative group">
-                            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-red-500 font-bold text-xl">S/</span>
-                            <input type="number" 
-                                   name="monto" 
-                                   step="0.01" 
-                                   required 
-                                   class="w-full pl-14 pr-4 py-4 text-xl font-bold text-red-600 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all hover:border-gray-400" 
-                                   placeholder="0.00">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
-                            <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"/>
-                            </svg>
-                            Descripción *
-                        </label>
-                        <input type="text" 
-                               name="descripcion" 
-                               required 
-                               class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-all hover:border-gray-400" 
-                               placeholder="Ej: Pago de servicios, compra de materiales...">
-                    </div>
-                    
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                                </svg>
-                                Fecha *
-                            </label>
-                            <input type="date" 
-                                   name="fecha" 
-                                   value="{{ date('Y-m-d') }}" 
-                                   required 
-                                   class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-all hover:border-gray-400">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-bold text-gray-900 mb-2 flex items-center">
-                                <svg class="w-4 h-4 mr-2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
-                                </svg>
-                                Categoría
-                            </label>
-                            <select name="categoria" 
-                                    class="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-[#218786] focus:border-[#218786] transition-all hover:border-gray-400">
-                                <option value="">Sin categoría</option>
-                                <option value="Servicios">💡 Servicios</option>
-                                <option value="Alquiler">🏢 Alquiler</option>
-                                <option value="Planilla">👥 Planilla</option>
-                                <option value="Mantenimiento">🔧 Mantenimiento</option>
-                                <option value="Mercadería">📦 Mercadería</option>
-                                <option value="Impuestos">📊 Impuestos</option>
-                                <option value="Transporte">🚚 Transporte</option>
-                                <option value="Otros">📋 Otros</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex flex-col-reverse sm:flex-row justify-end gap-3">
-                    <button type="button" 
-                            @click="showGastoModal = false" 
-                            class="px-6 py-3 border-2 border-gray-300 text-gray-700 font-bold rounded-xl hover:bg-gray-100 transition-all">
-                        Cancelar
-                    </button>
-                    <button type="submit" 
-                            class="px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                        </svg>
-                        Confirmar Gasto
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
 </div>
-
-@push('scripts')
-<script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('finanzasManager', () => ({
-        showGastoModal: false,
-        showIngresoModal: false
-    }));
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.form-anular-movimiento').forEach(form => {
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            Swal.fire({
-                title: '¿Anular este movimiento?',
-                text: 'Esta acción eliminará el registro permanentemente y afectará tu balance.',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Sí, anular',
-                cancelButtonText: 'Cancelar',
-                customClass: { popup: 'rounded-2xl' }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
-            });
-        });
-    });
-});
-
-document.addEventListener('DOMContentLoaded', function() {
-    @if(session('success'))
-        Swal.fire({
-            icon: 'success',
-            title: '¡Éxito!',
-            text: '{{ session('success') }}',
-            confirmButtonColor: '#218786',
-            timer: 3000,
-            timerProgressBar: true,
-            customClass: {
-                popup: 'rounded-2xl'
-            }
-        });
-    @endif
-    
-    @if(session('error'))
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: '{{ session('error') }}',
-            confirmButtonColor: '#218786',
-            customClass: {
-                popup: 'rounded-2xl'
-            }
-        });
-    @endif
-});
-</script>
-@endpush
 @endsection

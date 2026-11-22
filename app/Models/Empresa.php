@@ -393,5 +393,43 @@ class Empresa extends Tenant
         return ! empty($this->logo) ? asset('storage/' . $this->logo) : null;
     }
 
+    /**
+     * Logo embebido como data URI (base64) para PDFs y tickets impresos.
+     * Dompdf no carga bien imágenes por URL ni WEBP: el WEBP se convierte a PNG.
+     */
+    public function logoDataUri(): ?string
+    {
+        if (empty($this->logo)) {
+            return null;
+        }
+
+        $ruta = \Illuminate\Support\Facades\Storage::disk('public')->path($this->logo);
+        if (! is_file($ruta)) {
+            return null;
+        }
+
+        try {
+            $mime = mime_content_type($ruta) ?: 'image/png';
+
+            if ($mime === 'image/webp' && function_exists('imagecreatefromwebp')) {
+                $imagen = imagecreatefromwebp($ruta);
+                imagesavealpha($imagen, true);
+                ob_start();
+                imagepng($imagen);
+                $contenido = ob_get_clean();
+                imagedestroy($imagen);
+                $mime = 'image/png';
+            } else {
+                $contenido = file_get_contents($ruta);
+            }
+
+            return 'data:' . $mime . ';base64,' . base64_encode($contenido);
+        } catch (\Throwable $e) {
+            report($e);
+
+            return null;
+        }
+    }
+
     
 }

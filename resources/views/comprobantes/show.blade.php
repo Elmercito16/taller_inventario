@@ -1,321 +1,159 @@
 @extends('layouts.app')
 
-@section('title', 'Comprobante ' . $comprobante->numero_completo)
+@php
+    $esFactura = $comprobante->tipo_comprobante === '01';
+    $tipoDoc = ['6' => 'RUC', '1' => 'DNI', '0' => 'Sin documento'][$comprobante->cliente_tipo_doc] ?? 'Documento';
+@endphp
+
+@section('title', $comprobante->numero_completo)
+@section('breadcrumb')
+    <a href="{{ route('comprobantes.index') }}" class="hover:text-gray-900">Comprobantes</a>
+    <span class="text-gray-300">/</span>
+    <span class="text-gray-900">{{ $comprobante->numero_completo }}</span>
+@endsection
+@section('page-title')
+    <span class="font-mono">{{ $comprobante->numero_completo }}</span>
+    <x-estado-sunat :comprobante="$comprobante" class="align-middle ml-2 text-xs" />
+@endsection
+@section('page-description', ($esFactura ? 'Factura electrónica' : 'Boleta de venta electrónica') . ' · Emitida el ' . $comprobante->fecha_emision?->format('d/m/Y H:i'))
+
+@section('page-actions')
+    @if($comprobante->pdf_path)
+        <a href="{{ route('comprobantes.ver-pdf', $comprobante) }}" target="_blank" class="btn-secondary">Ver PDF</a>
+    @endif
+    @if($comprobante->venta)
+        <a href="{{ route('ventas.show', $comprobante->venta) }}" class="btn-secondary">Ver venta</a>
+    @endif
+@endsection
 
 @section('content')
-<div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8">
-    <div class="container mx-auto px-4">
-        
-        {{-- Header --}}
-        <div class="mb-8">
-            <div class="flex items-center justify-between">
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+
+    <div class="xl:col-span-2 space-y-6">
+        <div class="card">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="sm:col-span-2">
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Cliente</p>
+                    <p class="mt-1 font-medium text-gray-900">{{ $comprobante->cliente_nombre ?: 'Clientes varios' }}</p>
+                    <p class="text-sm text-gray-500">{{ $tipoDoc }} {{ $comprobante->cliente_num_doc }}</p>
+                </div>
                 <div>
-                    <h1 class="text-4xl font-bold text-gray-800 flex items-center gap-3">
-                        @if($comprobante->tipo_comprobante == '01')
-                            <span class="text-5xl">📄</span>
-                        @else
-                            <span class="text-5xl">🧾</span>
-                        @endif
-                        Comprobante {{ $comprobante->numero_completo }}
-                    </h1>
-                    <p class="text-gray-600 mt-2 ml-16">{{ $comprobante->tipo_comprobante_nombre }}</p>
-                </div>
-                <div class="flex gap-2">
-                    <a href="{{ route('comprobantes.index') }}" 
-                       class="px-6 py-3 bg-gray-600 text-white font-bold rounded-xl hover:bg-gray-700 transition-all shadow-lg">
-                        ← Volver
-                    </a>
-                    <a href="{{ route('ventas.show', $comprobante->venta) }}" 
-                       class="px-6 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all shadow-lg">
-                        👁️ Ver Venta
-                    </a>
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Moneda</p>
+                    <p class="mt-1 font-medium text-gray-900">{{ ! $comprobante->moneda || $comprobante->moneda === 'PEN' ? 'Soles (PEN)' : $comprobante->moneda }}</p>
                 </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {{-- Columna Principal --}}
-            <div class="lg:col-span-2 space-y-6">
-                
-                {{-- Información del Comprobante --}}
-                <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                    <div class="bg-gradient-to-r from-[#218786] to-[#1a6d6c] px-8 py-6">
-                        <h2 class="text-2xl font-bold text-white">📋 Información del Comprobante</h2>
-                    </div>
-                    
-                    <div class="p-8">
-                        <div class="grid grid-cols-2 gap-6">
-                            <div>
-                                <label class="text-sm font-bold text-gray-600">Número</label>
-                                <p class="text-xl font-mono font-bold text-[#218786]">{{ $comprobante->numero_completo }}</p>
-                            </div>
-                            
-                            <div>
-                                <label class="text-sm font-bold text-gray-600">Tipo</label>
-                                <p class="text-lg font-bold">{{ $comprobante->tipo_comprobante_nombre }}</p>
-                            </div>
-                            
-                            <div>
-                                <label class="text-sm font-bold text-gray-600">Fecha Emisión</label>
-                                <p class="text-lg">{{ $comprobante->fecha_emision->format('d/m/Y H:i') }}</p>
-                            </div>
-                            
-                            <div>
-                                <label class="text-sm font-bold text-gray-600">Moneda</label>
-                                <p class="text-lg">{{ $comprobante->moneda }} - Soles</p>
-                            </div>
-                            
-                            <div class="col-span-2">
-                                <label class="text-sm font-bold text-gray-600">Cliente</label>
-                                <p class="text-lg font-bold">{{ $comprobante->cliente_nombre }}</p>
-                                <p class="text-sm text-gray-600">
-                                    {{ $comprobante->cliente_tipo_doc == '6' ? 'RUC' : 'DNI' }}: {{ $comprobante->cliente_num_doc }}
-                                </p>
-                            </div>
-                            
-                            <div class="col-span-2">
-                                <label class="text-sm font-bold text-gray-600">Monto en Letras</label>
-                                <p class="text-sm italic text-gray-700">{{ $comprobante->total_letras }}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                {{-- Detalles de la Venta --}}
-                <div class="bg-white rounded-2xl shadow-2xl overflow-hidden">
-                    <div class="bg-gradient-to-r from-[#218786] to-[#1a6d6c] px-8 py-6">
-                        <h2 class="text-2xl font-bold text-white">🛒 Detalles</h2>
-                    </div>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="w-full">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-600 uppercase">Producto</th>
-                                    <th class="px-6 py-3 text-center text-xs font-bold text-gray-600 uppercase">Cant.</th>
-                                    <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase">P. Unit.</th>
-                                    <th class="px-6 py-3 text-right text-xs font-bold text-gray-600 uppercase">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-200">
-                                @foreach($comprobante->venta->detalles as $detalle)
-                                <tr>
-                                    <td class="px-6 py-4">
-                                        <div class="font-bold text-gray-900">{{ $detalle->repuesto->nombre }}</div>
-                                        <div class="text-sm text-gray-500">Código: {{ $detalle->repuesto->codigo ?? 'N/A' }}</div>
-                                    </td>
-                                    <td class="px-6 py-4 text-center font-bold">{{ $detalle->cantidad }}</td>
-                                    <td class="px-6 py-4 text-right">S/ {{ number_format($detalle->precio_unitario, 2) }}</td>
-                                    <td class="px-6 py-4 text-right font-bold">S/ {{ number_format($detalle->subtotal, 2) }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                            <tfoot class="bg-gray-50">
-                                <tr>
-                                    <td colspan="3" class="px-6 py-3 text-right font-bold">Op. Gravada:</td>
-                                    <td class="px-6 py-3 text-right font-bold">S/ {{ number_format($comprobante->total_gravadas ?? $comprobante->subtotal, 2) }}</td>
-                                </tr>
-                                @if((float) $comprobante->total_exoneradas > 0)
-                                <tr>
-                                    <td colspan="3" class="px-6 py-3 text-right font-bold">Op. Exonerada:</td>
-                                    <td class="px-6 py-3 text-right font-bold">S/ {{ number_format($comprobante->total_exoneradas, 2) }}</td>
-                                </tr>
-                                @endif
-                                @if((float) $comprobante->total_inafectas > 0)
-                                <tr>
-                                    <td colspan="3" class="px-6 py-3 text-right font-bold">Op. Inafecta:</td>
-                                    <td class="px-6 py-3 text-right font-bold">S/ {{ number_format($comprobante->total_inafectas, 2) }}</td>
-                                </tr>
-                                @endif
-                                <tr>
-                                    <td colspan="3" class="px-6 py-3 text-right font-bold">IGV (18%):</td>
-                                    <td class="px-6 py-3 text-right font-bold">S/ {{ number_format($comprobante->igv, 2) }}</td>
-                                </tr>
-                                <tr class="bg-[#218786] text-white">
-                                    <td colspan="3" class="px-6 py-4 text-right text-lg font-bold">TOTAL:</td>
-                                    <td class="px-6 py-4 text-right text-2xl font-bold">S/ {{ number_format($comprobante->total, 2) }}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-                
+        <div class="card-flush">
+            <div class="card-head"><h2 class="card-title">Detalle</h2></div>
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Descripción</th>
+                            <th class="num">Cantidad</th>
+                            <th class="num">P. unitario</th>
+                            <th class="num">Importe</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($comprobante->venta?->detalles ?? [] as $detalle)
+                            <tr>
+                                <td class="text-gray-900">{{ $detalle->repuesto->nombre ?? 'Producto eliminado' }}</td>
+                                <td class="num">{{ $detalle->cantidad_formateada }}</td>
+                                <td class="num">S/ {{ number_format($detalle->precio_unitario, 2) }}</td>
+                                <td class="num font-medium text-gray-900">S/ {{ number_format($detalle->subtotal, 2) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
-            
-            {{-- Columna Lateral --}}
-            <div class="space-y-6">
-                
-                {{-- Estado SUNAT --}}
-                <div class="bg-white rounded-2xl shadow-2xl p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">📡 Estado SUNAT</h3>
-                    
-                    <div class="text-center mb-4">
-                        @php
-                            $estados = [
-                                'aceptado' => ['✅', 'bg-green-100 text-green-800', 'Aceptado por SUNAT'],
-                                'observado' => ['✅', 'bg-emerald-100 text-emerald-800', 'Aceptado con observaciones'],
-                                'pendiente' => ['⏳', 'bg-yellow-100 text-yellow-800', 'Pendiente de respuesta'],
-                                'rechazado' => ['❌', 'bg-red-100 text-red-800', 'Rechazado'],
-                                'baja_pendiente' => ['⏳', 'bg-amber-100 text-amber-800', 'Anulación en proceso'],
-                                'anulado' => ['🚫', 'bg-gray-100 text-gray-800', 'Anulado'],
-                            ];
-                            [$icono, $clases, $texto] = $estados[$comprobante->anulado ? 'anulado' : $comprobante->estado_sunat] ?? ['❔', 'bg-gray-100 text-gray-700', ucfirst($comprobante->estado_sunat)];
-                        @endphp
-                        <div class="text-6xl mb-2">{{ $icono }}</div>
-                        <span class="px-4 py-2 {{ $clases }} rounded-full font-bold">{{ $texto }}</span>
-                    </div>
-                    
-                    @if($comprobante->mensaje_sunat)
-                    <div class="mt-4 p-3 bg-gray-50 rounded-lg">
-                        <p class="text-xs font-bold text-gray-600 mb-1">Mensaje:</p>
-                        <p class="text-sm text-gray-700">{{ $comprobante->mensaje_sunat }}</p>
-                    </div>
+            <div class="border-t border-gray-200 px-5 py-4">
+                <dl class="ml-auto max-w-xs space-y-1.5 text-sm">
+                    <div class="flex justify-between"><dt class="text-gray-500">Op. gravada</dt><dd class="tabular-nums">S/ {{ number_format($comprobante->total_gravadas ?? $comprobante->subtotal, 2) }}</dd></div>
+                    @if((float) $comprobante->total_exoneradas > 0)
+                        <div class="flex justify-between"><dt class="text-gray-500">Op. exonerada</dt><dd class="tabular-nums">S/ {{ number_format($comprobante->total_exoneradas, 2) }}</dd></div>
                     @endif
-                    
-                    @if($comprobante->observaciones_sunat)
-                    <div class="mt-2 p-3 bg-amber-50 rounded-lg">
-                        <p class="text-xs font-bold text-amber-700 mb-1">Observaciones:</p>
-                        <p class="text-sm text-amber-800">{{ $comprobante->observaciones_sunat }}</p>
-                    </div>
+                    @if((float) $comprobante->total_inafectas > 0)
+                        <div class="flex justify-between"><dt class="text-gray-500">Op. inafecta</dt><dd class="tabular-nums">S/ {{ number_format($comprobante->total_inafectas, 2) }}</dd></div>
                     @endif
-
-                    @if(in_array($comprobante->estado_sunat, ['pendiente', 'baja_pendiente']))
-                    <a href="{{ route('comprobantes.consultar-estado', $comprobante) }}"
-                       class="mt-4 w-full px-4 py-3 bg-amber-500 text-white font-bold rounded-xl hover:bg-amber-600 transition-all flex items-center justify-center gap-2">
-                        🔄 {{ $comprobante->estado_sunat === 'pendiente' ? 'Reenviar a SUNAT' : 'Consultar estado de la baja' }}
-                    </a>
-                    @endif
-
-                    @if($comprobante->codigo_sunat)
-                    <div class="mt-2 p-3 bg-blue-50 rounded-lg">
-                        <p class="text-xs font-bold text-gray-600 mb-1">Código SUNAT:</p>
-                        <p class="text-sm font-mono text-gray-700">{{ $comprobante->codigo_sunat }}</p>
-                    </div>
-                    @endif
-                </div>
-                
-                {{-- Acciones --}}
-<div class="bg-white rounded-2xl shadow-2xl p-6">
-    <h3 class="text-lg font-bold text-gray-800 mb-4">⚡ Acciones</h3>
-    
-    <div class="space-y-2">
-        @if($comprobante->xml_path)
-        <a href="{{ route('comprobantes.descargar-xml', $comprobante) }}" 
-           class="w-full px-4 py-3 bg-green-600 text-white font-bold rounded-xl hover:bg-green-700 transition-all flex items-center justify-center gap-2">
-            📄 Descargar XML
-        </a>
-        @endif
-        
-        @if($comprobante->cdr_path)
-        <a href="{{ route('comprobantes.descargar-cdr', $comprobante) }}" 
-           class="w-full px-4 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2">
-            📦 Descargar CDR
-        </a>
-        @endif
-        
-        {{-- AGREGA ESTO 👇 --}}
-        @if($comprobante->pdf_path)
-        <a href="{{ route('comprobantes.descargar-pdf', $comprobante) }}" 
-           class="w-full px-4 py-3 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 transition-all flex items-center justify-center gap-2">
-            📑 Descargar PDF
-        </a>
-        @else
-        <button disabled
-                class="w-full px-4 py-3 bg-gray-300 text-gray-500 font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
-                title="PDF no disponible aún">
-            📑 PDF no disponible
-        </button>
-        @endif
-        
-        @if($comprobante->puedeSerAnulado())
-        <button type="button" onclick="confirmarAnulacion()"
-                class="w-full px-4 py-3 bg-gray-600 text-white font-bold rounded-xl hover:bg-gray-700 transition-all flex items-center justify-center gap-2">
-            🚫 Anular Comprobante
-        </button>
-        <form id="form-anular" action="{{ route('comprobantes.anular', $comprobante) }}" method="POST" class="hidden">
-            @csrf
-            <input type="hidden" name="motivo_anulacion" id="motivo-anulacion">
-        </form>
-        <p class="text-xs text-gray-500 text-center">
-            Se enviará {{ str_starts_with($comprobante->serie, 'B') ? 'el Resumen Diario de anulación' : 'la Comunicación de Baja' }} a SUNAT.
-        </p>
-        @endif
-    </div>
-</div>
-
-                
-                {{-- Información Adicional --}}
-                <div class="bg-white rounded-2xl shadow-2xl p-6">
-                    <h3 class="text-lg font-bold text-gray-800 mb-4">ℹ️ Información Adicional</h3>
-                    
-                    <div class="space-y-3 text-sm">
-                        <div>
-                            <span class="font-bold text-gray-600">Ambiente:</span>
-                            <span class="ml-2 px-2 py-1 bg-gray-100 rounded text-xs">
-                                {{ $comprobante->ambiente == 'beta' ? '🧪 Pruebas (Beta)' : '🚀 Producción' }}
-                            </span>
-                        </div>
-                        
-                        @if($comprobante->usuarioEmision)
-                        <div>
-                            <span class="font-bold text-gray-600">Emitido por:</span>
-                            <span class="ml-2">{{ $comprobante->usuarioEmision->nombre }}</span>
-                        </div>
-                        @endif
-                        
-                        <div>
-                            <span class="font-bold text-gray-600">Fecha envío SUNAT:</span>
-                            <span class="ml-2">{{ $comprobante->fecha_envio_sunat ? $comprobante->fecha_envio_sunat->format('d/m/Y H:i:s') : '-' }}</span>
-                        </div>
-                        
-                        @if($comprobante->anulado)
-                        <div class="pt-3 border-t">
-                            <span class="font-bold text-red-600">Anulado el:</span>
-                            <span class="ml-2">{{ $comprobante->fecha_anulacion?->format('d/m/Y H:i') }}</span>
-                            
-                            @if($comprobante->motivo_anulacion)
-                            <p class="mt-2 text-xs text-gray-600">
-                                <strong>Motivo:</strong> {{ $comprobante->motivo_anulacion }}
-                            </p>
-                            @endif
-                        </div>
-                        @endif
-                    </div>
-                </div>
-                
+                    <div class="flex justify-between"><dt class="text-gray-500">IGV (18%)</dt><dd class="tabular-nums">S/ {{ number_format($comprobante->igv, 2) }}</dd></div>
+                    <div class="flex justify-between border-t border-gray-200 pt-2 text-base font-semibold text-gray-900"><dt>Total</dt><dd class="tabular-nums">S/ {{ number_format($comprobante->total, 2) }}</dd></div>
+                </dl>
+                @if($comprobante->total_letras)
+                    <p class="mt-3 text-right text-xs text-gray-500">SON: {{ $comprobante->total_letras }}</p>
+                @endif
             </div>
-            
         </div>
-        
+    </div>
+
+    <div class="space-y-6">
+        <div class="card">
+            <h2 class="card-title mb-3">Respuesta de SUNAT</h2>
+            <x-estado-sunat :comprobante="$comprobante" />
+            @if($comprobante->mensaje_sunat)
+                <p class="mt-3 text-sm text-gray-700">{{ $comprobante->mensaje_sunat }}</p>
+            @endif
+            @if($comprobante->observaciones_sunat)
+                <div class="alert alert-warning mt-3 !p-3">
+                    <p><span class="font-medium">Observaciones:</span> {{ $comprobante->observaciones_sunat }}</p>
+                </div>
+            @endif
+            <dl class="desc-list mt-3">
+                @if($comprobante->codigo_sunat !== null && $comprobante->codigo_sunat !== '')<div><dt>Código</dt><dd class="font-mono">{{ $comprobante->codigo_sunat }}</dd></div>@endif
+                <div><dt>Ambiente</dt><dd>{{ $comprobante->ambiente === 'produccion' ? 'Producción' : 'Pruebas (Beta)' }}</dd></div>
+                <div><dt>Enviado</dt><dd>{{ $comprobante->fecha_envio_sunat?->format('d/m/Y H:i') ?? '—' }}</dd></div>
+                <div><dt>Emitido por</dt><dd>{{ $comprobante->usuarioEmision->nombre ?? '—' }}</dd></div>
+            </dl>
+            @if(in_array($comprobante->estado_sunat, ['pendiente', 'baja_pendiente']))
+                <a href="{{ route('comprobantes.consultar-estado', $comprobante) }}" class="btn-primary w-full mt-4">
+                    {{ $comprobante->estado_sunat === 'pendiente' ? 'Reenviar a SUNAT' : 'Consultar estado de la baja' }}
+                </a>
+            @endif
+        </div>
+
+        <div class="card">
+            <h2 class="card-title mb-3">Archivos</h2>
+            <div class="space-y-2">
+                @foreach([['pdf_path', 'descargar-pdf', 'Representación impresa (PDF)'], ['xml_path', 'descargar-xml', 'XML firmado'], ['cdr_path', 'descargar-cdr', 'Constancia de recepción (CDR)']] as [$campo, $ruta, $texto])
+                    @if($comprobante->{$campo})
+                        <a href="{{ route('comprobantes.' . $ruta, $comprobante) }}" class="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2.5 text-sm hover:bg-gray-50">
+                            <span class="text-gray-700">{{ $texto }}</span>
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        </a>
+                    @else
+                        <div class="flex items-center justify-between rounded-lg border border-dashed border-gray-200 px-3 py-2.5 text-sm text-gray-400">
+                            <span>{{ $texto }}</span><span class="shrink-0 whitespace-nowrap pl-3">No disponible</span>
+                        </div>
+                    @endif
+                @endforeach
+            </div>
+        </div>
+
+        @if($comprobante->anulado || $comprobante->fecha_anulacion)
+            <div class="card">
+                <h2 class="card-title mb-2">Anulación</h2>
+                <dl class="desc-list">
+                    <div><dt>Fecha</dt><dd>{{ $comprobante->fecha_anulacion?->format('d/m/Y H:i') ?? '—' }}</dd></div>
+                    <div><dt>Motivo</dt><dd class="max-w-[200px]">{{ $comprobante->motivo_anulacion ?? '—' }}</dd></div>
+                </dl>
+            </div>
+        @elseif($comprobante->puedeSerAnulado())
+            <div class="card">
+                <h2 class="card-title">Anular comprobante</h2>
+                <p class="card-subtitle mb-4">Se enviará {{ str_starts_with($comprobante->serie, 'B') ? 'el resumen diario de anulación' : 'la comunicación de baja' }} a SUNAT.</p>
+                <form method="POST" action="{{ route('comprobantes.anular', $comprobante) }}" class="space-y-3"
+                      data-confirm="¿Anular {{ $comprobante->numero_completo }}?" data-confirm-detalle="Esta acción no se puede deshacer." data-confirm-text="Anular" data-confirm-danger>
+                    @csrf
+                    <div>
+                        <label class="form-label">Motivo</label>
+                        <input type="text" name="motivo_anulacion" class="form-input @error('motivo_anulacion') form-input-error @enderror" minlength="10" maxlength="100" required placeholder="Ej.: Error en los datos del cliente" value="{{ old('motivo_anulacion') }}">
+                        @error('motivo_anulacion')<p class="form-error">{{ $message }}</p>@enderror
+                    </div>
+                    <button class="btn-danger-soft w-full">Anular comprobante</button>
+                </form>
+            </div>
+        @endif
     </div>
 </div>
-
-{{-- Script para anular --}}
-@if($comprobante->puedeSerAnulado())
-<script>
-async function confirmarAnulacion() {
-    const { value: motivo } = await Swal.fire({
-        title: 'Anular comprobante',
-        html: '<p class="text-sm text-gray-600">Se enviará la solicitud de baja a SUNAT. Esta acción no se puede deshacer.</p>',
-        input: 'text',
-        inputLabel: 'Motivo de anulación',
-        inputPlaceholder: 'Ej.: Error en los datos del cliente',
-        inputAttributes: { maxlength: 100 },
-        showCancelButton: true,
-        confirmButtonText: 'Anular',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#dc2626',
-        inputValidator: (valor) => {
-            if (!valor || valor.trim().length < 10) return 'El motivo debe tener al menos 10 caracteres';
-        },
-    });
-
-    if (motivo) {
-        document.getElementById('motivo-anulacion').value = motivo.trim();
-        document.getElementById('form-anular').submit();
-    }
-}
-</script>
-@endif
 @endsection

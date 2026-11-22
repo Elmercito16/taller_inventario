@@ -1,21 +1,26 @@
 @extends('layouts.app')
 
 @section('title', 'Compra ' . $compra->numero)
-@section('page-title', 'Compra ' . $compra->numero)
+@section('breadcrumb')
+    <a href="{{ route('compras.index') }}" class="hover:text-gray-900">Compras</a>
+    <span class="text-gray-300">/</span>
+    <span class="text-gray-900">{{ $compra->numero }}</span>
+@endsection
+@section('page-title')
+    Compra {{ $compra->numero }}
+    <span class="badge {{ $compra->estaAnulada() ? 'badge-danger' : 'badge-success' }} align-middle ml-2 text-xs">{{ $compra->estaAnulada() ? 'Anulada' : 'Registrada' }}</span>
+@endsection
 @section('page-description', $compra->documento_texto . ' · ' . ($compra->proveedor->nombre ?? 'Sin proveedor'))
+
+@section('page-actions')
+    <button type="button" onclick="window.print()" class="btn-secondary print:hidden">Imprimir</button>
+    @unless($compra->estaAnulada())
+        <button type="button" onclick="anularCompra()" class="btn-danger-soft print:hidden">Anular compra</button>
+    @endunless
+@endsection
 
 @section('content')
 <div class="space-y-6">
-
-    <div class="flex flex-wrap items-center justify-between gap-3 print:hidden">
-        <a href="{{ route('compras.index') }}" class="btn-secondary">← Volver a compras</a>
-        <div class="flex gap-3">
-            <button type="button" onclick="window.print()" class="btn-secondary">Imprimir</button>
-            @unless($compra->estaAnulada())
-                <button type="button" onclick="anularCompra()" class="btn-danger">Anular compra</button>
-            @endunless
-        </div>
-    </div>
 
     @if($compra->estaAnulada())
         <div class="alert alert-danger">
@@ -58,9 +63,9 @@
                 <thead>
                     <tr>
                         <th>Producto</th>
-                        <th class="text-right">Cantidad</th>
-                        <th class="text-right">Costo unit.</th>
-                        <th class="text-right">Subtotal</th>
+                        <th class="num">Cantidad</th>
+                        <th class="num">Costo unit.</th>
+                        <th class="num">Subtotal</th>
                         <th class="print:hidden"></th>
                     </tr>
                 </thead>

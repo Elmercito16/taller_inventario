@@ -1,715 +1,391 @@
 @extends('layouts.app')
 
-@section('title', 'Nueva Venta')
-@section('page-title', 'Nueva Venta')
-@section('page-description', 'Registra una nueva transacción de venta')
+@section('title', 'Punto de venta')
+@section('page-title', 'Punto de venta')
+@section('page-description', 'Busca o escanea productos y cobra en segundos · F2 para buscar')
 
-@push('styles')
-<style>
-    .fade-in {
-        animation: fadeIn 0.5s ease-out both;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    
-    .fade-in:nth-child(1) { animation-delay: 0s; }
-    .fade-in:nth-child(2) { animation-delay: 0.1s; }
-    .fade-in:nth-child(3) { animation-delay: 0.2s; }
-    
-    .metodo-pago-card {
-        transition: all 0.3s ease;
-    }
-    
-    .metodo-pago-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(33, 135, 134, 0.15);
-    }
-    
-    .metodo-pago-card.selected {
-        border-color: #218786 !important;
-        background: linear-gradient(135deg, #e6f7f6 0%, #d4f1ef 100%) !important;
-        transform: scale(1.02);
-    }
-    
-    [x-cloak] { display: none !important; }
-</style>
-@endpush
+@section('page-actions')
+    <a href="{{ route('ventas.index') }}" class="btn-secondary">Historial de ventas</a>
+@endsection
+
+@php
+    $catalogo = $repuestos->map(fn ($r) => [
+        'id' => $r->id,
+        'nombre' => $r->nombre,
+        'codigo' => (string) $r->codigo,
+        'barras' => (string) ($r->codigo_barras ?? ''),
+        'precio' => (float) $r->precio_unitario,
+        'stock' => (float) $r->cantidad,
+        'servicio' => $r->esServicio(),
+        'unidad' => $r->unidad_abreviatura,
+        'decimales' => $r->permiteDecimales(),
+        'categoria_id' => $r->categoria_id,
+        'imagen' => $r->imagen ? asset('storage/' . $r->imagen) : null,
+    ])->values();
+    $carritoPrevio = collect(old('repuestos', []))->values();
+@endphp
 
 @section('content')
-<div class="space-y-6" x-data="ventaManager()">
+<form method="POST" action="{{ route('ventas.store') }}" x-data="puntoDeVenta()" @submit.prevent="confirmar($event)" @keydown.window.f2.prevent="$refs.buscador.focus()">
+    @csrf
 
-    <!-- Breadcrumbs -->
-    <nav class="flex items-center space-x-2 text-sm text-gray-500">
-        <a href="{{ route('dashboard') }}" class="hover:text-[#218786] transition-colors flex items-center">
-            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
-            </svg>
-            Dashboard
-        </a>
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-        </svg>
-        <a href="{{ route('ventas.index') }}" class="hover:text-[#218786] transition-colors">Ventas</a>
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/>
-        </svg>
-        <span class="font-medium text-gray-900">Nueva Venta</span>
-    </nav>
+    @if($errors->any())
+        <div class="alert alert-danger mb-6">
+            <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <ul class="list-disc list-inside">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul>
+        </div>
+    @endif
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <!-- Productos Disponibles -->
-        <div class="fade-in bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-3">
-                <div class="p-3 bg-blue-100 rounded-lg">
-                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                    </svg>
+    <div class="grid grid-cols-1 xl:grid-cols-5 gap-6 items-start">
+
+        {{-- ================= CATÁLOGO ================= --}}
+        <div class="xl:col-span-3 card-flush min-w-0">
+            <div class="p-4 border-b border-gray-100 space-y-3">
+                <div class="input-search">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" x-ref="buscador" x-model="busqueda" @keydown.enter.prevent="agregarPorCodigo()" autofocus
+                           class="form-input !py-2.5" placeholder="Buscar producto o escanear código de barras y presionar Enter" autocomplete="off">
+                </div>
+                <div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                    <button type="button" @click="categoria = null" class="btn-sm rounded-full border px-3 whitespace-nowrap"
+                            :class="categoria === null ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'">Todos</button>
+                    @foreach($categorias as $cat)
+                        <button type="button" @click="categoria = {{ $cat->id }}" class="btn-sm rounded-full border px-3 whitespace-nowrap"
+                                :class="categoria === {{ $cat->id }} ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'">{{ $cat->nombre }}</button>
+                    @endforeach
                 </div>
             </div>
-            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Productos Disponibles</p>
-            <p class="text-3xl font-bold text-gray-900 mt-1">{{ $repuestos->where('cantidad', '>', 0)->count() }}</p>
-            <p class="text-xs text-gray-500 mt-1">En inventario</p>
+
+            <div class="p-4 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[calc(100vh-300px)] min-h-[300px] overflow-y-auto custom-scrollbar">
+                <template x-for="p in productosFiltrados" :key="p.id">
+                    <button type="button" @click="agregar(p)" class="group text-left rounded-lg border border-gray-200 bg-white p-3 transition hover:border-primary-500 hover:shadow-sm flex flex-col"
+                            :class="enCarrito(p.id) && 'border-primary-500 ring-1 ring-primary-500'">
+                        <div class="flex items-start justify-between gap-2">
+                            <template x-if="p.imagen"><img :src="p.imagen" alt="" class="thumb w-10 h-10"></template>
+                            <template x-if="!p.imagen">
+                                <div class="thumb w-10 h-10 flex items-center justify-center text-gray-300">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                                </div>
+                            </template>
+                            <span class="badge" :class="p.servicio ? 'badge-info' : (p.stock <= 5 ? 'badge-warning' : 'badge-gray')"
+                                  x-text="p.servicio ? 'Servicio' : formatear(p.stock) + ' ' + p.unidad"></span>
+                        </div>
+                        <p class="mt-2 text-sm font-medium text-gray-900 leading-snug line-clamp-2 min-h-[2.5rem]" x-text="p.nombre"></p>
+                        <p class="text-xs text-gray-400" x-text="p.codigo"></p>
+                        <p class="mt-auto pt-2 text-[15px] font-semibold text-gray-900 tabular-nums">
+                            S/ <span x-text="p.precio.toFixed(2)"></span>
+                            <span class="text-xs font-normal text-gray-400" x-text="'/ ' + p.unidad"></span>
+                        </p>
+                    </button>
+                </template>
+                <div x-show="!productosFiltrados.length" class="col-span-full empty-state">
+                    <p class="font-medium text-gray-900">Sin productos</p>
+                    <p class="mt-1">No hay productos disponibles con esa búsqueda.</p>
+                </div>
+            </div>
         </div>
 
-        <!-- Productos en Venta -->
-        <div class="fade-in bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-3">
-                <div class="p-3 bg-purple-100 rounded-lg">
-                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
+        {{-- ================= VENTA ACTUAL ================= --}}
+        <div class="xl:col-span-2 xl:sticky xl:top-6 card-flush min-w-0">
+            {{-- Cliente --}}
+            <div class="p-4 border-b border-gray-100">
+                <div class="flex items-center justify-between mb-2">
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Cliente</p>
+                    <button type="button" class="link text-xs" @click="abrirNuevoCliente()">+ Nuevo cliente</button>
                 </div>
+                <div class="relative" @click.outside="clientesAbierto = false">
+                    <template x-if="cliente">
+                        <div class="flex items-center gap-3 rounded-lg border border-gray-200 p-2.5">
+                            <span class="avatar w-9 h-9 text-sm" x-text="cliente.nombre.charAt(0).toUpperCase()"></span>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium text-gray-900 truncate" x-text="cliente.nombre"></p>
+                                <p class="text-xs text-gray-500" x-text="cliente.ruc ? 'RUC ' + cliente.ruc : 'DNI ' + (cliente.dni || '—')"></p>
+                            </div>
+                            <button type="button" class="btn-icon" title="Quitar cliente" @click="cliente = null">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </div>
+                    </template>
+                    <template x-if="!cliente">
+                        <div class="input-search">
+                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                            <input type="text" x-model="busquedaCliente" @input.debounce.300ms="buscarClientes()" @focus="buscarClientes()"
+                                   class="form-input" placeholder="Cliente general · buscar por nombre, DNI o RUC" autocomplete="off">
+                        </div>
+                    </template>
+                    <div x-show="clientesAbierto && !cliente" x-cloak class="absolute z-20 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg max-h-64 overflow-y-auto">
+                        <template x-for="c in clientes" :key="c.id">
+                            <button type="button" @click="elegirCliente(c)" class="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-50 last:border-0">
+                                <p class="text-sm font-medium text-gray-900" x-text="c.nombre"></p>
+                                <p class="text-xs text-gray-500" x-text="(c.ruc ? 'RUC ' + c.ruc + ' · ' : '') + 'DNI ' + (c.dni || '—')"></p>
+                            </button>
+                        </template>
+                        <p x-show="!clientes.length" class="px-3 py-3 text-sm text-gray-500">Sin resultados. <button type="button" class="link" @click="abrirNuevoCliente()">Registrar cliente</button></p>
+                    </div>
+                </div>
+                <input type="hidden" name="cliente_id" :value="cliente ? cliente.id : ''">
             </div>
-            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Productos en Venta</p>
-            <p class="text-3xl font-bold text-purple-600 mt-1" x-text="carritoItems.length">0</p>
-            <p class="text-xs text-gray-500 mt-1">En carrito</p>
-        </div>
 
-        <!-- Total -->
-        <div class="fade-in bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-shadow">
-            <div class="flex items-center justify-between mb-3">
-                <div class="p-3 bg-green-100 rounded-lg">
-                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
+            {{-- Carrito --}}
+            <div class="max-h-[340px] overflow-y-auto custom-scrollbar">
+                <template x-for="(item, i) in carrito" :key="item.id">
+                    <div class="flex items-center gap-3 px-4 py-3 border-b border-gray-100">
+                        <div class="min-w-0 flex-1">
+                            <p class="text-sm font-medium text-gray-900 truncate" x-text="item.nombre"></p>
+                            <p class="text-xs text-gray-500 tabular-nums" x-text="'S/ ' + item.precio.toFixed(2) + ' / ' + item.unidad"></p>
+                            <input type="hidden" :name="'repuestos[' + i + '][id]'" :value="item.id">
+                            <input type="hidden" :name="'repuestos[' + i + '][cantidad]'" :value="item.cantidad">
+                            <input type="hidden" :name="'repuestos[' + i + '][precio]'" :value="item.precio">
+                        </div>
+                        <div class="flex items-center rounded-lg border border-gray-300">
+                            <button type="button" class="px-2 py-1 text-gray-500 hover:text-gray-900" @click="cambiarCantidad(item, -1)">−</button>
+                            <input type="number" class="w-14 border-0 p-1 text-center text-sm tabular-nums focus:ring-0 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                                   :value="item.cantidad" :step="item.decimales ? '0.001' : '1'" @change="fijarCantidad(item, $event.target.value); $event.target.value = item.cantidad">
+                            <button type="button" class="px-2 py-1 text-gray-500 hover:text-gray-900" @click="cambiarCantidad(item, 1)">+</button>
+                        </div>
+                        <p class="w-20 text-right text-sm font-semibold text-gray-900 tabular-nums" x-text="'S/ ' + (item.precio * item.cantidad).toFixed(2)"></p>
+                        <button type="button" class="btn-icon-danger !w-7 !h-7" @click="quitar(i)" title="Quitar">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+                </template>
+                <div x-show="!carrito.length" class="empty-state !py-10">
+                    <div class="empty-icon"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/></svg></div>
+                    <p>Agrega productos desde el catálogo</p>
                 </div>
             </div>
-            <p class="text-xs font-semibold text-gray-600 uppercase tracking-wide">Total</p>
-            <p class="text-3xl font-bold text-green-600 mt-1" x-text="'S/ ' + calcularTotal().toFixed(2)">S/ 0.00</p>
-            <p class="text-xs text-gray-500 mt-1">A cobrar</p>
+
+            {{-- Pago --}}
+            <div class="p-4 border-t border-gray-200 bg-gray-50/60 space-y-4">
+                <div class="flex items-baseline justify-between">
+                    <span class="text-sm text-gray-500"><span x-text="carrito.length"></span> ítem(s)</span>
+                    <div class="text-right">
+                        <p class="text-xs text-gray-500">Total a cobrar</p>
+                        <p class="text-3xl font-semibold text-gray-900 tabular-nums">S/ <span x-text="total().toFixed(2)"></span></p>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-xs font-medium uppercase tracking-wide text-gray-500 mb-2">Método de pago</p>
+                    <div class="grid grid-cols-4 gap-2">
+                        @foreach(\App\Models\Venta::METODOS_PAGO as $valor => $texto)
+                            <label class="cursor-pointer rounded-lg border px-2 py-2 text-center text-xs font-medium transition"
+                                   :class="metodo === '{{ $valor }}' ? 'border-primary-600 bg-primary-600 text-white' : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'">
+                                <input type="radio" name="metodo_pago" value="{{ $valor }}" x-model="metodo" class="sr-only">
+                                {{ $valor === 'yape' ? 'Yape/Plin' : $texto }}
+                            </label>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div x-show="metodo === 'efectivo'" class="grid grid-cols-2 gap-3 items-end">
+                    <div>
+                        <label class="form-label !text-xs">Recibido</label>
+                        <div class="input-addon">
+                            <span>S/</span>
+                            <input type="number" step="0.01" min="0" x-model.number="recibido" class="form-input tabular-nums" placeholder="0.00">
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-xs text-gray-500">Vuelto</p>
+                        <p class="text-lg font-semibold tabular-nums" :class="vuelto() < 0 ? 'text-red-600' : 'text-gray-900'" x-text="recibido ? 'S/ ' + vuelto().toFixed(2) : '—'"></p>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <button type="button" class="btn-secondary" @click="vaciar()" :disabled="!carrito.length">Vaciar</button>
+                    <button type="submit" class="btn-primary btn-lg flex-1" :disabled="!carrito.length || enviando">
+                        <span x-text="enviando ? 'Registrando…' : 'Cobrar S/ ' + total().toFixed(2)"></span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
-    <form id="ventaForm" action="{{ route('ventas.store') }}" method="POST" class="space-y-6" @submit.prevent="confirmarVenta">
-        @csrf
-        
-        <!-- Cliente -->
-        <div class="fade-in bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                <div class="flex items-center">
-                    <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mr-3">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-900">Cliente</h2>
-                        <p class="text-sm text-gray-600">Selecciona el cliente para esta venta</p>
-                    </div>
-                </div>
-                <button type="button" 
-                        @click="abrirModalClientes()"
-                        class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-[#218786] to-[#1a6d6c] text-white font-bold rounded-lg hover:shadow-lg transition-all">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                    </svg>
-                    Buscar Cliente
-                </button>
-            </div>
-
-            <input type="hidden" name="cliente_id" x-model="selectedCliente?.id">
-
-            <!-- Cliente Seleccionado -->
-            <div x-show="selectedCliente" 
-                 x-cloak
-                 x-transition
-                 class="p-4 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div class="flex items-center">
-                        <div class="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center mr-4">
-                            <span class="text-white text-xl font-bold" x-text="selectedCliente?.nombre?.charAt(0) || '?'">?</span>
-                        </div>
-                        <div>
-                            <p class="font-bold text-green-900 text-lg" x-text="selectedCliente?.nombre">-</p>
-                            <p class="text-sm text-green-700">
-                                DNI: <span class="font-semibold" x-text="selectedCliente?.dni">-</span>
-                            </p>
-                        </div>
-                    </div>
-                    <button type="button" 
-                            @click="cambiarCliente()"
-                            class="inline-flex items-center px-4 py-2 border-2 border-green-500 text-green-700 font-bold rounded-lg hover:bg-green-50 transition-colors">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                        Cambiar
-                    </button>
-                </div>
-            </div>
-
-            <!-- Sin Cliente -->
-            <div x-show="!selectedCliente" 
-                 x-cloak
-                 class="p-12 text-center border-2 border-dashed border-gray-300 rounded-xl hover:border-gray-400 transition-colors">
-                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                    </svg>
-                </div>
-                <p class="text-gray-500 font-medium">No hay cliente seleccionado</p>
-                <p class="text-sm text-gray-400 mt-1">Haz clic en "Buscar Cliente" para continuar</p>
-            </div>
-        </div>
-
-        <!-- Productos -->
-        <div class="fade-in bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-center">
-                    <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mr-3">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-900">Productos</h2>
-                        <p class="text-sm text-gray-600">Agrega productos a la venta</p>
-                    </div>
-                </div>
-                <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
-                <div class="relative">
-                    <svg class="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
-                    <input type="text" x-ref="escaner" @keydown.enter.prevent="escanear($event)"
-                           class="w-full sm:w-64 pl-10 pr-3 py-2.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] text-sm"
-                           placeholder="Escanear código + Enter" autocomplete="off">
-                </div>
-                <button type="button" 
-                        @click="abrirModalRepuestos()"
-                        class="inline-flex items-center px-5 py-2.5 bg-gradient-to-r from-[#218786] to-[#1a6d6c] text-white font-bold rounded-lg hover:shadow-lg transition-all">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
-                    </svg>
-                    Agregar Producto
-                </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Carrito -->
-        <div class="fade-in bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div class="p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-center">
-                    <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center mr-3 shadow-sm">
-                        <svg class="w-6 h-6 text-[#218786]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-900">Carrito de Compras</h2>
-                        <p class="text-sm text-gray-600" x-text="`${carritoItems.length} productos agregados`">0 productos agregados</p>
-                    </div>
-                </div>
-                <button type="button" 
-                        x-show="carritoItems.length > 0"
-                        @click="limpiarCarrito()"
-                        class="inline-flex items-center px-4 py-2 text-red-600 bg-red-50 border border-red-200 font-bold rounded-lg hover:bg-red-100 transition-colors">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                    Limpiar Carrito
-                </button>
-            </div>
-
-            <!-- Tabla de productos -->
-            <div x-show="carritoItems.length > 0" class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Producto</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">Precio</th>
-                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-700 uppercase tracking-wider">Cantidad</th>
-                            <th class="px-6 py-4 text-right text-xs font-bold text-gray-700 uppercase tracking-wider">Subtotal</th>
-                            <th class="px-6 py-4"></th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        <template x-for="(item, index) in carritoItems" :key="item.id">
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center">
-                                        <div class="w-10 h-10 bg-gradient-to-br from-[#218786] to-[#1a6d6c] rounded-lg flex items-center justify-center mr-3">
-                                            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-                                            </svg>
-                                        </div>
-                                        <div>
-                                            <p class="font-bold text-gray-900" x-text="item.nombre"></p>
-                                            <p class="text-xs text-gray-500" x-text="item.servicio ? 'Servicio' : ('Stock: ' + (+item.stock.toFixed(3)) + ' ' + item.unidad)"></p>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <span class="font-semibold text-gray-900" x-text="'S/ ' + item.precio.toFixed(2)"></span>
-                                </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <button type="button" 
-                                                @click="updateCantidad(item.id, item.cantidad - 1)"
-                                                :disabled="item.cantidad <= 1"
-                                                class="w-8 h-8 rounded-lg bg-gray-200 hover:bg-[#218786] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed font-bold transition-colors">
-                                            -
-                                        </button>
-                                        
-                                        <!-- 👇 INPUT EDITABLE -->
-                                        <input type="number"
-                                               :value="item.cantidad"
-                                               @change="updateCantidad(item.id, parseFloat($event.target.value) || 1)"
-                                               @blur="validarCantidad(item.id, $event.target.value, item.stock)"
-                                               :min="item.decimales ? 0.001 : 1"
-                                               :step="item.decimales ? 0.001 : 1"
-                                               :max="item.servicio ? null : item.stock"
-                                               class="w-16 text-center font-bold text-gray-900 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-[#218786] focus:border-[#218786] py-1.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none">
-                                        
-                                        <button type="button" 
-                                                @click="updateCantidad(item.id, item.cantidad + 1)"
-                                                :disabled="item.cantidad >= item.stock"
-                                                class="w-8 h-8 rounded-lg bg-gray-200 hover:bg-[#218786] hover:text-white disabled:opacity-50 disabled:cursor-not-allowed font-bold transition-colors">
-                                            +
-                                        </button>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 text-right">
-                                    <span class="font-bold text-green-600 text-lg" x-text="'S/ ' + (item.precio * item.cantidad).toFixed(2)"></span>
-                                </td>
-                                <td class="px-6 py-4 text-center">
-                                    <button type="button" 
-                                            @click="removeItem(item.id)"
-                                            class="text-red-600 hover:text-red-800 hover:bg-red-50 p-2 rounded-lg transition-colors">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                                        </svg>
-                                    </button>
-                                </td>
-                                <!-- Hidden inputs para el formulario -->
-                                <td class="hidden">
-                                    <input type="hidden" :name="'repuestos[' + index + '][id]'" :value="item.id">
-                                    <input type="hidden" :name="'repuestos[' + index + '][cantidad]'" :value="item.cantidad">
-                                    <input type="hidden" :name="'repuestos[' + index + '][precio]'" :value="item.precio">
-                                </td>
-                            </tr>
-                        </template>
-                    </tbody>
-                </table>
-            </div>
-            
-            <!-- Carrito Vacío -->
-            <div x-show="carritoItems.length === 0" 
-                 x-cloak
-                 class="p-16 text-center">
-                <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <svg class="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
-                    </svg>
-                </div>
-                <h3 class="text-lg font-bold text-gray-900 mb-2">Carrito vacío</h3>
-                <p class="text-gray-500">Agrega productos para comenzar la venta</p>
-            </div>
-        </div>
-
-        <!-- Total y Método de Pago -->
-        <div class="fade-in bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <!-- Header con Total -->
-            <div class="bg-gradient-to-r from-[#218786] to-[#1a6d6c] p-6 text-white">
-                <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div>
-                        <p class="text-sm opacity-90 mb-1">Total a Pagar</p>
-                        <p class="text-4xl font-bold" x-text="'S/ ' + calcularTotal().toFixed(2)">S/ 0.00</p>
-                    </div>
-                    <div class="text-right text-sm opacity-90 space-y-1">
-                        <p><span class="font-bold" x-text="carritoItems.length">0</span> productos</p>
-                        <p><span class="font-bold" x-text="calcularCantidadTotal()">0</span> artículos</p>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="p-6 space-y-6">
-                <!-- Método de Pago -->
+    {{-- ================= MODAL: NUEVO CLIENTE ================= --}}
+    <div x-show="modalCliente" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4" @keydown.escape.window="modalCliente = false">
+        <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" @click="modalCliente = false"></div>
+        <div class="relative w-full max-w-md card" x-transition>
+            <h3 class="text-lg font-semibold text-gray-900">Nuevo cliente</h3>
+            <p class="text-sm text-gray-500 mb-4">Se agregará y quedará seleccionado en esta venta.</p>
+            <div class="space-y-3">
                 <div>
-                    <label class="block text-sm font-bold text-gray-900 mb-4 flex items-center">
-                        <svg class="w-5 h-5 mr-2 text-[#218786]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                        </svg>
-                        Método de Pago *
-                    </label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <label class="cursor-pointer">
-                            <input type="radio" 
-                                   name="metodo_pago" 
-                                   value="efectivo" 
-                                   x-model="metodoPago"
-                                   class="sr-only" 
-                                   required>
-                            <div class="metodo-pago-card p-6 border-2 rounded-xl text-center transition-all"
-                                 :class="metodoPago === 'efectivo' ? 'selected' : 'border-gray-300'">
-                                <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/>
-                                    </svg>
-                                </div>
-                                <span class="font-bold text-gray-900">Efectivo</span>
-                                <p class="text-xs text-gray-500 mt-1">Pago en efectivo</p>
-                            </div>
-                        </label>
-                        
-                        <label class="cursor-pointer">
-                            <input type="radio" 
-                                   name="metodo_pago" 
-                                   value="tarjeta" 
-                                   x-model="metodoPago"
-                                   class="sr-only" 
-                                   required>
-                            <div class="metodo-pago-card p-6 border-2 rounded-xl text-center transition-all"
-                                 :class="metodoPago === 'tarjeta' ? 'selected' : 'border-gray-300'">
-                                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
-                                    </svg>
-                                </div>
-                                <span class="font-bold text-gray-900">Tarjeta</span>
-                                <p class="text-xs text-gray-500 mt-1">Débito o crédito</p>
-                            </div>
-                        </label>
-
-                        <label class="cursor-pointer">
-                            <input type="radio"
-                                   name="metodo_pago"
-                                   value="yape"
-                                   x-model="metodoPago"
-                                   class="sr-only"
-                                   required>
-                            <div class="metodo-pago-card p-6 border-2 rounded-xl text-center transition-all"
-                                 :class="metodoPago === 'yape' ? 'selected' : 'border-gray-300'">
-                                <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"/>
-                                    </svg>
-                                </div>
-                                <span class="font-bold text-gray-900">Yape / Plin</span>
-                                <p class="text-xs text-gray-500 mt-1">Billetera digital</p>
-                            </div>
-                        </label>
-
-                        <label class="cursor-pointer">
-                            <input type="radio"
-                                   name="metodo_pago"
-                                   value="transferencia"
-                                   x-model="metodoPago"
-                                   class="sr-only"
-                                   required>
-                            <div class="metodo-pago-card p-6 border-2 rounded-xl text-center transition-all"
-                                 :class="metodoPago === 'transferencia' ? 'selected' : 'border-gray-300'">
-                                <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
-                                    </svg>
-                                </div>
-                                <span class="font-bold text-gray-900">Transferencia</span>
-                                <p class="text-xs text-gray-500 mt-1">Depósito bancario</p>
-                            </div>
-                        </label>
-                    </div>
+                    <label class="form-label">DNI <span class="text-red-500">*</span></label>
+                    <input type="text" x-model="nuevo.dni" @input="nuevo.dni = nuevo.dni.replace(/\D/g, '').slice(0, 8)" class="form-input font-mono" inputmode="numeric" placeholder="8 dígitos">
+                    <p class="form-error" x-text="erroresCliente.dni?.[0]"></p>
                 </div>
-
-                <!-- Botones -->
-                <div class="flex flex-col sm:flex-row gap-3 pt-4 border-t border-gray-200">
-                    <a href="{{ route('ventas.index') }}" 
-                       class="flex-1 px-6 py-4 border-2 border-gray-300 text-gray-700 font-bold rounded-lg text-center hover:bg-gray-50 transition-colors flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                        Cancelar
-                    </a>
-                    
-                    <button type="submit" 
-                            :disabled="!puedeConfirmar()"
-                            class="flex-1 px-6 py-4 bg-gradient-to-r from-[#218786] to-[#1a6d6c] text-white font-bold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:shadow-xl transition-all flex items-center justify-center">
-                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                        </svg>
-                        <span x-text="procesando ? 'Procesando...' : 'Confirmar Venta'">Confirmar Venta</span>
-                    </button>
+                <div>
+                    <label class="form-label">Nombre completo <span class="text-red-500">*</span></label>
+                    <input type="text" x-model="nuevo.nombre" class="form-input" maxlength="100">
+                    <p class="form-error" x-text="erroresCliente.nombre?.[0]"></p>
+                </div>
+                <div>
+                    <label class="form-label">Teléfono <span class="text-red-500">*</span></label>
+                    <input type="tel" x-model="nuevo.telefono" class="form-input" maxlength="15">
+                    <p class="form-error" x-text="erroresCliente.telefono?.[0]"></p>
+                </div>
+                <div>
+                    <label class="form-label">Dirección</label>
+                    <input type="text" x-model="nuevo.direccion" class="form-input" maxlength="150">
                 </div>
             </div>
-            
-            <input type="hidden" name="total" :value="calcularTotal().toFixed(2)">
+            <div class="flex justify-end gap-3 mt-5">
+                <button type="button" class="btn-secondary" @click="modalCliente = false">Cancelar</button>
+                <button type="button" class="btn-primary" @click="guardarCliente()" :disabled="guardandoCliente" x-text="guardandoCliente ? 'Guardando…' : 'Guardar cliente'"></button>
+            </div>
         </div>
-    </form>
-
-    <!-- Modales -->
-    @include('ventas.modals.buscar-cliente')
-    @include('ventas.modals.buscar-repuesto')
-    @include('ventas.modals.nuevo-cliente')
-</div>
+    </div>
+</form>
+@endsection
 
 @push('scripts')
 <script>
-document.addEventListener('alpine:init', () => {
-    Alpine.data('ventaManager', () => ({
-        carritoItems: [],
-        selectedCliente: null,
-        metodoPago: '',
-        procesando: false,
-        
-        calcularTotal() {
-            return this.carritoItems.reduce((sum, item) => sum + (item.precio * item.cantidad), 0);
-        },
-        
-        calcularCantidadTotal() {
-            return +this.carritoItems.reduce((sum, item) => sum + item.cantidad, 0).toFixed(3);
-        },
-        
-        puedeConfirmar() {
-            return this.carritoItems.length > 0 && this.selectedCliente && this.metodoPago && !this.procesando;
-        },
-        
-        abrirModalClientes() {
-            if (window.abrirModalClientes) window.abrirModalClientes();
-        },
-        
-        abrirModalRepuestos() {
-            if (window.abrirModalRepuestos) window.abrirModalRepuestos();
-        },
-        
-        selectCliente(cliente) {
-            this.selectedCliente = cliente;
-            Swal.fire({
-                icon: 'success',
-                title: 'Cliente seleccionado',
-                text: cliente.nombre,
-                toast: true,
-                position: 'top-end',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        },
-        
-        cambiarCliente() {
-            this.selectedCliente = null;
-            this.abrirModalClientes();
-        },
-        
-        addRepuesto(repuesto) {
-            if (this.carritoItems.find(item => item.id === repuesto.id)) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Producto ya agregado',
-                    text: 'Este producto ya está en el carrito',
-                    toast: true,
-                    position: 'top-end',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-                return;
-            }
-            
-            this.carritoItems.push({
-                id: repuesto.id,
-                nombre: repuesto.nombre,
-                precio: parseFloat(repuesto.precio_unitario),
-                // Los servicios no tienen límite de stock
-                stock: repuesto.servicio ? Infinity : parseFloat(repuesto.stock),
-                servicio: !!repuesto.servicio,
-                decimales: !!repuesto.decimales,
-                unidad: repuesto.unidad || 'und',
-                cantidad: 1
-            });
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'Producto agregado',
-                text: repuesto.nombre,
-                toast: true,
-                position: 'top-end',
-                timer: 1500,
-                showConfirmButton: false
-            });
-        },
-        
-        updateCantidad(itemId, nuevaCantidad) {
-            const item = this.carritoItems.find(i => i.id === itemId);
-            if (!item) return;
-            
-            nuevaCantidad = this.normalizarCantidad(item, nuevaCantidad);
-            if (nuevaCantidad > item.stock) {
-                nuevaCantidad = item.stock;
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Stock máximo alcanzado',
-                    text: `Solo hay ${item.stock} ${item.unidad} disponibles`,
-                    toast: true,
-                    position: 'top-end',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            }
-            item.cantidad = nuevaCantidad;
-        },
-        
-        // 👇 NUEVA FUNCIÓN PARA VALIDAR
-        validarCantidad(itemId, valor, stockMax) {
-            const item = this.carritoItems.find(i => i.id === itemId);
-            if (!item) return;
-            
-                        let cantidad = parseFloat(valor);
+    function puntoDeVenta() {
+        const catalogo = @json($catalogo);
+        const previo = @json($carritoPrevio);
+        const rutas = { clientes: @js(route('clientes.search')), nuevoCliente: @js(route('clientes.storeQuick')) };
+        const metodos = @json(\App\Models\Venta::METODOS_PAGO);
 
-            // Si no es un número válido, regresar a 1
-            if (isNaN(cantidad) || cantidad <= 0) {
-                item.cantidad = 1;
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Cantidad inválida',
-                    text: 'Se estableció la cantidad mínima (1)',
-                    toast: true,
-                    position: 'top-end',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-                return;
-            }
-            
-            cantidad = this.normalizarCantidad(item, cantidad);
-            item.cantidad = cantidad;
+        return {
+            busqueda: '',
+            categoria: null,
+            carrito: previo.map(i => {
+                const p = catalogo.find(x => x.id === parseInt(i.id));
+                return p ? { ...p, cantidad: parseFloat(i.cantidad) || 1 } : null;
+            }).filter(Boolean),
+            cliente: null,
+            clientes: [],
+            busquedaCliente: '',
+            clientesAbierto: false,
+            metodo: @js(old('metodo_pago', 'efectivo')),
+            recibido: null,
+            enviando: false,
+            modalCliente: false,
+            nuevo: { dni: '', nombre: '', telefono: '', direccion: '' },
+            erroresCliente: {},
+            guardandoCliente: false,
 
-            // Si excede el stock
-            if (cantidad > stockMax) {
-                item.cantidad = stockMax;
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Stock insuficiente',
-                    text: `Solo hay ${stockMax} ${item.unidad} disponibles`,
-                    toast: true,
-                    position: 'top-end',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            }
-        },
-        
-        // Unidades enteras se redondean; kg/litros/metros admiten hasta 3 decimales
-        normalizarCantidad(item, valor) {
-            let cantidad = parseFloat(valor) || 0;
-            cantidad = item.decimales ? Math.round(cantidad * 1000) / 1000 : Math.round(cantidad);
-            const minimo = item.decimales ? 0.001 : 1;
-            return cantidad < minimo ? minimo : cantidad;
-        },
+            get productosFiltrados() {
+                const q = this.busqueda.trim().toLowerCase();
+                return catalogo.filter(p =>
+                    (this.categoria === null || p.categoria_id === this.categoria) &&
+                    (!q || p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q) || p.barras.toLowerCase() === q)
+                ).slice(0, 120);
+            },
 
-        // Lector de código de barras / código interno
-        escanear(evento) {
-            const texto = evento.target.value.trim().toLowerCase();
-            if (!texto) return;
-            const lista = window.catalogoProductos || [];
-            const producto = lista.find(p => (p.barras && p.barras.toLowerCase() === texto) || p.codigo.toLowerCase() === texto);
+            formatear(n) { return +(parseFloat(n) || 0).toFixed(3); },
+            enCarrito(id) { return this.carrito.some(i => i.id === id); },
+            total() { return this.carrito.reduce((s, i) => s + i.precio * i.cantidad, 0); },
+            vuelto() { return (parseFloat(this.recibido) || 0) - this.total(); },
 
-            if (!producto) {
-                Swal.fire({ icon: 'error', title: 'Código no encontrado', text: evento.target.value, toast: true, position: 'top-end', timer: 2500, showConfirmButton: false });
-            } else if (!producto.servicio && producto.stock <= 0) {
-                Swal.fire({ icon: 'warning', title: 'Sin stock', text: producto.nombre, toast: true, position: 'top-end', timer: 2500, showConfirmButton: false });
-            } else {
-                const existente = this.carritoItems.find(i => i.id === producto.id);
-                existente ? this.updateCantidad(existente.id, existente.cantidad + 1) : this.addRepuesto(producto);
-            }
-            evento.target.value = '';
-        },
-
-        removeItem(itemId) {
-            this.carritoItems = this.carritoItems.filter(i => i.id !== itemId);
-            Swal.fire({
-                icon: 'info',
-                title: 'Producto eliminado',
-                toast: true,
-                position: 'top-end',
-                timer: 1500,
-                showConfirmButton: false
-            });
-        },
-        
-        limpiarCarrito() {
-            Swal.fire({
-                title: '¿Limpiar carrito?',
-                text: 'Se eliminarán todos los productos',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                confirmButtonText: 'Sí, limpiar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    this.carritoItems = [];
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Carrito limpiado',
-                        toast: true,
-                        position: 'top-end',
-                        timer: 1500,
-                        showConfirmButton: false
-                    });
+            normalizar(item, valor) {
+                let n = parseFloat(valor) || 0;
+                n = item.decimales ? Math.round(n * 1000) / 1000 : Math.round(n);
+                const minimo = item.decimales ? 0.001 : 1;
+                if (n < minimo) n = minimo;
+                if (!item.servicio && n > item.stock) {
+                    aviso(`Solo hay ${this.formatear(item.stock)} ${item.unidad} de ${item.nombre}`, 'warning');
+                    n = item.stock;
                 }
-            });
-        },
-        
-        async confirmarVenta(e) {
-            if (!this.puedeConfirmar()) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Datos incompletos',
-                    text: 'Por favor completa todos los campos requeridos'
+                return n;
+            },
+
+            agregar(p) {
+                const item = this.carrito.find(i => i.id === p.id);
+                if (item) {
+                    item.cantidad = this.normalizar(item, item.cantidad + 1);
+                } else {
+                    this.carrito.push({ ...p, cantidad: 1 });
+                }
+            },
+
+            agregarPorCodigo() {
+                const q = this.busqueda.trim().toLowerCase();
+                if (!q) return;
+                const exacto = catalogo.find(p => (p.barras && p.barras.toLowerCase() === q) || p.codigo.toLowerCase() === q);
+                const unico = this.productosFiltrados.length === 1 ? this.productosFiltrados[0] : null;
+                const producto = exacto || unico;
+                if (producto) {
+                    this.agregar(producto);
+                    this.busqueda = '';
+                } else {
+                    aviso('No se encontró un producto con ese código', 'warning');
+                }
+            },
+
+            cambiarCantidad(item, paso) { item.cantidad = this.normalizar(item, item.cantidad + paso); },
+            fijarCantidad(item, valor) { item.cantidad = this.normalizar(item, valor); },
+            quitar(i) { this.carrito.splice(i, 1); },
+
+            async vaciar() {
+                const r = await Dialogo.fire({ title: '¿Vaciar la venta?', text: 'Se quitarán todos los productos.', icon: 'question', showCancelButton: true, confirmButtonText: 'Vaciar', cancelButtonText: 'Cancelar' });
+                if (r.isConfirmed) { this.carrito = []; this.recibido = null; }
+            },
+
+            async buscarClientes() {
+                const res = await fetch(rutas.clientes + '?q=' + encodeURIComponent(this.busquedaCliente), { headers: { 'Accept': 'application/json' } });
+                this.clientes = res.ok ? (await res.json()).slice(0, 15) : [];
+                this.clientesAbierto = true;
+            },
+
+            elegirCliente(c) {
+                this.cliente = c;
+                this.clientesAbierto = false;
+                this.busquedaCliente = '';
+            },
+
+            abrirNuevoCliente() {
+                this.nuevo = { dni: /^\d{8}$/.test(this.busquedaCliente) ? this.busquedaCliente : '', nombre: '', telefono: '', direccion: '' };
+                this.erroresCliente = {};
+                this.clientesAbierto = false;
+                this.modalCliente = true;
+            },
+
+            async guardarCliente() {
+                this.guardandoCliente = true;
+                this.erroresCliente = {};
+                try {
+                    const res = await fetch(rutas.nuevoCliente, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': @js(csrf_token()) },
+                        body: JSON.stringify(this.nuevo),
+                    });
+                    const data = await res.json();
+                    if (res.ok && data.success) {
+                        this.elegirCliente(data.cliente);
+                        this.modalCliente = false;
+                        aviso('Cliente registrado');
+                    } else {
+                        this.erroresCliente = data.errors || { nombre: [data.message || 'No se pudo guardar'] };
+                    }
+                } catch (e) {
+                    aviso('No se pudo guardar el cliente', 'error');
+                } finally {
+                    this.guardandoCliente = false;
+                }
+            },
+
+            async confirmar(evento) {
+                if (!this.carrito.length) return;
+                if (this.metodo === 'efectivo' && this.recibido && this.vuelto() < 0) {
+                    aviso('El monto recibido es menor al total', 'warning');
+                    return;
+                }
+                const vuelto = this.metodo === 'efectivo' && this.recibido ? `<p class="mt-1">Vuelto: <strong>S/ ${this.vuelto().toFixed(2)}</strong></p>` : '';
+                const r = await Dialogo.fire({
+                    title: 'Confirmar venta',
+                    html: `<p>${this.cliente ? this.cliente.nombre : 'Cliente general'} · ${metodos[this.metodo]}</p>
+                           <p class="mt-2 text-2xl font-semibold text-gray-900">S/ ${this.total().toFixed(2)}</p>${vuelto}`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Registrar venta',
+                    cancelButtonText: 'Revisar',
                 });
-                return;
-            }
-            
-            const result = await Swal.fire({
-                title: '¿Confirmar venta?',
-                html: `
-                    <div class="text-left space-y-2">
-                        <p><strong>Cliente:</strong> ${this.selectedCliente.nombre}</p>
-                        <p><strong>Productos:</strong> ${this.carritoItems.length}</p>
-                        <p><strong>Total:</strong> <span class="text-green-600 font-bold">S/ ${this.calcularTotal().toFixed(2)}</span></p>
-                        <p><strong>Método:</strong> ${({efectivo: 'Efectivo', tarjeta: 'Tarjeta', yape: 'Yape / Plin', transferencia: 'Transferencia'})[this.metodoPago] || this.metodoPago}</p>
-                    </div>
-                `,
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#218786',
-                confirmButtonText: 'Sí, confirmar',
-                cancelButtonText: 'Revisar'
-            });
-            
-            if (result.isConfirmed) {
-                this.procesando = true;
-                e.target.submit();
-            }
-        },
-        
-        init() {
-            // Exponer funciones globalmente para los modales
-            window.selectCliente = (cliente) => this.selectCliente(cliente);
-            window.addRepuesto = (repuesto) => this.addRepuesto(repuesto);
-        }
-    }));
-});
+                if (r.isConfirmed) {
+                    this.enviando = true;
+                    evento.target.submit();
+                }
+            },
+        };
+    }
 </script>
 @endpush
-@endsection

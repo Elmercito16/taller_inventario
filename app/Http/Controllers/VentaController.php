@@ -16,14 +16,46 @@ use Illuminate\Validation\Rule;
 
 class VentaController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $ventas = Venta::with(['cliente', 'detalles', 'comprobante'])
+        $query = Venta::query();
+
+        if ($request->filled('q')) {
+            $q = trim($request->q);
+            $query->where(function ($w) use ($q) {
+                $w->whereHas('cliente', fn ($c) => $c->where('nombre', 'like', "%{$q}%")->orWhere('dni', 'like', "%{$q}%")->orWhere('ruc', 'like', "%{$q}%"));
+                if (ctype_digit(ltrim($q, '#0')) && ltrim($q, '#0') !== '') {
+                    $w->orWhere('id', (int) ltrim($q, '#0'));
+                }
+            });
+        }
+        if ($request->filled('estado')) {
+            $query->where('estado', $request->estado);
+        }
+        if ($request->filled('metodo_pago')) {
+            $query->where('metodo_pago', $request->metodo_pago);
+        }
+        if ($request->filled('desde')) {
+            $query->where('fecha', '>=', Carbon::parse($request->desde)->startOfDay());
+        }
+        if ($request->filled('hasta')) {
+            $query->where('fecha', '<=', Carbon::parse($request->hasta)->endOfDay());
+        }
+
+        $resumen = [
+            'cantidad' => (clone $query)->count(),
+            'total' => (float) (clone $query)->where('estado', 'pagado')->sum('total'),
+            'anuladas' => (clone $query)->where('estado', 'anulado')->count(),
+            'hoy' => (float) Venta::where('estado', 'pagado')->whereDate('fecha', today())->sum('total'),
+        ];
+
+        $ventas = $query->with(['cliente', 'comprobante', 'usuario'])->withCount('detalles')
             ->orderBy('fecha', 'desc')
             ->orderBy('id', 'desc')
-            ->paginate(10);
+            ->paginate(15)
+            ->withQueryString();
 
-        return view('ventas.index', compact('ventas'));
+        return view('ventas.index', compact('ventas', 'resumen'));
     }
 
     public function create()

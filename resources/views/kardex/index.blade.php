@@ -65,8 +65,8 @@
                         <th>Fecha</th>
                         <th>Producto</th>
                         <th>Motivo</th>
-                        <th class="text-right">Cantidad</th>
-                        <th class="text-right hidden md:table-cell">Saldo</th>
+                        <th class="num">Cantidad</th>
+                        <th class="num hidden md:table-cell">Saldo</th>
                         <th class="hidden lg:table-cell">Referencia</th>
                         <th class="hidden xl:table-cell">Usuario</th>
                     </tr>

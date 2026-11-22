@@ -40,8 +40,12 @@ class EmpresaController extends Controller
             'sol_pass'             => 'nullable|string|max:100',
             'certificado'          => 'nullable|file|max:2048|extensions:pem,pfx,p12',
             'certificado_password' => 'nullable|string|max:255',
-            'logo'                 => 'nullable|image|mimes:png,jpg,jpeg,webp|max:1024',
+            'logo'                 => 'nullable|image|mimes:png,jpg,jpeg,webp|max:2048',
             'facturacion_activa'   => 'nullable|boolean',
+        ], [
+            'logo.max' => 'El logo no debe pesar más de 2 MB.',
+            'logo.image' => 'El logo debe ser una imagen.',
+            'logo.mimes' => 'El logo debe ser PNG, JPG o WEBP.',
         ]);
 
         // La dirección general sigue a la fiscal

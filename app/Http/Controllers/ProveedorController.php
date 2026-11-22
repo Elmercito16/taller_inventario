@@ -11,7 +11,9 @@ class ProveedorController extends Controller
     {
         // Traer todos los proveedores
          // Por esto:
-    $proveedores = Proveedor::orderBy('nombre', 'asc')
+    $proveedores = Proveedor::withCount(['repuestos', 'compras'])
+        ->withSum(['compras as total_comprado' => fn ($q) => $q->where('estado', 'registrada')], 'total')
+        ->orderBy('nombre', 'asc')
         ->paginate(10); // 👈 10 proveedores por página
     
     return view('proveedores.index', compact('proveedores'));

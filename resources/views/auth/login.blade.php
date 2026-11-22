@@ -1,449 +1,49 @@
 @extends('layouts.auth')
 
-@section('title', 'Iniciar Sesión - MultiSoft')
-
-@push('styles')
-<style>
-    /* Animaciones personalizadas */
-    .login-container {
-        animation: slideUp 0.6s ease-out;
-    }
-    
-    @keyframes slideUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    /* Efectos de focus mejorados */
-    .input-group {
-        position: relative;
-    }
-    
-    .input-group input:focus + .input-icon {
-        color: #218786;
-        transform: translateY(-50%) scale(1.1);
-    }
-    
-    .input-icon {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #9ca3af;
-        transition: all 0.3s ease;
-        pointer-events: none;
-    }
-    
-    /* Efectos de botón */
-    .btn-primary {
-        background: linear-gradient(135deg, #218786 0%, #1d7874 100%);
-        box-shadow: 0 4px 15px 0 rgba(33, 135, 134, 0.3);
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px 0 rgba(33, 135, 134, 0.4);
-    }
-    
-    .btn-primary:active {
-        transform: translateY(0);
-    }
-    
-    /* Estados de validación */
-    .input-valid {
-        border-color: #10b981;
-        background-color: #ecfdf5;
-    }
-    
-    .input-invalid {
-        border-color: #ef4444;
-        background-color: #fef2f2;
-        animation: shake 0.5s ease-in-out;
-    }
-    
-    @keyframes shake {
-        0%, 100% { transform: translateX(0); }
-        25% { transform: translateX(-5px); }
-        75% { transform: translateX(5px); }
-    }
-    
-    /* Efectos de loading */
-    .loading-dots {
-        display: inline-block;
-    }
-    
-    .loading-dots::after {
-        content: '';
-        animation: dots 1.5s steps(4, end) infinite;
-    }
-    
-    @keyframes dots {
-        0%, 20% { content: ''; }
-        40% { content: '.'; }
-        60% { content: '..'; }
-        80%, 100% { content: '...'; }
-    }
-    
-    /* Efecto de brillo en el logo */
-    .logo-shine {
-        background: linear-gradient(135deg, #218786 0%, #20b2aa 50%, #218786 100%);
-        background-size: 200% 200%;
-        animation: shine 3s ease-in-out infinite;
-    }
-    
-    @keyframes shine {
-        0%, 100% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-    }
-
-    /* Mejoras responsive */
-    @media (max-width: 640px) {
-        .login-container {
-            margin: 1rem;
-            padding: 1.5rem !important;
-        }
-    }
-
-    /* Touch targets para móviles */
-    @media (max-width: 768px) {
-        .input-group input {
-            font-size: 16px; /* Previene zoom en iOS */
-            min-height: 48px; /* WCAG touch target */
-        }
-        
-        button[type="submit"] {
-            min-height: 48px;
-        }
-    }
-</style>
-@endpush
+@section('title', 'Iniciar sesión')
 
 @section('content')
-<div class="w-full max-w-md mx-auto bg-white/95 backdrop-blur-sm p-6 sm:p-8 rounded-2xl shadow-2xl border border-white/20 login-container" x-data="loginForm()">
-    
-    <!-- Logo y título - Responsive -->
-    <div class="text-center mb-6 sm:mb-8">
-        <div class="mx-auto w-12 h-12 sm:w-14 sm:h-14 logo-shine rounded-2xl flex items-center justify-center mb-3 shadow-lg">
-            <svg class="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-            </svg>
-        </div>
-        <h2 class="text-xl sm:text-2xl font-bold text-gray-800 mb-1">MultiSoft</h2>
-        <p class="text-gray-600 text-xs sm:text-sm">Sistema de Gestión de Inventario</p>
+<div class="lg:hidden mb-8 flex items-center gap-3">
+    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center">
+        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
     </div>
-
-    <!-- Alertas mejoradas - Responsive -->
-    <div x-show="showAlert" 
-         x-transition:enter="transition ease-out duration-300"
-         x-transition:enter-start="opacity-0 transform scale-95"
-         x-transition:enter-end="opacity-100 transform scale-100"
-         x-transition:leave="transition ease-in duration-200"
-         x-transition:leave-start="opacity-100 transform scale-100"
-         x-transition:leave-end="opacity-0 transform scale-95"
-         class="mb-4">
-        
-        @if ($errors->any())
-            <div class="p-3 sm:p-4 bg-red-50 border border-red-200 rounded-xl">
-                <div class="flex items-center mb-1 sm:mb-2">
-                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-red-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                    </svg>
-                    <h3 class="text-xs sm:text-sm font-semibold text-red-800">Error de autenticación</h3>
-                </div>
-                <ul class="text-xs sm:text-sm text-red-700 space-y-1">
-                    @foreach ($errors->all() as $error)
-                        <li class="flex items-start">
-                            <span class="w-1 h-1 bg-red-600 rounded-full mr-2 mt-1.5 flex-shrink-0"></span>
-                            <span>{{ $error }}</span>
-                        </li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
-        @if(session('success'))
-            <div class="p-3 sm:p-4 bg-green-50 border border-green-200 rounded-xl">
-                <div class="flex items-center">
-                    <svg class="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <p class="text-xs sm:text-sm font-medium text-green-800">{{ session('success') }}</p>
-                </div>
-            </div>
-        @endif
-    </div>
-
-    <!-- Formulario de login - Responsive -->
-    <form action="{{ route('login') }}" method="POST" @submit.prevent="submitForm" class="space-y-4 sm:space-y-5">
-        @csrf
-
-        <!-- Campo Email - Optimizado para móviles -->
-        <div class="space-y-1.5 sm:space-y-2">
-            <label for="correo" class="block text-xs sm:text-sm font-semibold text-gray-700">
-                Correo electrónico
-            </label>
-            <div class="input-group">
-                <input type="email" 
-                       name="correo" 
-                       id="correo"
-                       x-model="form.correo"
-                       @input="validateEmail"
-                       @blur="validateEmail"
-                       value="{{ old('correo') }}"
-                       :class="emailValid ? 'input-valid' : (emailTouched && !emailValid ? 'input-invalid' : '')"
-                       class="w-full text-sm sm:text-base border border-gray-300 rounded-xl p-3 sm:p-3.5 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 pr-12"
-                       placeholder="tu@correo.com"
-                       autocomplete="email"
-                       inputmode="email"
-                       required>
-                <svg class="input-icon w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
-                </svg>
-            </div>
-            <p x-show="emailTouched && form.correo.length > 0 && !emailValid" 
-               x-transition
-               class="text-xs text-red-600 flex items-start sm:items-center">
-                <svg class="w-3 h-3 mr-1 mt-0.5 sm:mt-0 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                </svg>
-                <span>Por favor ingresa un correo válido</span>
-            </p>
-        </div>
-
-        <!-- Campo Contraseña - Optimizado para móviles -->
-        <div class="space-y-1.5 sm:space-y-2">
-            <label for="contraseña" class="block text-xs sm:text-sm font-semibold text-gray-700">
-                Contraseña
-            </label>
-            <div class="input-group">
-                <input :type="showPassword ? 'text' : 'password'" 
-                       name="contraseña" 
-                       id="contraseña"
-                       x-model="form.password"
-                       @input="validatePassword"
-                       @blur="validatePassword"
-                       :class="passwordValid ? 'input-valid' : (passwordTouched && !passwordValid ? 'input-invalid' : '')"
-                       class="w-full text-sm sm:text-base border border-gray-300 rounded-xl p-3 sm:p-3.5 shadow-sm focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-200 pr-20"
-                       placeholder="Tu contraseña"
-                       autocomplete="current-password"
-                       required>
-                
-                <!-- Botón mostrar/ocultar contraseña - Touch friendly -->
-                <button type="button" 
-                        @click="showPassword = !showPassword"
-                        class="absolute right-12 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors p-2 -m-1 touch-manipulation"
-                        aria-label="Mostrar contraseña">
-                    <svg x-show="!showPassword" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                    </svg>
-                    <svg x-show="showPassword" class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"/>
-                    </svg>
-                </button>
-                
-                <svg class="input-icon w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                </svg>
-            </div>
-            <p x-show="passwordTouched && form.password.length > 0 && !passwordValid" 
-               x-transition
-               class="text-xs text-red-600 flex items-start sm:items-center">
-                <svg class="w-3 h-3 mr-1 mt-0.5 sm:mt-0 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"/>
-                </svg>
-                <span>La contraseña debe tener al menos 6 caracteres</span>
-            </p>
-        </div>
-
-        <!-- Recordarme y Olvidé contraseña - Responsive -->
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 text-xs sm:text-sm">
-            <label class="flex items-center cursor-pointer group">
-                <input type="checkbox" 
-                       name="remember" 
-                       id="remember" 
-                       x-model="form.remember"
-                       class="h-4 w-4 sm:h-4 sm:w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded transition-colors">
-                <span class="ml-2 text-gray-700 group-hover:text-gray-900 transition-colors">
-                    Recordarme
-                </span>
-            </label>
-            
-           
-        </div>
-
-        <!-- Botón de inicio - Touch optimizado -->
-        <div class="pt-2 sm:pt-3">
-            <button type="submit"
-                    :disabled="isSubmitting"
-                    :class="isSubmitting ? 'opacity-50 cursor-not-allowed' : ''"
-                    class="w-full px-6 py-3.5 sm:py-4 btn-primary text-white rounded-xl font-semibold text-sm sm:text-base transition-all duration-300 flex items-center justify-center touch-manipulation">
-                
-                <!-- Loading spinner -->
-                <svg x-show="isSubmitting" 
-                     class="animate-spin w-5 h-5 sm:w-6 sm:h-6 mr-2" 
-                     fill="none" viewBox="0 0 24 24">
-                    ircle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                
-                <!-- Ícono normal -->
-                <svg x-show="!isSubmitting" 
-                     class="w-5 h-5 sm:w-6 sm:h-6 mr-2" 
-                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
-                </svg>
-                
-                <span x-text="isSubmitting ? 'Iniciando sesión' : 'Iniciar Sesión'"></span>
-                <span x-show="isSubmitting" class="loading-dots"></span>
-            </button>
-        </div>
-    </form>
-
-    <!-- Footer informativo compacto - Responsive -->
-    <div class="mt-5 sm:mt-6 pt-4 sm:pt-5 border-t border-gray-200 text-center">
-        <p class="text-xs text-gray-500 mb-2 sm:mb-3 px-2">
-            Al iniciar sesión, aceptas nuestros términos de servicio
-        </p>
-        <div class="flex items-center justify-center flex-wrap gap-3 sm:gap-4 text-xs text-gray-400">
-            <div class="flex items-center">
-                <svg class="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                </svg>
-                <span>SSL</span>
-            </div>
-            <div class="flex items-center">
-                <svg class="w-3 h-3 mr-1 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
-                </svg>
-                <span>Seguro</span>
-            </div>
-        </div>
-    </div>
+    <span class="text-lg font-semibold text-gray-900">MultiSoft</span>
 </div>
 
-@push('scripts')
-<script>
-function loginForm() {
-    return {
-        form: {
-            correo: '{{ old('correo') }}',
-            password: '',
-            remember: false
-        },
-        
-        // Estados de validación
-        emailValid: false,
-        passwordValid: false,
-        emailTouched: false,
-        passwordTouched: false,
-        showPassword: false,
-        isSubmitting: false,
-        showAlert: {{ ($errors->any() || session('success')) ? 'true' : 'false' }},
-        
-        // Computed
-        get formValid() {
-            return this.form.correo.length > 0 && this.form.password.length > 0;
-        },
-        
-        // Validaciones
-        validateEmail() {
-            this.emailTouched = true;
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            this.emailValid = emailRegex.test(this.form.correo);
-        },
-        
-        validatePassword() {
-            this.passwordTouched = true;
-            this.passwordValid = this.form.password.length >= 6;
-        },
-        
-        // Envío del formulario
-        async submitForm(event) {
-            if (!this.formValid || this.isSubmitting) {
-                return;
-            }
-            
-            this.isSubmitting = true;
-            
-            // Simular delay mínimo para UX
-            await new Promise(resolve => setTimeout(resolve, 800));
-            
-            // Enviar formulario
-            event.target.submit();
-        },
-        
-        // Inicialización
-        init() {
-            if (this.form.correo) {
-                this.validateEmail();
-            }
-            
-            if (this.showAlert) {
-                setTimeout(() => {
-                    this.showAlert = false;
-                }, 5000);
-            }
-            
-            this.$nextTick(() => {
-                if (!this.form.correo) {
-                    document.getElementById('correo').focus();
-                } else {
-                    document.getElementById('contraseña').focus();
-                }
-            });
-        }
-    }
-}
+<h1 class="text-2xl font-semibold tracking-tight text-gray-900">Bienvenido de nuevo</h1>
+<p class="mt-1 text-sm text-gray-500">Ingresa con tu cuenta para continuar.</p>
 
-// Atajos de teclado
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter' && (e.target.tagName === 'INPUT')) {
-        e.preventDefault();
-        const submitButton = document.querySelector('button[type="submit"]');
-        if (submitButton && !submitButton.disabled) {
-            submitButton.click();
-        }
-    }
-});
+@if(session('success'))
+    <div class="mt-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{{ session('success') }}</div>
+@endif
 
-// Prevenir zoom en iOS al enfocar inputs
-if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-    const viewportMeta = document.querySelector('meta[name="viewport"]');
-    if (viewportMeta) {
-        viewportMeta.content = 'width=device-width, initial-scale=1, maximum-scale=1';
-    }
-}
+@if($errors->any())
+    <div class="mt-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ $errors->first() }}</div>
+@endif
 
-// Efectos de partículas de fondo (opcional - solo escritorio)
-if (window.innerWidth > 768) {
-    document.addEventListener('DOMContentLoaded', function() {
-        function createParticle() {
-            const particle = document.createElement('div');
-            particle.className = 'absolute w-1 h-1 bg-primary-200 rounded-full opacity-20 animate-ping';
-            particle.style.left = Math.random() * 100 + '%';
-            particle.style.top = Math.random() * 100 + '%';
-            particle.style.animationDelay = Math.random() * 3 + 's';
-            particle.style.animationDuration = (2 + Math.random() * 3) + 's';
-            
-            document.body.appendChild(particle);
-            
-            setTimeout(() => {
-                particle.remove();
-            }, 5000);
-        }
-        
-        setInterval(createParticle, 3000);
-    });
-}
-</script>
-@endpush
+<form action="{{ route('login') }}" method="POST" class="mt-8 space-y-5" x-data="{ ver: false, enviando: false }" @submit="enviando = true">
+    @csrf
+    <div>
+        <label for="correo" class="form-label">Correo electrónico</label>
+        <input id="correo" type="email" name="correo" value="{{ old('correo') }}" class="form-input" placeholder="tu@correo.com" autocomplete="email" required autofocus>
+    </div>
 
+    <div>
+        <label for="contrasena" class="form-label">Contraseña</label>
+        <div class="relative">
+            <input id="contrasena" :type="ver ? 'text' : 'password'" name="contraseña" class="form-input pr-10" placeholder="••••••••" autocomplete="current-password" required minlength="6">
+            <button type="button" @click="ver = !ver" class="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600" :title="ver ? 'Ocultar' : 'Mostrar'">
+                <svg x-show="!ver" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                <svg x-show="ver" x-cloak class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"/></svg>
+            </button>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-primary w-full" :disabled="enviando">
+        <svg x-show="enviando" x-cloak class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" class="opacity-25"/><path fill="currentColor" class="opacity-75" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+        <span x-text="enviando ? 'Ingresando…' : 'Iniciar sesión'">Iniciar sesión</span>
+    </button>
+</form>
+
+<p class="mt-8 text-center text-xs text-gray-400">¿No tienes acceso? Pide al administrador de tu negocio que te cree un usuario.</p>
 @endsection

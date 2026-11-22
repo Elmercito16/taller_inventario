@@ -38,52 +38,99 @@
     {{-- Componentes reutilizables del sistema de diseño --}}
     <style type="text/tailwindcss">
         @layer components {
-            .card { @apply bg-white rounded-2xl border border-gray-200/70 shadow-soft p-6; }
+            /* ---------- Tarjetas ---------- */
+            .card { @apply bg-white rounded-xl border border-gray-200 shadow-soft p-6; }
+            .card-flush { @apply bg-white rounded-xl border border-gray-200 shadow-soft overflow-hidden; }
             .card-header { @apply mb-5; }
-            .card-title { @apply text-base font-semibold text-gray-900; }
+            .card-title { @apply text-[15px] font-semibold text-gray-900; }
             .card-subtitle { @apply text-sm text-gray-500 mt-0.5; }
+            .card-head { @apply flex flex-wrap items-center justify-between gap-3 px-5 py-4 border-b border-gray-100; }
+            .card-foot { @apply px-5 py-3 border-t border-gray-100 bg-gray-50/60; }
 
-            .btn-primary { @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:opacity-50; }
-            .btn-secondary { @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500; }
-            .btn-danger { @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white bg-red-600 hover:bg-red-700 transition; }
-            .btn-icon { @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-primary-700 hover:bg-primary-50 transition; }
-            .link { @apply text-sm font-semibold text-primary-700 hover:text-primary-800; }
+            /* ---------- Botones ---------- */
+            .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap; }
+            .btn-primary { @apply btn text-white bg-primary-600 hover:bg-primary-700 shadow-sm; }
+            .btn-secondary { @apply btn text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 shadow-sm; }
+            .btn-ghost { @apply btn text-gray-600 hover:bg-gray-100 hover:text-gray-900; }
+            .btn-danger { @apply btn text-white bg-red-600 hover:bg-red-700 shadow-sm; }
+            .btn-danger-soft { @apply btn text-red-700 bg-red-50 hover:bg-red-100; }
+            .btn-sm { @apply px-2.5 py-1.5 text-xs; }
+            .btn-lg { @apply px-5 py-2.5 text-[15px]; }
+            .btn-icon { @apply inline-flex items-center justify-center w-8 h-8 rounded-lg text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition; }
+            .btn-icon-danger { @apply btn-icon hover:text-red-600 hover:bg-red-50; }
+            .link { @apply text-sm font-medium text-primary-700 hover:text-primary-800 hover:underline; }
 
+            /* ---------- Formularios ---------- */
             .form-label { @apply block text-sm font-medium text-gray-700 mb-1.5; }
-            .form-input { @apply block w-full rounded-xl border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/30; }
-            .form-file { @apply block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-primary-700 hover:file:bg-primary-100; }
+            .form-input { @apply block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:bg-gray-50 disabled:text-gray-500; }
+            .form-input-error { @apply border-red-400 focus:border-red-500 focus:ring-red-500/20; }
+            .form-error { @apply mt-1 text-xs text-red-600; }
+            .form-file { @apply block w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-gray-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-gray-700 hover:file:bg-gray-200; }
             .form-help { @apply mt-1 text-xs text-gray-500; }
+            .form-section { @apply grid grid-cols-1 lg:grid-cols-3 gap-x-8 gap-y-4 py-6 border-b border-gray-100; }
+            .form-section:first-child { @apply pt-0; }
+            .form-section:last-child { @apply border-b-0 pb-0; }
+            .form-section-title { @apply text-sm font-semibold text-gray-900; }
+            .form-section-text { @apply mt-1 text-sm text-gray-500; }
+            .input-addon { @apply relative; }
+            .input-addon > span { @apply absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-gray-500 pointer-events-none; }
+            .input-addon > .form-input { @apply pl-9; }
+            .input-search { @apply relative; }
+            .input-search > svg { @apply absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none; }
+            .input-search > .form-input { @apply pl-9; }
 
-            .choice { @apply flex flex-col gap-1 rounded-xl border-2 border-gray-200 p-4 cursor-pointer transition hover:border-primary-300; }
-            .choice-active { @apply border-primary-500 bg-primary-50/60; }
+            .choice { @apply flex flex-col gap-1 rounded-lg border border-gray-300 p-3.5 cursor-pointer transition hover:border-gray-400; }
+            .choice-active { @apply border-primary-500 ring-1 ring-primary-500 bg-primary-50/40; }
 
-            .badge { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold; }
-            .badge-primary { @apply bg-primary-100 text-primary-800; }
-            .badge-success { @apply bg-emerald-100 text-emerald-700; }
-            .badge-warning { @apply bg-amber-100 text-amber-700; }
-            .badge-danger { @apply bg-red-100 text-red-700; }
-            .badge-info { @apply bg-sky-100 text-sky-700; }
-            .badge-gray { @apply bg-gray-100 text-gray-600; }
+            /* ---------- Insignias y alertas ---------- */
+            .badge { @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium ring-1 ring-inset whitespace-nowrap; }
+            .badge-primary { @apply bg-primary-50 text-primary-700 ring-primary-600/20; }
+            .badge-success { @apply bg-emerald-50 text-emerald-700 ring-emerald-600/20; }
+            .badge-warning { @apply bg-amber-50 text-amber-800 ring-amber-600/20; }
+            .badge-danger { @apply bg-red-50 text-red-700 ring-red-600/20; }
+            .badge-info { @apply bg-sky-50 text-sky-700 ring-sky-600/20; }
+            .badge-gray { @apply bg-gray-50 text-gray-600 ring-gray-500/20; }
+            .dot { @apply inline-block w-1.5 h-1.5 rounded-full; }
 
-            .alert { @apply flex items-start gap-3 rounded-2xl border p-4; }
+            .alert { @apply flex items-start gap-3 rounded-lg border p-4 text-sm; }
             .alert-success { @apply bg-emerald-50 border-emerald-200 text-emerald-800; }
             .alert-warning { @apply bg-amber-50 border-amber-200 text-amber-800; }
             .alert-danger { @apply bg-red-50 border-red-200 text-red-800; }
+            .alert-info { @apply bg-sky-50 border-sky-200 text-sky-800; }
 
+            /* ---------- Tablas ---------- */
             .table { @apply min-w-full text-sm; }
-            .table thead th { @apply bg-gray-50 px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500; }
-            .table tbody td { @apply px-6 py-3.5 text-gray-700 border-t border-gray-100; }
-            .table tbody tr { @apply transition-colors hover:bg-gray-50/70; }
+            .table thead th { @apply bg-gray-50 px-5 py-2.5 text-left text-xs font-medium uppercase tracking-wide text-gray-500 border-b border-gray-200 whitespace-nowrap; }
+            .table tbody td { @apply px-5 py-3 text-gray-700 border-b border-gray-100 align-middle; }
+            .table tbody tr:last-child td { @apply border-b-0; }
+            .table tbody tr { @apply transition-colors hover:bg-gray-50/80; }
+            .table tfoot td { @apply px-5 py-3 border-t border-gray-200 bg-gray-50/60; }
+            .num { @apply text-right tabular-nums whitespace-nowrap; }
+            .table thead th.num { @apply text-right; }
+            .table thead th.center, .table tbody td.center { @apply text-center; }
 
-            .stat-card { @apply bg-white rounded-2xl border border-gray-200/70 shadow-soft p-5; }
-            .stat-icon { @apply w-10 h-10 rounded-xl flex items-center justify-center mb-4; }
-            .stat-label { @apply text-sm font-medium text-gray-500; }
-            .stat-value { @apply mt-1 text-2xl font-bold text-gray-900 tracking-tight; }
+            /* ---------- Indicadores ---------- */
+            .stat-card { @apply bg-white rounded-xl border border-gray-200 shadow-soft p-5; }
+            .stat-icon { @apply w-9 h-9 rounded-lg flex items-center justify-center mb-3; }
+            .stat-label { @apply text-sm text-gray-500; }
+            .stat-value { @apply mt-1 text-xl sm:text-2xl font-semibold text-gray-900 tracking-tight tabular-nums whitespace-nowrap; }
             .stat-foot { @apply mt-1 text-xs text-gray-500; }
 
-            .empty-state { @apply py-8 text-center text-sm text-gray-500; }
+            /* ---------- Varios ---------- */
+            .toolbar { @apply flex flex-col lg:flex-row lg:items-end gap-3 p-4 border-b border-gray-100; }
+            .avatar { @apply inline-flex items-center justify-center shrink-0 rounded-full bg-primary-50 text-primary-700 font-semibold ring-1 ring-primary-600/10; }
+            .thumb { @apply shrink-0 rounded-lg border border-gray-200 bg-gray-50 object-cover; }
+            .tabs { @apply flex gap-1 rounded-lg bg-gray-100 p-1; }
+            .tab { @apply flex-1 rounded-md px-3 py-1.5 text-sm font-medium text-gray-600 text-center whitespace-nowrap transition hover:text-gray-900; }
+            .tab-active { @apply bg-white text-gray-900 shadow-sm; }
+            .empty-state { @apply px-6 py-12 text-center text-sm text-gray-500; }
+            .empty-icon { @apply mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100 text-gray-400; }
+            .desc-list { @apply divide-y divide-gray-100 text-sm; }
+            .desc-list > div { @apply flex justify-between gap-4 py-2.5; }
+            .desc-list dt { @apply text-gray-500; }
+            .desc-list dd { @apply font-medium text-gray-900 text-right; }
 
-            .nav-link { @apply flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white; }
+            .nav-link { @apply flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white; }
             .nav-link-active { @apply bg-primary-500/15 text-white ring-1 ring-inset ring-primary-400/30; }
             .nav-section { @apply px-3 pt-5 pb-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500; }
         }
@@ -114,6 +161,7 @@
         'tag' => 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z',
         'truck' => 'M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0zM13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0',
         'receipt' => 'M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z',
+        'ticket' => 'M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z',
         'doc' => 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
         'users' => 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
         'cash' => 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z',
@@ -128,6 +176,7 @@
         null => [
             ['Inicio', 'dashboard', 'dashboard', 'home'],
             ['Punto de venta', 'ventas.create', 'ventas.create', 'pos'],
+            ['Ticket', 'tickets.create', 'tickets.*', 'ticket'],
         ],
         'Inventario' => [
             ['Productos', 'repuestos.index', 'repuestos.*', 'box'],
@@ -226,7 +275,7 @@
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 </button>
 
-                <p class="text-sm font-semibold text-gray-900 truncate lg:hidden">@yield('page-title', config('app.name', 'MultiSoft'))</p>
+                <p class="text-sm font-semibold text-gray-900 truncate lg:hidden">{{ $empresaActual->nombre_comercial ?? $empresaActual->nombre ?? 'MultiSoft' }}</p>
 
                 <div class="ml-auto flex items-center gap-2">
                     <a href="{{ route('ventas.create') }}" class="hidden sm:inline-flex btn-primary !py-2">
@@ -273,10 +322,18 @@
         <main class="flex-1 overflow-y-auto custom-scrollbar">
             <div class="max-w-7xl mx-auto px-4 py-6 lg:px-8 lg:py-8">
                 @hasSection('page-title')
-                    <div class="hidden lg:block mb-6">
-                        <h1 class="text-2xl font-bold text-gray-900 tracking-tight">@yield('page-title')</h1>
-                        @hasSection('page-description')
-                            <p class="mt-1 text-sm text-gray-500">@yield('page-description')</p>
+                    <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                        <div class="min-w-0">
+                            @hasSection('breadcrumb')
+                                <nav class="mb-1.5 flex items-center gap-1.5 text-sm text-gray-500">@yield('breadcrumb')</nav>
+                            @endif
+                            <h1 class="text-xl sm:text-2xl font-semibold text-gray-900 tracking-tight truncate">@yield('page-title')</h1>
+                            @hasSection('page-description')
+                                <p class="mt-1 text-sm text-gray-500">@yield('page-description')</p>
+                            @endif
+                        </div>
+                        @hasSection('page-actions')
+                            <div class="flex flex-wrap items-center gap-2 shrink-0">@yield('page-actions')</div>
                         @endif
                     </div>
                 @endif
@@ -288,25 +345,54 @@
 </div>
 
 <script>
-    // Notificaciones (los textos se pasan como JSON para evitar romper el JS o inyectar HTML)
     document.addEventListener('DOMContentLoaded', () => {
-        const toast = Swal.mixin({
-            toast: true,
-            position: 'top-end',
-            showConfirmButton: false,
-            timerProgressBar: true,
-            showCloseButton: true,
+        // Tema común para los diálogos
+        window.Dialogo = Swal.mixin({
+            buttonsStyling: false,
+            customClass: {
+                popup: 'rounded-xl',
+                title: 'text-lg font-semibold text-gray-900',
+                htmlContainer: 'text-sm text-gray-600',
+                confirmButton: 'btn-primary mx-1',
+                cancelButton: 'btn-secondary mx-1',
+                denyButton: 'btn-danger mx-1',
+                input: 'form-input',
+            },
+            reverseButtons: true,
         });
 
-        const mensajes = [
+        // Avisos breves (los textos llegan como JSON para no romper el JS)
+        window.aviso = (text, icon = 'success', timer = 3500) => Swal.fire({
+            toast: true, position: 'top-end', showConfirmButton: false, timerProgressBar: true,
+            showCloseButton: true, icon, text, timer,
+        });
+
+        [
             ['success', @json(session('success')), 4000],
             ['error', @json(session('error')), 6000],
             ['warning', @json(session('warning')), 5000],
-        ];
+        ].forEach(([icon, text, timer]) => { if (text) aviso(text, icon, timer); });
 
-        mensajes.forEach(([icon, text, timer]) => {
-            if (text) toast.fire({ icon, text, timer });
-        });
+        // Confirmación: <form data-confirm="¿Eliminar?" data-confirm-text="Eliminar" data-confirm-danger>
+        document.addEventListener('submit', async (e) => {
+            const form = e.target;
+            if (!form.dataset.confirm || form.dataset.confirmado) return;
+            e.preventDefault();
+            const peligro = form.hasAttribute('data-confirm-danger');
+            const r = await Dialogo.fire({
+                title: form.dataset.confirm,
+                text: form.dataset.confirmDetalle || '',
+                icon: peligro ? 'warning' : 'question',
+                showCancelButton: true,
+                confirmButtonText: form.dataset.confirmText || 'Confirmar',
+                cancelButtonText: 'Cancelar',
+                customClass: { confirmButton: (peligro ? 'btn-danger' : 'btn-primary') + ' mx-1', cancelButton: 'btn-secondary mx-1', popup: 'rounded-xl', title: 'text-lg font-semibold text-gray-900', htmlContainer: 'text-sm text-gray-600' },
+            });
+            if (r.isConfirmed) {
+                form.dataset.confirmado = '1';
+                form.requestSubmit ? form.requestSubmit() : form.submit();
+            }
+        }, true);
     });
 </script>
 
