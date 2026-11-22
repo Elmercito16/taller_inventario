@@ -37,7 +37,7 @@ class CompraController extends Controller
             $query->whereDate('fecha', '<=', $request->hasta);
         }
         if ($request->filled('q')) {
-            $query->where('numero_documento', 'like', '%' . $request->q . '%');
+            $query->whereLike('numero_documento', '%' . $request->q . '%');
         }
 
         $totalPeriodo = (float) (clone $query)->reorder()->where('estado', 'registrada')->sum('total');

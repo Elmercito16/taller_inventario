@@ -18,11 +18,11 @@ class ClienteController extends Controller
         if ($request->filled('q')) {
             $q = trim($request->q);
             $query->where(function ($w) use ($q) {
-                $w->where('nombre', 'like', "%{$q}%")
-                  ->orWhere('dni', 'like', "%{$q}%")
-                  ->orWhere('ruc', 'like', "%{$q}%")
-                  ->orWhere('telefono', 'like', "%{$q}%")
-                  ->orWhere('email', 'like', "%{$q}%");
+                $w->whereLike('nombre', "%{$q}%")
+                  ->orWhereLike('dni', "%{$q}%")
+                  ->orWhereLike('ruc', "%{$q}%")
+                  ->orWhereLike('telefono', "%{$q}%")
+                  ->orWhereLike('email', "%{$q}%");
             });
         }
 
@@ -116,9 +116,9 @@ class ClienteController extends Controller
         $clientes = Cliente::query()
             ->when($query !== '', function ($q) use ($query) {
                 $q->where(function ($q) use ($query) {
-                    $q->where('nombre', 'LIKE', "%{$query}%")
-                      ->orWhere('dni', 'LIKE', "%{$query}%")
-                      ->orWhere('ruc', 'LIKE', "%{$query}%");
+                    $q->whereLike('nombre', "%{$query}%")
+                      ->orWhereLike('dni', "%{$query}%")
+                      ->orWhereLike('ruc', "%{$query}%");
                 });
             })
             ->orderBy('nombre', 'asc')

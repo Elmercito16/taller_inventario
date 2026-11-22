@@ -53,9 +53,9 @@ class RepuestoController extends Controller
         if ($request->filled('q')) {
             $search = $request->q;
             $query->where(function ($q) use ($search) {
-                $q->where('nombre', 'like', "%{$search}%")
-                  ->orWhere('marca', 'like', "%{$search}%")
-                  ->orWhere('codigo', 'like', "%{$search}%")
+                $q->whereLike('nombre', "%{$search}%")
+                  ->orWhereLike('marca', "%{$search}%")
+                  ->orWhereLike('codigo', "%{$search}%")
                   ->orWhere('codigo_barras', $search);
             });
         }

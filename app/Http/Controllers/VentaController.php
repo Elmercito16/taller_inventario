@@ -23,7 +23,7 @@ class VentaController extends Controller
         if ($request->filled('q')) {
             $q = trim($request->q);
             $query->where(function ($w) use ($q) {
-                $w->whereHas('cliente', fn ($c) => $c->where('nombre', 'like', "%{$q}%")->orWhere('dni', 'like', "%{$q}%")->orWhere('ruc', 'like', "%{$q}%"));
+                $w->whereHas('cliente', fn ($c) => $c->whereLike('nombre', "%{$q}%")->orWhereLike('dni', "%{$q}%")->orWhereLike('ruc', "%{$q}%"));
                 if (ctype_digit(ltrim($q, '#0')) && ltrim($q, '#0') !== '') {
                     $w->orWhere('id', (int) ltrim($q, '#0'));
                 }

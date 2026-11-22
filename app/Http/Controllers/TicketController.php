@@ -23,7 +23,7 @@ class TicketController extends Controller
         if ($request->filled('q')) {
             $q = trim($request->q);
             $query->where(function ($w) use ($q) {
-                $w->where('cliente_nombre', 'like', "%{$q}%")->orWhere('cliente_documento', 'like', "%{$q}%");
+                $w->whereLike('cliente_nombre', "%{$q}%")->orWhereLike('cliente_documento', "%{$q}%");
                 $numero = (int) preg_replace('/\D/', '', $q);
                 if ($numero > 0) {
                     $w->orWhere('numero', $numero);

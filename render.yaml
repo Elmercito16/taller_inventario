@@ -1,0 +1,58 @@
+# Despliegue en Render (plan gratis) con base de datos en Supabase.
+# En Render: New > Blueprint > selecciona este repositorio.
+# Las variables marcadas con "sync: false" te las pedirá Render al crear el servicio.
+services:
+  - type: web
+    name: multisoft
+    runtime: docker
+    plan: free
+    region: virginia            # Elige la misma zona que tu proyecto de Supabase (East US / N. Virginia)
+    branch: main
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      # --- Obligatorias (te las pide Render) ---
+      - key: APP_KEY             # php artisan key:generate --show
+        sync: false
+      - key: DB_URL              # Cadena "Session pooler" de Supabase
+        sync: false
+      - key: APP_URL             # https://<tu-servicio>.onrender.com
+        sync: false
+
+      # --- Cuenta inicial (solo el primer arranque; luego borra INICIAL_ADMIN_CLAVE) ---
+      - key: INICIAL_EMPRESA
+        sync: false
+      - key: INICIAL_ADMIN_NOMBRE
+        sync: false
+      - key: INICIAL_ADMIN_CORREO
+        sync: false
+      - key: INICIAL_ADMIN_CLAVE
+        sync: false
+
+      # --- Configuración fija ---
+      - key: APP_NAME
+        value: MultiSoft
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_LOCALE
+        value: es
+      - key: APP_TIMEZONE
+        value: America/Lima
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_SSLMODE
+        value: require
+      - key: SESSION_DRIVER
+        value: database
+      - key: CACHE_STORE
+        value: file
+      - key: QUEUE_CONNECTION
+        value: sync
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: FILESYSTEM_DISK
+        value: local
+      - key: TICKETS_EN_FINANZAS
+        value: "true"

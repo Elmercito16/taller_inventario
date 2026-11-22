@@ -38,9 +38,9 @@ class ComprobanteController extends Controller
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
             $query->where(function ($q) use ($buscar) {
-                $q->where('numero_completo', 'like', "%{$buscar}%")
-                  ->orWhere('cliente_nombre', 'like', "%{$buscar}%")
-                  ->orWhere('cliente_num_doc', 'like', "%{$buscar}%");
+                $q->whereLike('numero_completo', "%{$buscar}%")
+                  ->orWhereLike('cliente_nombre', "%{$buscar}%")
+                  ->orWhereLike('cliente_num_doc', "%{$buscar}%");
             });
         }
 

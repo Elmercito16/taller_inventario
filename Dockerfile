@@ -1,58 +1,46 @@
-FROM php:8.2-fpm-alpine
+FROM php:8.2-cli-alpine
 
-ENV COMPOSER_ALLOW_SUPERUSER=1
-# Varios procesos para atender requests en paralelo con `artisan serve`
-ENV PHP_CLI_SERVER_WORKERS=4
+ENV COMPOSER_ALLOW_SUPERUSER=1 \
+    # Varios procesos para atender peticiones en paralelo con `artisan serve`
+    PHP_CLI_SERVER_WORKERS=4
 
-# Instalar dependencias
+# Dependencias del sistema
 RUN apk add --no-cache \
-    postgresql-dev \
-    postgresql-client \
-    libzip-dev \
-    libpng-dev \
-    libjpeg-turbo-dev \
-    freetype-dev \
-    zip \
-    unzip \
-    git \
-    nodejs \
-    npm \
-    bash
+        bash \
+        postgresql-dev \
+        libzip-dev \
+        libpng-dev \
+        libjpeg-turbo-dev \
+        freetype-dev \
+        libwebp-dev \
+        libxml2-dev \
+        libxslt-dev \
+        zip \
+        unzip
 
-# Instalar extensiones PHP
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg && \
-    docker-php-ext-install -j$(nproc) pdo pdo_pgsql pgsql zip gd bcmath
+# Extensiones PHP
+# - pdo_pgsql: base de datos PostgreSQL (Supabase)
+# - gd: logos e imágenes en PDF
+# - soap, xsl: facturación electrónica SUNAT (Greenter)
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
+    && docker-php-ext-install -j"$(nproc)" pdo pdo_pgsql pgsql zip gd bcmath soap xsl
 
-# Instalar Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copiar archivos
+# Dependencias PHP primero (aprovecha la caché de Docker)
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --no-autoloader --no-interaction --prefer-dist
+
+# Código de la aplicación
 COPY . .
-
-# Instalar dependencias PHP
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-# Instalar y compilar assets
-RUN if [ -f "package.json" ]; then \
-        npm install --legacy-peer-deps && \
-        npm run build; \
-    fi
-
-# Crear directorios y permisos
-# IMPORTANTE: monta un volumen persistente en /var/www/html/storage/app
-# para no perder XML/CDR/PDF/certificados de SUNAT en cada redeploy.
-RUN mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache storage/app/sunat/certificados && \
-    chmod -R 777 storage bootstrap/cache
+RUN composer dump-autoload --optimize --no-dev \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views \
+                storage/logs storage/app/public storage/app/sunat/certificados bootstrap/cache \
+    && chmod -R 775 storage bootstrap/cache \
+    && chmod +x docker-entrypoint.sh
 
 EXPOSE 8000
 
-# Inicio SIN migraciones (ya están ejecutadas)
-CMD echo "🚀 Iniciando aplicación..." && \
-    sleep 2 && \
-    php artisan config:clear && \
-    php artisan view:clear && \
-    php artisan storage:link 2>/dev/null || true && \
-    echo "✨ Servidor listo" && \
-    php artisan serve --host=0.0.0.0 --port=8000
+ENTRYPOINT ["./docker-entrypoint.sh"]

@@ -1,33 +1,35 @@
 #!/bin/bash
+# Arranque del contenedor en Render (base de datos en Supabase).
 set -e
+cd /var/www/html
 
-echo "🚀 Iniciando aplicación Laravel..."
+if [ -z "$APP_KEY" ]; then
+    echo "ERROR: falta la variable APP_KEY. Genérala con: php artisan key:generate --show"
+    exit 1
+fi
 
-# Esperar a que la base de datos esté lista
-echo "⏳ Esperando PostgreSQL..."
-until pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USERNAME" 2>/dev/null; do
-    echo "PostgreSQL no está listo - esperando..."
-    sleep 2
+echo "Preparando la aplicación..."
+php artisan config:clear >/dev/null
+php artisan storage:link >/dev/null 2>&1 || true
+
+# Migraciones (con reintentos por si la base de datos tarda en responder)
+intentos=0
+until php artisan migrate --force; do
+    intentos=$((intentos + 1))
+    if [ "$intentos" -ge 5 ]; then
+        echo "ERROR: no se pudieron ejecutar las migraciones. Revisa DB_URL."
+        exit 1
+    fi
+    echo "Base de datos no disponible, reintentando en 5 s ($intentos/5)..."
+    sleep 5
 done
 
-echo "✅ PostgreSQL está listo!"
+# Cuenta inicial (solo si no existe ningún usuario y se definieron las variables INICIAL_*)
+php artisan sistema:cuenta-inicial || true
 
-# Ejecutar migraciones
-echo "📦 Ejecutando migraciones..."
-php artisan migrate --force --no-interaction || echo "⚠️ Error en migraciones (puede ser normal si ya están ejecutadas)"
-
-# Crear link de storage si no existe
-echo "🔗 Creando storage link..."
-php artisan storage:link || echo "⚠️ Storage link ya existe"
-
-# Limpiar y optimizar cache
-echo "🧹 Optimizando aplicación..."
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
-php artisan optimize
 
-echo "✨ Aplicación lista!"
-
-# Ejecutar comando
-exec "$@"
+echo "Aplicación lista en el puerto ${PORT:-8000}"
+exec php artisan serve --host=0.0.0.0 --port="${PORT:-8000}"
