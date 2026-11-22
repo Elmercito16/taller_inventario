@@ -35,9 +35,14 @@ class Ticket extends Model
     /** Siguiente correlativo de la empresa (se llama dentro de una transacción). */
     public static function siguienteNumero(int $empresaId): int
     {
-        $max = DB::table('tickets')->where('empresa_id', $empresaId)->lockForUpdate()->max('numero');
+        // Se bloquea la última fila (PostgreSQL no admite FOR UPDATE con MAX()).
+        $ultimo = DB::table('tickets')
+            ->where('empresa_id', $empresaId)
+            ->orderByDesc('numero')
+            ->lockForUpdate()
+            ->value('numero');
 
-        return ((int) $max) + 1;
+        return ((int) $ultimo) + 1;
     }
 
     public function getNumeroFormateadoAttribute(): string
